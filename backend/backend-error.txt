@@ -1,0 +1,85 @@
+
+[2025-12-17T20:06:10.189Z] Create Proposal Error: {"code":"23502","details":"Failing row contains (e3584e8e-7c17-46ec-ab48-e12ac599836f, PROP-2025-0012, Fixed Proposal, c2e69f5f-dd56-49fd-85b0-ee40270ce2e7, null, a9256112-796f-4764-9495-ccfd60b8379e, DRAFT, null, 20.00, null, null, Test Description, null, null, null, null, null, null, 2025-12-17 20:06:09.888253, 2025-12-17 20:06:09.888253).","hint":null,"message":"null value in column \"subtotal\" of relation \"proposals\" violates not-null constraint"}
+
+[2025-12-17T20:07:53.001Z] Create Proposal Error: {"code":"23502","details":"Failing row contains (1c20d555-0bcb-4a20-bc7e-c405acd94038, PROP-2025-0012, Fixed Proposal, c2e69f5f-dd56-49fd-85b0-ee40270ce2e7, null, a9256112-796f-4764-9495-ccfd60b8379e, DRAFT, null, 20.00, null, null, Fixed Proposal Created via JS, null, null, null, null, null, null, 2025-12-17 20:07:52.718409, 2025-12-17 20:07:52.718409).","hint":null,"message":"null value in column \"subtotal\" of relation \"proposals\" violates not-null constraint"}
+
+[2025-12-18T06:34:26.956Z] CRITICAL ERROR: Failed to retrieve created proposal
+Stack: Error: Failed to retrieve created proposal
+    at ProposalsService.create (D:\acursor\jul3\backend\src\proposals\proposals.service.ts:136:41)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async D:\acursor\jul3\backend\node_modules\@nestjs\core\router\router-execution-context.js:46:28
+    at async D:\acursor\jul3\backend\node_modules\@nestjs\core\router\router-proxy.js:9:17
+
+[2025-12-18T06:34:54.228Z] CRITICAL ERROR: Failed to retrieve created proposal
+Stack: Error: Failed to retrieve created proposal
+    at ProposalsService.create (D:\acursor\jul3\backend\src\proposals\proposals.service.ts:136:41)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async D:\acursor\jul3\backend\node_modules\@nestjs\core\router\router-execution-context.js:46:28
+    at async D:\acursor\jul3\backend\node_modules\@nestjs\core\router\router-proxy.js:9:17
+
+[2025-12-18T06:46:06.113Z] CRITICAL ERROR: Failed to retrieve created proposal
+Stack: Error: Failed to retrieve created proposal
+    at ProposalsService.create (D:\acursor\jul3\backend\src\proposals\proposals.service.ts:137:41)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async D:\acursor\jul3\backend\node_modules\@nestjs\core\router\router-execution-context.js:46:28
+    at async D:\acursor\jul3\backend\node_modules\@nestjs\core\router\router-proxy.js:9:17
+
+[2025-12-18T06:55:40.080Z] CRITICAL ERROR: duplicate key value violates unique constraint "proposals_proposal_number_key"
+Stack: undefined
+
+[2025-12-18T06:55:59.822Z] CRITICAL ERROR: duplicate key value violates unique constraint "proposals_proposal_number_key"
+Stack: undefined
+
+[2025-12-18T06:56:14.469Z] CRITICAL ERROR: duplicate key value violates unique constraint "proposals_proposal_number_key"
+Stack: undefined
+
+[2025-12-18T06:59:37.115Z] CRITICAL ERROR: duplicate key value violates unique constraint "proposals_proposal_number_key"
+Stack: undefined
+
+[2025-12-18T06:59:37.738Z] CRITICAL ERROR: duplicate key value violates unique constraint "proposals_proposal_number_key"
+Stack: undefined
+
+[2025-12-18T06:59:40.104Z] CRITICAL ERROR: duplicate key value violates unique constraint "proposals_proposal_number_key"
+Stack: undefined
+
+[2025-12-18T06:59:44.063Z] CRITICAL ERROR: duplicate key value violates unique constraint "proposals_proposal_number_key"
+Stack: undefined
+
+[2025-12-18T07:20:02.208Z] CRITICAL ERROR: Failed to retrieve created proposal
+Stack: Error: Failed to retrieve created proposal
+    at ProposalsService.create (D:\acursor\jul3\backend\src\proposals\proposals.service.ts:137:41)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async D:\acursor\jul3\backend\node_modules\@nestjs\core\router\router-execution-context.js:46:28
+    at async D:\acursor\jul3\backend\node_modules\@nestjs\core\router\router-proxy.js:9:17
+
+[2025-12-18T07:20:28.426Z] CRITICAL ERROR: Failed to retrieve created proposal
+Stack: Error: Failed to retrieve created proposal
+    at ProposalsService.create (D:\acursor\jul3\backend\src\proposals\proposals.service.ts:137:41)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async D:\acursor\jul3\backend\node_modules\@nestjs\core\router\router-execution-context.js:46:28
+    at async D:\acursor\jul3\backend\node_modules\@nestjs\core\router\router-proxy.js:9:17
+
+[2025-12-18T07:27:03.768Z] CRITICAL ERROR: Failed to retrieve created proposal
+Stack: Error: Failed to retrieve created proposal
+    at ProposalsService.create (D:\acursor\jul3\backend\src\proposals\proposals.service.ts:137:41)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async D:\acursor\jul3\backend\node_modules\@nestjs\core\router\router-execution-context.js:46:28
+    at async D:\acursor\jul3\backend\node_modules\@nestjs\core\router\router-proxy.js:9:17
+
+[2025-12-18T07:37:28.838Z] CRITICAL ERROR: Failed to retrieve created proposal
+Stack: Error: Failed to retrieve created proposal
+    at ProposalsService.create (D:\acursor\jul3\backend\src\proposals\proposals.service.ts:140:41)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async D:\acursor\jul3\backend\node_modules\@nestjs\core\router\router-execution-context.js:46:28
+    at async D:\acursor\jul3\backend\node_modules\@nestjs\core\router\router-proxy.js:9:17
+
+[2025-12-18T07:38:35.261Z] FindOne Error: {"code":"PGRST200","details":"Searched for a foreign key relationship between 'proposals' and 'users' in the schema 'public', but no matches were found.","hint":null,"message":"Could not find a relationship between 'proposals' and 'users' in the schema cache"}
+
+[2025-12-18T07:38:35.268Z] CRITICAL ERROR: Failed to retrieve created proposal
+Stack: Error: Failed to retrieve created proposal
+    at ProposalsService.create (D:\acursor\jul3\backend\src\proposals\proposals.service.ts:142:41)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async D:\acursor\jul3\backend\node_modules\@nestjs\core\router\router-execution-context.js:46:28
+    at async D:\acursor\jul3\backend\node_modules\@nestjs\core\router\router-proxy.js:9:17
+
+[2025-12-18T11:28:35.887Z] FindOne Error: {"message":"TypeError: fetch failed","details":"TypeError: fetch failed\n\nCaused by: ConnectTimeoutError: Connect Timeout Error (attempted address: slanoowprgrcksfqrgak.supabase.co:443, timeout: 10000ms) (UND_ERR_CONNECT_TIMEOUT)\nConnectTimeoutError: Connect Timeout Error (attempted address: slanoowprgrcksfqrgak.supabase.co:443, timeout: 10000ms)\n    at onConnectTimeout (node:internal/deps/undici/undici:2602:28)\n    at Immediate._onImmediate (node:internal/deps/undici/undici:2568:35)\n    at process.processImmediate (node:internal/timers:491:21)","hint":"","code":""} 

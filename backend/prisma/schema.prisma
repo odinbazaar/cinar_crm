@@ -1,0 +1,529 @@
+// Çınar Reklam Ajansı CRM - Database Schema
+// SQLite Compatible Version
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// 1. USER MANAGEMENT & AUTHENTICATION
+// ============================================
+
+model User {
+  id            String      @id @default(uuid())
+  email         String      @unique
+  password      String
+  firstName     String
+  lastName      String
+  role          String      // Enum handled as string in SQLite
+  status        String      @default("ACTIVE")
+  avatar        String?
+  phone         String?
+  hourlyRate    Decimal?    // @db.Decimal removed
+  
+  // Relations
+  assignedClients    Client[]       @relation("AccountManager")
+  managedProjects    Project[]      @relation("ProjectManager")
+  tasks              TaskAssignment[]
+  timeEntries        TimeEntry[]
+  createdProposals   Proposal[]
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  @@map("users")
+}
+
+// ============================================
+// 2. CLIENT & LEAD MANAGEMENT
+// ============================================
+
+model Client {
+  id              String        @id @default(uuid())
+  name            String
+  type            String        // Enum handled as string
+  companyName     String?
+  taxNumber       String?
+  email           String?
+  phone           String?
+  address         String?
+  website         String?
+  
+  // Lead tracking
+  leadSource      String?
+  leadStage       String        @default("LEAD")
+  
+  // Brand information
+  brandMission    String?       // @db.Text removed
+  brandTone       String?
+  brandValues     String?       // @db.Text removed
+  targetAudience  String?       // @db.Text removed
+  
+  // Account Manager
+  accountManagerId String?
+  accountManager   User?         @relation("AccountManager", fields: [accountManagerId], references: [id])
+  
+  // Relations
+  projects        Project[]
+  proposals       Proposal[]
+  contracts       Contract[]
+  communications  Communication[]
+  contacts        Contact[]
+  bookings        Booking[]
+  
+  // Metadata
+  isActive        Boolean       @default(true)
+  lostReason      String?       // @db.Text removed
+  lostDate        DateTime?
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@map("clients")
+}
+
+model Contact {
+  id          String    @id @default(uuid())
+  clientId    String
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  firstName   String
+  lastName    String
+  title       String?   // Pozisyon
+  email       String?
+  phone       String?
+  isPrimary   Boolean   @default(false)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("contacts")
+}
+
+model Communication {
+  id          String    @id @default(uuid())
+  clientId    String
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  type        String    // EMAIL, MEETING, CALL, NOTE
+  subject     String?
+  content     String    // @db.Text removed
+  date        DateTime  @default(now())
+  
+  // Email integration metadata
+  emailId     String?
+  fromEmail   String?
+  toEmail     String?
+  
+  createdAt   DateTime  @default(now())
+  
+  @@map("communications")
+}
+
+// ============================================
+// 3. PROJECT & TASK MANAGEMENT
+// ============================================
+
+model Project {
+  id              String          @id @default(uuid())
+  name            String
+  description     String?         // @db.Text removed
+  category        String
+  status          String          @default("PLANNING")
+  
+  // Client relation
+  clientId        String
+  client          Client          @relation(fields: [clientId], references: [id])
+  
+  // Project Manager
+  projectManagerId String?
+  projectManager   User?          @relation("ProjectManager", fields: [projectManagerId], references: [id])
+  
+  // Budget & Finance
+  budget          Decimal
+  actualCost      Decimal         @default(0)
+  profitMargin    Decimal?
+  
+  // Timeline
+  startDate       DateTime?
+  endDate         DateTime?
+  deadline        DateTime?
+  
+  // Relations
+  tasks           Task[]
+  proposals       Proposal[]
+  invoices        Invoice[]
+  timeEntries     TimeEntry[]
+  bookings        Booking[]
+  
+  // Metadata
+  isArchived      Boolean         @default(false)
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  @@map("projects")
+}
+
+model Task {
+  id              String          @id @default(uuid())
+  title           String
+  description     String?         // @db.Text removed
+  status          String          @default("TODO")
+  priority        String          @default("MEDIUM")
+  
+  // Project relation
+  projectId       String
+  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Timeline
+  startDate       DateTime?
+  dueDate         DateTime?
+  completedDate   DateTime?
+  
+  // Estimated vs Actual hours
+  estimatedHours  Decimal?
+  actualHours     Decimal         @default(0)
+  
+  // Relations
+  assignments     TaskAssignment[]
+  timeEntries     TimeEntry[]
+  approvals       TaskApproval[]
+  
+  // Parent task for subtasks
+  parentTaskId    String?
+  parentTask      Task?           @relation("SubTasks", fields: [parentTaskId], references: [id])
+  subTasks        Task[]          @relation("SubTasks")
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  @@map("tasks")
+}
+
+model TaskAssignment {
+  id          String    @id @default(uuid())
+  taskId      String
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  
+  assignedAt  DateTime  @default(now())
+  
+  @@unique([taskId, userId])
+  @@map("task_assignments")
+}
+
+model TaskApproval {
+  id          String    @id @default(uuid())
+  taskId      String
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  approverType String   // INTERNAL, CLIENT
+  approverName String
+  approverEmail String?
+  
+  status      String    // PENDING, APPROVED, REJECTED
+  comments    String?   // @db.Text removed
+  approvedAt  DateTime?
+  
+  createdAt   DateTime  @default(now())
+  
+  @@map("task_approvals")
+}
+
+// ============================================
+// 4. TIME TRACKING
+// ============================================
+
+model TimeEntry {
+  id          String    @id @default(uuid())
+  
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id])
+  
+  taskId      String?
+  task        Task?     @relation(fields: [taskId], references: [id])
+  
+  description String?
+  startTime   DateTime
+  endTime     DateTime?
+  duration    Int?      // Minutes
+  
+  isBillable  Boolean   @default(true)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("time_entries")
+}
+
+// ============================================
+// 5. FINANCE & PROPOSALS
+// ============================================
+
+model Proposal {
+  id              String          @id @default(uuid())
+  proposalNumber  String          @unique
+  title           String
+  
+  clientId        String
+  client          Client          @relation(fields: [clientId], references: [id])
+  
+  projectId       String?
+  project         Project?        @relation(fields: [projectId], references: [id])
+  
+  createdById     String
+  createdBy       User            @relation(fields: [createdById], references: [id])
+  
+  status          String          @default("DRAFT")
+  
+  // Financial
+  subtotal        Decimal
+  taxRate         Decimal         @default(20)
+  taxAmount       Decimal
+  total           Decimal
+  
+  // Content
+  description     String?         // @db.Text removed
+  terms           String?         // @db.Text removed
+  
+  // Items
+  items           ProposalItem[]
+  
+  // Dates
+  validUntil      DateTime?
+  sentAt          DateTime?
+  viewedAt        DateTime?
+  acceptedAt      DateTime?
+  
+  pdfUrl          String?
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  @@map("proposals")
+}
+
+model ProposalItem {
+  id              String    @id @default(uuid())
+  proposalId      String
+  proposal        Proposal  @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  
+  description     String
+  quantity        Decimal
+  unitPrice       Decimal
+  total           Decimal
+  
+  // For service items
+  estimatedHours  Decimal?
+  hourlyRate      Decimal?
+  
+  order           Int       @default(0)
+  
+  @@map("proposal_items")
+}
+
+model Invoice {
+  id              String          @id @default(uuid())
+  invoiceNumber   String          @unique
+  
+  projectId       String
+  project         Project         @relation(fields: [projectId], references: [id])
+  
+  status          String          @default("DRAFT")
+  
+  // Financial
+  subtotal        Decimal
+  taxRate         Decimal         @default(20)
+  taxAmount       Decimal
+  total           Decimal
+  
+  // Payment
+  paidAmount      Decimal         @default(0)
+  paymentMethod   String?
+  paymentDate     DateTime?
+  
+  // Dates
+  issueDate       DateTime        @default(now())
+  dueDate         DateTime
+  
+  notes           String?         // @db.Text removed
+  pdfUrl          String?
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  @@map("invoices")
+}
+
+model Contract {
+  id              String    @id @default(uuid())
+  contractNumber  String    @unique
+  
+  clientId        String
+  client          Client    @relation(fields: [clientId], references: [id])
+  
+  title           String
+  description     String?   // @db.Text removed
+  
+  value           Decimal
+  
+  startDate       DateTime
+  endDate         DateTime?
+  
+  status          String    // ACTIVE, EXPIRED, TERMINATED
+  
+  documentUrl     String?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@map("contracts")
+}
+
+// ============================================
+// 6. RESOURCE ALLOCATION
+// ============================================
+
+model ResourceAllocation {
+  id          String    @id @default(uuid())
+  userId      String
+  projectId   String
+  
+  // Allocation percentage (0-100)
+  allocation  Int       // Percentage
+  
+  startDate   DateTime
+  endDate     DateTime?
+  
+  notes       String?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("resource_allocations")
+}
+
+// ============================================
+// 7. SYSTEM SETTINGS
+// ============================================
+
+model SystemSetting {
+  id          String    @id @default(uuid())
+  key         String    @unique
+  value       String    // @db.Text removed
+  description String?
+  
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("system_settings")
+}
+
+// ============================================
+// 8. INVENTORY & BOOKING MANAGEMENT (NEW)
+// ============================================
+
+model InventoryItem {
+  id          String        @id @default(uuid())
+  code        String        @unique // Örn: BB0101, CLP0102
+  type        String?       // Deprecated, use product.name
+  
+  productId   String?
+  product     Product?      @relation(fields: [productId], references: [id])
+  
+  district    String        // İlçe (Örn: Karşıyaka)
+  neighborhood String?      // Semt (Örn: Bostanlı)
+  address     String        // Adres (Örn: Kent A.Ş Karşısı)
+  coordinates String?       // Koordinat (38.49505, 27.11641)
+  
+  network     String?       // Network 1, Network 2, vb.
+  
+  bookings    Booking[]
+  
+  isActive    Boolean       @default(true)
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("inventory_items")
+}
+
+model Booking {
+  id              String        @id @default(uuid())
+  
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  
+  // Rezervasyon bir projeye bağlı olabilir
+  projectId       String?
+  project         Project?      @relation(fields: [projectId], references: [id])
+  
+  // Veya doğrudan bir müşteriye/markaya yapılabilir
+  clientId        String?
+  client          Client?       @relation(fields: [clientId], references: [id])
+  
+  startDate       DateTime
+  endDate         DateTime
+  
+  status          String        @default("OPTION")
+  
+  notes           String?
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("bookings")
+}
+
+// ============================================
+// 9. PRODUCT & PRICING (NEW)
+// ============================================
+
+model Product {
+  id          String      @id @default(uuid())
+  name        String      // Örn: Megalight, CLP, Billboard
+  code        String      @unique // Örn: MG, CLP, BB
+  description String?
+  
+  // Material Specs
+  dimensions  String?     // Örn: 320x220 cm
+  material    String?     // Örn: Kuşe, Vinil
+  
+  prices      PriceList[]
+  inventory   InventoryItem[]
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("products")
+}
+
+model PriceList {
+  id          String      @id @default(uuid())
+  productId   String
+  product     Product     @relation(fields: [productId], references: [id])
+  
+  name        String      // Örn: 2025 Liste Fiyatı
+  period      String      // Örn: HAFTALIK, AYLIK
+  price       Decimal     // Birim Fiyat
+  printPrice  Decimal     // Baskı Fiyatı
+  currency    String      @default("TRY")
+  
+  year        Int         @default(2025)
+  isActive    Boolean     @default(true)
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("price_lists")
+}

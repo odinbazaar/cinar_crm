@@ -1,0 +1,22 @@
+[
+  "id",
+  "proposal_number",
+  "title",
+  "client_id",
+  "project_id",
+  "created_by_id",
+  "status",
+  "subtotal",
+  "tax_rate",
+  "tax_amount",
+  "total",
+  "description",
+  "terms",
+  "valid_until",
+  "sent_at",
+  "viewed_at",
+  "accepted_at",
+  "pdf_url",
+  "created_at",
+  "updated_at"
+]

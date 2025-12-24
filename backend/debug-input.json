@@ -1,0 +1,84 @@
+{
+  "title": "hffkf",
+  "client_id": "c2e69f5f-dd56-49fd-85b0-ee40270ce2e7",
+  "created_by_id": "a9256112-796f-4764-9495-ccfd60b8379e",
+  "description": "",
+  "terms": "Teklifimize ilan reklam vergileri dahil, KDV hariçtir. Her türlü iptal talebi, en geç kampanya başlangıç tarihine 20 gün kala bildirilmelidir. Daha geç bildirilen iptaller için kiracı, kira bedelinin %50'sini cezai şart olarak ödemeyi kabul ve taahhüt eder.",
+  "valid_until": "2026-01-02T00:00:00.000Z",
+  "items": [
+    {
+      "description": "BB - 350 x 200 cm",
+      "quantity": 8,
+      "unit_price": 17500,
+      "total": 140000,
+      "metadata": {
+        "type": "BB",
+        "district": "Karşıyaka",
+        "duration": 5,
+        "period": "HAFTALIK",
+        "measurements": "350 x 200 cm"
+      }
+    },
+    {
+      "description": "OP. BEDELİ - 350 x 200 cm",
+      "quantity": 8,
+      "unit_price": 400,
+      "total": 3200,
+      "metadata": {
+        "type": "OP_BEDEL",
+        "district": "Karşıyaka",
+        "measurements": "350 x 200 cm"
+      }
+    },
+    {
+      "description": "BASKI BEDELİ - 350 x 200 cm",
+      "quantity": 8,
+      "unit_price": 400,
+      "total": 3200,
+      "metadata": {
+        "type": "BASKI",
+        "district": "Karşıyaka",
+        "measurements": "350 x 200 cm"
+      }
+    },
+    {
+      "description": "BB - 350 x 200 cm",
+      "quantity": 1,
+      "unit_price": 3500,
+      "total": 3500,
+      "metadata": {
+        "type": "BB",
+        "district": "Karşıyaka",
+        "duration": 1,
+        "period": "HAFTALIK",
+        "measurements": "350 x 200 cm"
+      }
+    },
+    {
+      "description": "OP. BEDELİ - 350 x 200 cm",
+      "quantity": 1,
+      "unit_price": 400,
+      "total": 400,
+      "metadata": {
+        "type": "OP_BEDEL",
+        "district": "Karşıyaka",
+        "measurements": "350 x 200 cm"
+      }
+    },
+    {
+      "description": "BASKI BEDELİ - 350 x 200 cm",
+      "quantity": 1,
+      "unit_price": 400,
+      "total": 400,
+      "metadata": {
+        "type": "BASKI",
+        "district": "Karşıyaka",
+        "measurements": "350 x 200 cm"
+      }
+    }
+  ],
+  "subtotal": 150700,
+  "tax_rate": 20,
+  "tax_amount": 30140,
+  "total": 180840
+}
