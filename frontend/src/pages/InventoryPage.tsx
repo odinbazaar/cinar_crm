@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Search, Plus, Edit2, Map, Upload } from 'lucide-react'
 // Remove mock data import and use service
 import { inventoryService } from '../services/inventoryService'
+import { inventoryData } from '../data/inventoryData'
 import type { InventoryItem } from '../services/inventoryService'
 import InventoryFormModal from '../components/inventory/InventoryFormModal'
 import InventoryMapModal from '../components/inventory/InventoryMapModal'
@@ -33,10 +34,21 @@ export default function InventoryPage() {
     const fetchInventory = async () => {
         try {
             setLoading(true)
-            const data = await inventoryService.getAll()
-            setInventory(data)
+            // Try to fetch from API, if fails fallback to local data
+            try {
+                const data = await inventoryService.getAll()
+                if (data && data.length > 0) {
+                    setInventory(data)
+                } else {
+                    setInventory(inventoryData as any)
+                }
+            } catch (apiError) {
+                console.warn('API fetch failed, using local inventory data:', apiError)
+                setInventory(inventoryData as any)
+            }
         } catch (error) {
             console.error('Failed to fetch inventory:', error)
+            setInventory(inventoryData as any)
         } finally {
             setLoading(false)
         }

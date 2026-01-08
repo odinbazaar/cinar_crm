@@ -1,0 +1,590 @@
+[
+  {
+    "Koordinat": "38.49505, 27.11641",
+    "İlçe": "Karşıyaka",
+    "Semt": "Yeni Girne",
+    "Adres": "Kent A.Ş Karşısı",
+    "Kod": "BB0101"
+  },
+  {
+    "Koordinat": "38.49505, 27.11641",
+    "İlçe": "Karşıyaka",
+    "Semt": "Yeni Girne",
+    "Adres": "Kent A.Ş Karşısı",
+    "Kod": "BB0102"
+  },
+  {
+    "Koordinat": "38.49505, 27.11641",
+    "İlçe": "Karşıyaka",
+    "Semt": "Yeni Girne",
+    "Adres": "Kent A.Ş Karşısı",
+    "Kod": "BB0103"
+  },
+  {
+    "Koordinat": "38.49505, 27.11641",
+    "İlçe": "Karşıyaka",
+    "Semt": "Yeni Girne",
+    "Adres": "Kent A.Ş Karşısı",
+    "Kod": "BB0104"
+  },
+  {
+    "Koordinat": "38.49472, 27.11613",
+    "İlçe": "Karşıyaka",
+    "Semt": "Yeni Girne",
+    "Adres": "Karşıyaka Tenis Kortları Karşısı",
+    "Kod": "BB0201"
+  },
+  {
+    "Koordinat": "38.49472, 27.11613",
+    "İlçe": "Karşıyaka",
+    "Semt": "Yeni Girne",
+    "Adres": "Karşıyaka Tenis Kortları Karşısı",
+    "Kod": "BB0202"
+  },
+  {
+    "Koordinat": "38.49472, 27.11613",
+    "İlçe": "Karşıyaka",
+    "Semt": "Yeni Girne",
+    "Adres": "Karşıyaka Tenis Kortları Karşısı",
+    "Kod": "BB0203"
+  },
+  {
+    "Koordinat": "38.49472, 27.11613",
+    "İlçe": "Karşıyaka",
+    "Semt": "Yeni Girne",
+    "Adres": "Karşıyaka Tenis Kortları Karşısı",
+    "Kod": "BB0204"
+  },
+  {
+    "Koordinat": "38.4925, 27.09205",
+    "İlçe": "Karşıyaka",
+    "Semt": "Esin Sitesi",
+    "Adres": "Park Önü Kavşak",
+    "Kod": "BB0301"
+  },
+  {
+    "Koordinat": "38.4925, 27.09205",
+    "İlçe": "Karşıyaka",
+    "Semt": "Esin Sitesi",
+    "Adres": "Park Önü Kavşak",
+    "Kod": "BB0302"
+  },
+  {
+    "Koordinat": "38.49221, 27.09148",
+    "İlçe": "Karşıyaka",
+    "Semt": "Esin Sitesi",
+    "Adres": "Coeur de Lion Karşısı",
+    "Kod": "BB0401"
+  },
+  {
+    "Koordinat": "38.49221, 27.09148",
+    "İlçe": "Karşıyaka",
+    "Semt": "Esin Sitesi",
+    "Adres": "Coeur de Lion Karşısı",
+    "Kod": "BB0402"
+  },
+  {
+    "Koordinat": "38.4909, 27.0909",
+    "İlçe": "Karşıyaka",
+    "Semt": "Esin Sitesi",
+    "Adres": "Coeur de Lion Çevreyolu Çıkışı",
+    "Kod": "BB0501"
+  },
+  {
+    "Koordinat": "38.4909, 27.0909",
+    "İlçe": "Karşıyaka",
+    "Semt": "Esin Sitesi",
+    "Adres": "Coeur de Lion Çevreyolu Çıkışı",
+    "Kod": "BB0502"
+  },
+  {
+    "Koordinat": "38.4909, 27.0909",
+    "İlçe": "Karşıyaka",
+    "Semt": "Esin Sitesi",
+    "Adres": "Coeur de Lion Çevreyolu Çıkışı",
+    "Kod": "BB0503"
+  },
+  {
+    "Koordinat": "38.4909, 27.0909",
+    "İlçe": "Karşıyaka",
+    "Semt": "Esin Sitesi",
+    "Adres": "Coeur de Lion Çevreyolu Çıkışı",
+    "Kod": "BB0504"
+  },
+  {
+    "Koordinat": "38.48713, 27.09191",
+    "İlçe": "Karşıyaka",
+    "Semt": "Esin Sitesi",
+    "Adres": "Soyak Siesta Kavşak 1",
+    "Kod": "BB0601"
+  },
+  {
+    "Koordinat": "38.48713, 27.09191",
+    "İlçe": "Karşıyaka",
+    "Semt": "Esin Sitesi",
+    "Adres": "Soyak Siesta Kavşak1",
+    "Kod": "BB0602"
+  },
+  {
+    "Koordinat": "38.48713, 27.09191",
+    "İlçe": "Karşıyaka",
+    "Semt": "Esin Sitesi",
+    "Adres": "Soyak Siesta Kavşak 1",
+    "Kod": "BB0603"
+  },
+  {
+    "Koordinat": "38.48713, 27.09191",
+    "İlçe": "Karşıyaka",
+    "Semt": "Esin Sitesi",
+    "Adres": "Soyak Siesta Kavşak 1",
+    "Kod": "BB0604"
+  },
+  {
+    "Koordinat": "38.48713, 27.09191",
+    "İlçe": "Karşıyaka",
+    "Semt": "Esin Sitesi",
+    "Adres": "Soyak Siesta Kavşak 2",
+    "Kod": "BB0605"
+  },
+  {
+    "Koordinat": "38.48713, 27.09191",
+    "İlçe": "Karşıyaka",
+    "Semt": "Esin Sitesi",
+    "Adres": "Soyak Siesta Kavşak 2",
+    "Kod": "BB0606"
+  },
+  {
+    "Koordinat": "38.48713, 27.09191",
+    "İlçe": "Karşıyaka",
+    "Semt": "Esin Sitesi",
+    "Adres": "Soyak Siesta Kavşak 2",
+    "Kod": "BB0607"
+  },
+  {
+    "Koordinat": "38.48713, 27.09191",
+    "İlçe": "Karşıyaka",
+    "Semt": "Esin Sitesi",
+    "Adres": "Soyak Siesta Kavşak 2",
+    "Kod": "BB0608"
+  },
+  {
+    "Koordinat": "38.4828, 27.09677",
+    "İlçe": "Karşıyaka",
+    "Semt": "Cumhuriyet Mahallesi",
+    "Adres": "Pazar Yeri",
+    "Kod": "BB0701"
+  },
+  {
+    "Koordinat": "38.4828, 27.09677",
+    "İlçe": "Karşıyaka",
+    "Semt": "Cumhuriyet Mahallesi",
+    "Adres": "Pazar Yeri",
+    "Kod": "BB0702"
+  },
+  {
+    "Koordinat": "38.471, 27.09958",
+    "İlçe": "Karşıyaka",
+    "Semt": "Demirköprü",
+    "Adres": "Demirköprü Diş Hastanesi Önü",
+    "Kod": "BB0801"
+  },
+  {
+    "Koordinat": "38.471, 27.09958",
+    "İlçe": "Karşıyaka",
+    "Semt": "Demirköprü",
+    "Adres": "Demirköprü Diş Hastanesi Önü",
+    "Kod": "BB0802"
+  },
+  {
+    "Koordinat": "38.465, 27.09666",
+    "İlçe": "Karşıyaka",
+    "Semt": "Demirköprü",
+    "Adres": "Demirköprü Alt Geçidi Çıkışı",
+    "Kod": "BB0901"
+  },
+  {
+    "Koordinat": "38.46105, 27.09613",
+    "İlçe": "Karşıyaka",
+    "Semt": "Bostanlı",
+    "Adres": "PTT Önü",
+    "Kod": "BB1001"
+  },
+  {
+    "Koordinat": "38.46105, 27.09613",
+    "İlçe": "Karşıyaka",
+    "Semt": "Bostanlı",
+    "Adres": "PTT Önü",
+    "Kod": "BB1002"
+  },
+  {
+    "Koordinat": "38.46105, 27.09613",
+    "İlçe": "Karşıyaka",
+    "Semt": "Bostanlı",
+    "Adres": "PTT Önü",
+    "Kod": "BB1003"
+  },
+  {
+    "Koordinat": "38.46524, 27.09875",
+    "İlçe": "Karşıyaka",
+    "Semt": "Demirköprü",
+    "Adres": "Demirköprü Alt Geçidi",
+    "Kod": "BB1101"
+  },
+  {
+    "Koordinat": "38.46524, 27.09875",
+    "İlçe": "Karşıyaka",
+    "Semt": "Demirköprü",
+    "Adres": "Demirköprü Alt Geçidi",
+    "Kod": "BB1102"
+  },
+  {
+    "Koordinat": "38.46113, 27.09972",
+    "İlçe": "Karşıyaka",
+    "Semt": "Bostanlı",
+    "Adres": "Gode Cengiz Futbol Sahası Önü",
+    "Kod": "BB1201"
+  },
+  {
+    "Koordinat": "38.46113, 27.09972",
+    "İlçe": "Karşıyaka",
+    "Semt": "Bostanlı",
+    "Adres": "Gode Cengiz Futbol Sahası Önü",
+    "Kod": "BB1202"
+  },
+  {
+    "Koordinat": "38.46113, 27.09972",
+    "İlçe": "Karşıyaka",
+    "Semt": "Bostanlı",
+    "Adres": "Gode Cengiz Futbol Sahası Önü",
+    "Kod": "BB1203"
+  },
+  {
+    "Koordinat": "38.46113, 27.09972",
+    "İlçe": "Karşıyaka",
+    "Semt": "Bostanlı",
+    "Adres": "Gode Cengiz Futbol Sahası Önü",
+    "Kod": "BB1204"
+  },
+  {
+    "Koordinat": "38.45861, 27.09988",
+    "İlçe": "Karşıyaka",
+    "Semt": "Bostanlı",
+    "Adres": "3M Migros Önü",
+    "Kod": "BB1301"
+  },
+  {
+    "Koordinat": "38.45861, 27.09988",
+    "İlçe": "Karşıyaka",
+    "Semt": "Bostanlı",
+    "Adres": "3M Migros Önü",
+    "Kod": "BB1302"
+  },
+  {
+    "Koordinat": "38.45861, 27.09988",
+    "İlçe": "Karşıyaka",
+    "Semt": "Bostanlı",
+    "Adres": "3M Migros Önü",
+    "Kod": "BB1303"
+  },
+  {
+    "Koordinat": "38.45861, 27.09988",
+    "İlçe": "Karşıyaka",
+    "Semt": "Bostanlı",
+    "Adres": "3M Migros Önü",
+    "Kod": "BB1304"
+  },
+  {
+    "Koordinat": "38.45861, 27.09988",
+    "İlçe": "Karşıyaka",
+    "Semt": "Bostanlı",
+    "Adres": "3M Migros Önü",
+    "Kod": "BB1305"
+  },
+  {
+    "Koordinat": "38.47475, 27.08333",
+    "İlçe": "Karşıyaka",
+    "Semt": "Atakent",
+    "Adres": "Evrensel Çocuk Müzesi Önü",
+    "Kod": "BB1401"
+  },
+  {
+    "Koordinat": "38.47475, 27.08333",
+    "İlçe": "Karşıyaka",
+    "Semt": "Atakent",
+    "Adres": "Evrensel Çocuk Müzesi Önü",
+    "Kod": "BB1402"
+  },
+  {
+    "Koordinat": "38.45897, 27.08947",
+    "İlçe": "Karşıyaka",
+    "Semt": "Bostanlı",
+    "Adres": "Pazar Yeri Önü",
+    "Kod": "BB1501"
+  },
+  {
+    "Koordinat": "38.45897, 27.08947",
+    "İlçe": "Karşıyaka",
+    "Semt": "Bostanlı",
+    "Adres": "Pazar Yeri Önü",
+    "Kod": "BB1502"
+  },
+  {
+    "Koordinat": "38.45897, 27.08947",
+    "İlçe": "Karşıyaka",
+    "Semt": "Bostanlı",
+    "Adres": "Pazar Yeri Önü",
+    "Kod": "BB1503"
+  },
+  {
+    "Koordinat": "38.45897, 27.08947",
+    "İlçe": "Karşıyaka",
+    "Semt": "Bostanlı",
+    "Adres": "Pazar Yeri Önü",
+    "Kod": "BB1504"
+  },
+  {
+    "Koordinat": "38.45897, 27.08947",
+    "İlçe": "Karşıyaka",
+    "Semt": "Bostanlı",
+    "Adres": "Pazar Yeri Önü",
+    "Kod": "BB1505"
+  },
+  {
+    "Koordinat": "38.45897, 27.08947",
+    "İlçe": "Karşıyaka",
+    "Semt": "Bostanlı",
+    "Adres": "Pazar Yeri Önü",
+    "Kod": "BB1506"
+  },
+  {
+    "Koordinat": "38.46622, 27.08827",
+    "İlçe": "Karşıyaka",
+    "Semt": "Atakent",
+    "Adres": "Hasan Türker Futbol",
+    "Kod": "BB1601"
+  },
+  {
+    "Koordinat": "38.46622, 27.08827",
+    "İlçe": "Karşıyaka",
+    "Semt": "Atakent",
+    "Adres": "Hasan Türker Futbol",
+    "Kod": "BB1602"
+  },
+  {
+    "Koordinat": "38.46622, 27.08827",
+    "İlçe": "Karşıyaka",
+    "Semt": "Atakent",
+    "Adres": "Hasan Türker Futbol",
+    "Kod": "BB1603"
+  },
+  {
+    "Koordinat": "38.46622, 27.08827",
+    "İlçe": "Karşıyaka",
+    "Semt": "Atakent",
+    "Adres": "Hasan Türker Futbol",
+    "Kod": "BB1604"
+  },
+  {
+    "Koordinat": "38.46622, 27.08827",
+    "İlçe": "Karşıyaka",
+    "Semt": "Atakent",
+    "Adres": "Hasan Türker Futbol",
+    "Kod": "BB1605"
+  },
+  {
+    "Koordinat": "38.47725, 27.07025",
+    "İlçe": "Karşıyaka",
+    "Semt": "Mavişehir",
+    "Adres": "Atılgan Suit Önü",
+    "Kod": "BB1701"
+  },
+  {
+    "Koordinat": "38.47725, 27.07025",
+    "İlçe": "Karşıyaka",
+    "Semt": "Mavişehir",
+    "Adres": "Atılgan Suit Önü",
+    "Kod": "BB1702"
+  },
+  {
+    "Koordinat": "38.47725, 27.07025",
+    "İlçe": "Karşıyaka",
+    "Semt": "Mavişehir",
+    "Adres": "Atılgan Suit Önü",
+    "Kod": "BB1703"
+  },
+  {
+    "Koordinat": "38.47725, 27.07025",
+    "İlçe": "Karşıyaka",
+    "Semt": "Mavişehir",
+    "Adres": "Atılgan Suit Önü",
+    "Kod": "BB1704"
+  },
+  {
+    "Koordinat": "38.47711, 27.07055",
+    "İlçe": "Karşıyaka",
+    "Semt": "Mavişehir",
+    "Adres": "Atılgan Suit Karşısı",
+    "Kod": "BB1801"
+  },
+  {
+    "Koordinat": "38.47711, 27.07055",
+    "İlçe": "Karşıyaka",
+    "Semt": "Mavişehir",
+    "Adres": "Atılgan Suit Karşısı",
+    "Kod": "BB1802"
+  },
+  {
+    "Koordinat": "38.47633, 27.06923",
+    "İlçe": "Karşıyaka",
+    "Semt": "Mavişehir",
+    "Adres": "Flamingo Caddesi Hilltown Girişi",
+    "Kod": "BB1901"
+  },
+  {
+    "Koordinat": "38.47633, 27.06923",
+    "İlçe": "Karşıyaka",
+    "Semt": "Mavişehir",
+    "Adres": "Flamingo Caddesi Hilltown Girişi",
+    "Kod": "BB1902"
+  },
+  {
+    "Koordinat": "38.47633, 27.06923",
+    "İlçe": "Karşıyaka",
+    "Semt": "Mavişehir",
+    "Adres": "Flamingo Caddesi Hilltown Girişi",
+    "Kod": "BB1903"
+  },
+  {
+    "Koordinat": "38.47633, 27.06923",
+    "İlçe": "Karşıyaka",
+    "Semt": "Mavişehir",
+    "Adres": "Flamingo Caddesi Hilltown Girişi",
+    "Kod": "BB1904"
+  },
+  {
+    "Koordinat": "38.47796, 27.08661",
+    "İlçe": "Karşıyaka",
+    "Semt": "Mavişehir",
+    "Adres": "Modern 4  Kavşak",
+    "Kod": "BB2001"
+  },
+  {
+    "Koordinat": "38.47796, 27.08661",
+    "İlçe": "Karşıyaka",
+    "Semt": "Mavişehir",
+    "Adres": "Modern 4  Kavşak",
+    "Kod": "BB2002"
+  },
+  {
+    "Koordinat": "38.47796, 27.08661",
+    "İlçe": "Karşıyaka",
+    "Semt": "Mavişehir",
+    "Adres": "Modern 4  Kavşak",
+    "Kod": "BB2003"
+  },
+  {
+    "Koordinat": "38.47796, 27.08661",
+    "İlçe": "Karşıyaka",
+    "Semt": "Mavişehir",
+    "Adres": "Modern 4  Kavşak",
+    "Kod": "BB2004"
+  },
+  {
+    "Koordinat": "38.46786, 27.0805",
+    "İlçe": "Karşıyaka",
+    "Semt": "Mavişehir",
+    "Adres": "Sports International Önü",
+    "Kod": "BB2101"
+  },
+  {
+    "Koordinat": "38.46786, 27.0805",
+    "İlçe": "Karşıyaka",
+    "Semt": "Mavişehir",
+    "Adres": "Sports International Önü",
+    "Kod": "BB2102"
+  },
+  {
+    "Koordinat": "38.46786, 27.0805",
+    "İlçe": "Karşıyaka",
+    "Semt": "Mavişehir",
+    "Adres": "Sports International Önü",
+    "Kod": "BB2103"
+  },
+  {
+    "Koordinat": "38.46786, 27.0805",
+    "İlçe": "Karşıyaka",
+    "Semt": "Mavişehir",
+    "Adres": "Sports International Önü",
+    "Kod": "BB2104"
+  },
+  {
+    "Koordinat": "38.46269, 27.10969",
+    "İlçe": "Karşıyaka",
+    "Semt": "Girne",
+    "Adres": "Atatürk Bulvarı Vatan Bilgisayar Yanı",
+    "Kod": "BB2201"
+  },
+  {
+    "Koordinat": "38.49066, 27.11522",
+    "İlçe": "Karşıyaka",
+    "Semt": "Yeni Girne",
+    "Adres": "Yeni Girne Çevreyolu Kavşağı",
+    "Kod": "BB2301"
+  },
+  {
+    "Koordinat": "38.49066, 27.11522",
+    "İlçe": "Karşıyaka",
+    "Semt": "Yeni Girne",
+    "Adres": "Yeni Girne Çevreyolu Kavşağı",
+    "Kod": "BB2302"
+  },
+  {
+    "Koordinat": "38.49066, 27.11522",
+    "İlçe": "Karşıyaka",
+    "Semt": "Yeni Girne",
+    "Adres": "Yeni Girne Çevreyolu Kavşağı",
+    "Kod": "BB2303"
+  },
+  {
+    "Koordinat": "38.49066, 27.11522",
+    "İlçe": "Karşıyaka",
+    "Semt": "Yeni Girne",
+    "Adres": "Yeni Girne Çevreyolu Kavşağı",
+    "Kod": "BB2304"
+  },
+  {
+    "Koordinat": "38.48194, 27.11319",
+    "İlçe": "Karşıyaka",
+    "Semt": "Örnekköy",
+    "Adres": "Saklıbahçe Karakol Yanı",
+    "Kod": "BB2401"
+  },
+  {
+    "Koordinat": "38.48194, 27.11319",
+    "İlçe": "Karşıyaka",
+    "Semt": "Örnekköy",
+    "Adres": "Saklıbahçe Karakol Yanı",
+    "Kod": "BB2402"
+  },
+  {
+    "Koordinat": "38.48316, 27.08644",
+    "İlçe": "Karşıyaka",
+    "Semt": "Şemikler",
+    "Adres": "15 Temmuz Şehitler Anadolu Lisesi",
+    "Kod": "BB2501"
+  },
+  {
+    "Koordinat": "38.46216, 27.10822",
+    "İlçe": "Karşıyaka",
+    "Semt": "Girne",
+    "Adres": "Kültürpark Önü",
+    "Kod": "BB2601"
+  },
+  {
+    "Koordinat": "38.46216, 27.10822",
+    "İlçe": "Karşıyaka",
+    "Semt": "Girne",
+    "Adres": "Kültürpark Önü",
+    "Kod": "BB2602"
+  }
+]

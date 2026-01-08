@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, FileText, Download, Eye, MoreVertical, Send, Upload, FileSignature } from 'lucide-react'
+import { Plus, Search, FileText, Download, Eye, MoreVertical, Send, Upload, FileSignature, MapPin } from 'lucide-react'
 import { proposalsService, type Proposal } from '../services'
 import { useToast } from '../hooks/useToast'
 import ProposalFormModal from '../components/proposals/ProposalFormModal'
 import ProposalContractModal from '../components/proposals/ProposalContractModal'
+import LocationRequestModal from '../components/proposals/LocationRequestModal'
 import DataImportModal from '../components/common/DataImportModal'
 
 export default function ProposalsPage() {
@@ -15,6 +16,7 @@ export default function ProposalsPage() {
     const [isImportOpen, setIsImportOpen] = useState(false)
     const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null)
     const [isContractModalOpen, setIsContractModalOpen] = useState(false)
+    const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
     const { success, error } = useToast()
 
     useEffect(() => {
@@ -118,6 +120,11 @@ export default function ProposalsPage() {
         if (selectedProposal?.id === id) {
             setSelectedProposal(prev => prev ? { ...prev, status } : null)
         }
+    }
+
+    const handleCreateLocationRequest = (proposal: Proposal) => {
+        setSelectedProposal(proposal)
+        setIsLocationModalOpen(true)
     }
 
     const getStatusBadge = (status: string) => {
@@ -297,6 +304,24 @@ export default function ProposalsPage() {
                                                     <Send className="w-4 h-4" />
                                                 </button>
                                             )}
+                                            {proposal.status === 'SENT' && (
+                                                <div className="flex gap-1">
+                                                    <button
+                                                        onClick={() => handleSendProposal(proposal.id)}
+                                                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        title="Tekrar Gönder"
+                                                    >
+                                                        <Send className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleCreateLocationRequest(proposal)}
+                                                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-green-100"
+                                                        title="Yer Talebi Oluştur"
+                                                    >
+                                                        <MapPin className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -317,6 +342,17 @@ export default function ProposalsPage() {
                 onClose={() => setIsContractModalOpen(false)}
                 proposal={selectedProposal}
                 onStatusUpdate={handleProposalStatusUpdate}
+            />
+
+            <LocationRequestModal
+                isOpen={isLocationModalOpen}
+                onClose={() => setIsLocationModalOpen(false)}
+                proposal={selectedProposal}
+                onComplete={() => {
+                    if (selectedProposal) {
+                        handleProposalStatusUpdate(selectedProposal.id, 'ACCEPTED')
+                    }
+                }}
             />
 
             <DataImportModal

@@ -4,7 +4,6 @@ import {
     Users,
     FolderKanban,
     FileText,
-    BarChart3,
     LogOut,
     Bell,
     Settings,
@@ -13,8 +12,9 @@ import {
     MapPin,
     Calendar,
     ClipboardList,
-    CalendarCheck,
-    Wallet
+    ShoppingBag,
+    CalendarDays,
+    Calculator
 } from 'lucide-react'
 import { useState } from 'react'
 import NotificationsPanel from './NotificationsPanel'
@@ -25,15 +25,12 @@ interface MainLayoutProps {
 
 const navigation = [
     { name: 'Genel Bakış', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Takvim', href: '/calendar', icon: CalendarCheck },
-    { name: 'Finans', href: '/finance', icon: Wallet },
-    { name: 'Satış ve Müşteri', href: '/clients', icon: Users },
-    { name: 'Müşteri Talepleri', href: '/customer-requests', icon: ClipboardList },
-    { name: 'Projeler & Rezervasyon', href: '/projects', icon: FolderKanban },
+    { name: 'Satış', href: '/sales', icon: ShoppingBag },
+    { name: 'Rezervasyon', href: '/reservations', icon: CalendarDays },
+    { name: 'Maliyet Ayarları', href: '/cost-settings', icon: Calculator },
     { name: 'Envanter', href: '/inventory', icon: MapPin },
     { name: 'Asım Listesi', href: '/asim-listesi', icon: Calendar },
     { name: 'Teklifler', href: '/proposals', icon: FileText },
-    { name: 'Raporlar', href: '/reports', icon: BarChart3 },
 ]
 
 
