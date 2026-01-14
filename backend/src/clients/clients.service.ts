@@ -48,6 +48,19 @@ export class ClientsService {
             throw new Error(error.message);
         }
 
+        // Otomatik bildirim oluştur
+        try {
+            await supabase.from('notifications').insert([{
+                type: 'client',
+                title: 'Yeni Müşteri Eklendi',
+                message: `${data.company_name || data.name} adlı yeni müşteri kaydedildi.`,
+                related_id: data.id,
+                related_type: 'clients'
+            }]);
+        } catch (notifError) {
+            console.error('Error creating notification:', notifError);
+        }
+
         console.log('Client created successfully:', data);
         return data as Client;
     }

@@ -1,21 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useToast } from '../hooks/useToast'
+import { FileSpreadsheet, MapPin, Search, Filter, Calendar, Clock, Check, X, CheckCircle, Smartphone, RefreshCw, ChevronRight, ChevronLeft, Download, Plus, Trash2, AlertCircle, CalendarDays, Send } from 'lucide-react'
 import { reservationsData } from '../data/reservations'
-import {
-    CalendarDays,
-    MapPin,
-    CheckCircle,
-    Search,
-    Filter,
-    Download,
-    Send,
-    Check,
-    X,
-    RefreshCw,
-    FileSpreadsheet,
-    Clock,
-    AlertCircle
-} from 'lucide-react'
+import { useToast } from '../hooks/useToast'
+import { inventoryService, bookingsService, customerRequestsService } from '../services'
 
 // Lokasyon tipi
 interface Location {
@@ -101,7 +88,7 @@ export default function ReservationsPage() {
         while (curr.getFullYear() <= selectedYear) {
             const day = String(curr.getDate()).padStart(2, '0')
             const month = String(curr.getMonth() + 1).padStart(2, '0')
-            const dateStr = `${day}.${month}.${curr.getFullYear()}`
+            const dateStr = `${day}.${month}.${curr.getFullYear()} `
             generatedWeeks.push(dateStr)
             curr.setDate(curr.getDate() + 7)
         }
@@ -119,46 +106,151 @@ export default function ReservationsPage() {
     const neighborhoodOptions = useMemo(() => ['Tümü', ...Array.from(new Set(locations.map(l => l.semt)))], [locations])
 
     const [activeTab, setActiveTab] = useState<'list' | 'requests'>('list')
-    const [reservationRequests, setReservationRequests] = useState<any[]>(() => {
-        try {
-            const saved = localStorage.getItem('reservationRequests')
-            return saved ? JSON.parse(saved) : []
-        } catch (e) {
-            console.error('Error loading reservation requests:', e)
-            return []
-        }
-    })
+    const [reservationRequests, setReservationRequests] = useState<any[]>([])
+    const [isLoadingRequests, setIsLoadingRequests] = useState(false)
+    const [isLoadingLocations, setIsLoadingLocations] = useState(false)
 
     const { success: toastSuccess, info: toastInfo } = useToast()
 
-    // Sync with localStorage changes (for cross-tab updates)
+    const fetchData = async () => {
+        setIsLoadingRequests(true);
+        setIsLoadingLocations(true);
+        try {
+            // 1. Fetch Customer Requests
+            const requests = await customerRequestsService.getAll();
+            const mappedRequests = requests.map((req: any) => {
+                let details: any = {};
+                try {
+                    details = req.product_details ? JSON.parse(req.product_details) : {};
+                } catch (e) { console.error('Error parsing details:', e); }
+
+                return {
+                    id: req.id,
+                    customerName: req.client?.company_name || 'Bilinmeyen',
+                    brandName: details.brandName || 'Bilinmeyen',
+                    productType: req.product_type,
+                    year: details.year || 2026,
+                    month: details.month || 'Ocak',
+                    week: details.week || req.start_date,
+                    network: details.network || '1',
+                    availableCount: details.availableCount || 0,
+                    optionsCount: details.optionsCount || 0,
+                    status: req.status === 'completed' ? 'completed' : 'pending',
+                    createdAt: req.created_at,
+                    selectedLocations: details.selectedLocations || []
+                };
+            });
+            setReservationRequests(mappedRequests);
+
+            // 2. Fetch Inventory and Bookings
+            const [inventory, bookings] = await Promise.all([
+                inventoryService.getAll(),
+                bookingsService.getAll()
+            ]);
+
+            if (inventory && inventory.length > 0) {
+                // Combine inventory with bookings to create UI locations
+                // Filter by currently selected filters (Year, Month, Week, Network)
+                const currentLocations = inventory.map((item: any) => {
+                    const itemBookings = bookings.filter(b => b.inventory_item_id === item.id && b.start_date === selectedWeek);
+                    const booking = itemBookings[0]; // Simplistic join for now
+
+                    return {
+                        id: item.id,
+                        yil: selectedYear,
+                        ay: selectedMonth,
+                        hafta: selectedWeek,
+                        koordinat: item.coordinates || '',
+                        ilce: item.district,
+                        semt: item.neighborhood || '',
+                        adres: item.address,
+                        kod: item.code,
+                        network: Number(item.network) || 1,
+                        marka1Opsiyon: booking?.brand_option_1 || '',
+                        marka2Opsiyon: booking?.brand_option_2 || '',
+                        marka3Opsiyon: booking?.brand_option_3 || '',
+                        marka4Opsiyon: booking?.brand_option_4 || '',
+                        durum: (booking?.status as any) || 'BOŞ',
+                        productType: (item.type === 'Billboard' ? 'BB' : item.type) as any
+                    };
+                });
+
+                // Only override if we have real data from backend
+                setLocations(currentLocations);
+            }
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            // Fallback to local storage if API fails
+            const savedReq = localStorage.getItem('reservationRequests');
+            if (savedReq) setReservationRequests(JSON.parse(savedReq));
+
+            const savedLoc = localStorage.getItem('inventoryLocations');
+            if (savedLoc) setLocations(JSON.parse(savedLoc));
+        } finally {
+            setIsLoadingRequests(false);
+            setIsLoadingLocations(false);
+        }
+    };
+
+    const handleMigrateInventory = async () => {
+        setIsLoadingLocations(true);
+        try {
+            const uniqueMap = new Map();
+            reservationsData.forEach((item: any) => {
+                if (!uniqueMap.has(item.kod)) {
+                    uniqueMap.set(item.kod, {
+                        code: item.kod,
+                        type: item.productType === 'BB' ? 'Billboard' : item.productType,
+                        district: item.ilce,
+                        neighborhood: item.semt,
+                        address: item.adres,
+                        coordinates: item.koordinat,
+                        network: String(item.network),
+                        is_active: true
+                    });
+                }
+            });
+
+            const uniqueItems = Array.from(uniqueMap.values());
+            toastSuccess(`${uniqueItems.length} lokasyon tespit edildi. Aktarım başlıyor...`);
+
+            let successCount = 0;
+            for (const item of uniqueItems) {
+                try {
+                    await inventoryService.create(item);
+                    successCount++;
+                } catch (e) { console.error('Failed to create item', item.code, e); }
+            }
+
+            toastSuccess(`${successCount} lokasyon başarıyla Supabase'e aktarıldı.`);
+            fetchData();
+        } catch (e) {
+            console.error('Migration error', e);
+            toastInfo('Aktarım sırasında hata oluştu.');
+        } finally {
+            setIsLoadingLocations(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+        // Set up periodic refresh every 30 seconds
+        const interval = setInterval(fetchData, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Also keep the storage sync for legacy compatibility
     useEffect(() => {
         const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === 'reservationRequests') {
-                try {
-                    const newData = e.newValue ? JSON.parse(e.newValue) : []
-                    if (newData.length > reservationRequests.length) {
-                        toastSuccess('Yeni bir rezervasyon talebi geldi!')
-                    }
-                    setReservationRequests(newData)
-                } catch (err) {
-                    console.error('Error parsing storage change:', err)
-                }
-            }
-            if (e.key === 'inventoryLocations') {
-                try {
-                    const newData = e.newValue ? JSON.parse(e.newValue) : []
-                    setLocations(newData)
-                } catch (err) {
-                    console.error('Error parsing inventory storage change:', err)
-                }
+            if (e.key === 'reservationRequests' || e.key === 'inventoryLocations') {
+                fetchData();
             }
         }
         window.addEventListener('storage', handleStorageChange)
         return () => window.removeEventListener('storage', handleStorageChange)
-    }, [reservationRequests.length, toastSuccess])
+    }, []);
 
-    const handleProcessRequest = (request: any) => {
+    const handleProcessRequest = async (request: any) => {
         let currentLocations = [...locations];
 
         // 1. Check if we need to seed the year/week for the requested inventory
@@ -170,27 +262,20 @@ export default function ReservationsPage() {
 
         let seededCount = 0;
         if (!periodExists) {
-            let template = currentLocations.filter(l => l.yil === 2025 && String(l.network) === String(request.network));
-            if (template.length === 0) {
-                const anyYear = currentLocations.find(l => String(l.network) === String(request.network))?.yil;
-                if (anyYear) {
-                    template = currentLocations.filter(l => l.yil === anyYear && String(l.network) === String(request.network));
-                }
-            }
+            const hasDataForWeek = reservationsData.some((l: any) => l.hafta === request.week);
 
-            if (template.length > 0) {
-                const clones = template.map(l => ({
-                    ...l,
-                    id: `${l.id}_${request.year}_${request.week.replace(/\./g, '')}`,
-                    yil: request.year,
-                    ay: request.month,
-                    hafta: request.week,
-                    durum: 'BOŞ' as const,
-                    marka1Opsiyon: '',
-                    marka2Opsiyon: '',
-                    marka3Opsiyon: '',
-                    marka4Opsiyon: ''
-                }));
+            if (hasDataForWeek) {
+                const clones = reservationsData
+                    .filter((l: any) => l.hafta === request.week)
+                    .map((l: any) => ({
+                        ...l,
+                        id: `clone-${l.id}-${Date.now()}`,
+                        yil: request.year,
+                        marka1Opsiyon: '',
+                        marka2Opsiyon: '',
+                        marka3Opsiyon: '',
+                        marka4Opsiyon: ''
+                    }));
                 currentLocations = [...currentLocations, ...clones];
                 seededCount = clones.length;
             }
@@ -202,10 +287,7 @@ export default function ReservationsPage() {
         const brandUpper = request.brandName.toUpperCase();
 
         const updatedLocations = currentLocations.map(loc => {
-            // Case A: Specific ID match from Proposal Modal
             const isIdMatch = targetIds.includes(loc.id);
-
-            // Case B: Metadata match fallback (if targetIds empty)
             const isMetaMatch = !targetIds.length &&
                 updatedCount < request.quantity &&
                 loc.yil === request.year &&
@@ -216,48 +298,71 @@ export default function ReservationsPage() {
 
             if (isIdMatch || isMetaMatch) {
                 const newLoc = { ...loc };
-
                 if (newLoc.durum === 'BOŞ') {
-                    // First occupancy: Set to OPSİYON and fill marka1
                     newLoc.durum = 'OPSİYON';
                     newLoc.marka1Opsiyon = brandUpper;
                     if (isMetaMatch) updatedCount++;
                     return newLoc;
                 } else if (newLoc.durum === 'OPSİYON') {
-                    // Secondary occupancy: Add to first available slot
                     if (!newLoc.marka1Opsiyon) newLoc.marka1Opsiyon = brandUpper;
                     else if (!newLoc.marka2Opsiyon) newLoc.marka2Opsiyon = brandUpper;
                     else if (!newLoc.marka3Opsiyon) newLoc.marka3Opsiyon = brandUpper;
                     else if (!newLoc.marka4Opsiyon) newLoc.marka4Opsiyon = brandUpper;
-
-                    // Ensure state is OPSİYON (already is, but just to be sure)
                     newLoc.durum = 'OPSİYON';
                     if (isMetaMatch) updatedCount++;
                     return newLoc;
                 }
-                // Note: If durum is 'KESİN', we don't touch it even if ID matched (safety check)
             }
             return loc;
         });
 
         setLocations(updatedLocations);
 
-        // Update request status
-        const updatedRequests = reservationRequests.map(r =>
-            r.id === request.id ? { ...r, status: 'completed' } : r
-        );
-        setReservationRequests(updatedRequests);
-        localStorage.setItem('reservationRequests', JSON.stringify(updatedRequests));
+        // Update request status in BACKEND
+        try {
+            // Create Bookings in Supabase
+            const modifiedLocs = updatedLocations.filter(loc => {
+                const oldLoc = locations.find(ol => ol.id === loc.id);
+                return JSON.stringify(oldLoc) !== JSON.stringify(loc);
+            });
 
-        // Save inventory to localStorage for persistence
+            for (const loc of modifiedLocs) {
+                // Check if this is a real Supabase inventory item (UUID)
+                if (loc.id.length > 20) {
+                    await bookingsService.create({
+                        inventory_item_id: loc.id,
+                        brand_name: request.brandName,
+                        network: String(request.network),
+                        start_date: request.week,
+                        end_date: request.week,
+                        status: loc.durum,
+                        brand_option_1: loc.marka1Opsiyon,
+                        brand_option_2: loc.marka2Opsiyon,
+                        brand_option_3: loc.marka3Opsiyon,
+                        brand_option_4: loc.marka4Opsiyon
+                    });
+                }
+            }
+
+            await customerRequestsService.update(request.id, { status: 'completed' });
+            fetchData(); // Refresh list from backend
+        } catch (error) {
+            console.error('Error updating request status:', error);
+            const updatedRequests = reservationRequests.map(r =>
+                r.id === request.id ? { ...r, status: 'completed' } : r
+            );
+            setReservationRequests(updatedRequests);
+        }
+
+        // Save inventory to localStorage for persistence (until inventory is fully moved to backend)
         try {
             localStorage.setItem('inventoryLocations', JSON.stringify(updatedLocations));
         } catch (e) {
             console.warn('Storage limit reached, changes will only be in memory.');
         }
 
-        // AUTO-NAVIGATE to the results
         setSelectedYear(request.year);
+        // Map month name if needed, assuming they match
         setSelectedMonth(request.month);
         setSelectedWeek(request.week);
         setSelectedNetwork(Number(request.network) || request.network);
@@ -269,7 +374,7 @@ export default function ReservationsPage() {
         message += `📍 ${totalAssigned} lokasyona marka ataması yapıldı.\n`;
         message += `📅 Dönem: ${request.year} - ${request.week}`;
 
-        alert(message);
+        toastSuccess(message);
     }
 
     const handleResetData = () => {
@@ -347,7 +452,7 @@ export default function ReservationsPage() {
         setShowAssignModal(false)
         setSelectedRows([])
         setBrandName('')
-        alert(`${selectedRows.length} adet lokasyona ${brandUpper} markası (Opsiyon ${selectedOpsiyonNumber}) atandı!`)
+        alert(`${selectedRows.length} adet lokasyona ${brandUpper} markası(Opsiyon ${selectedOpsiyonNumber}) atandı!`)
     }
 
     // Durumu değiştir
@@ -381,7 +486,7 @@ export default function ReservationsPage() {
     // Mail gönder
     const handleSendEmail = () => {
         const selectedCount = selectedRows.length > 0 ? selectedRows.length : filteredLocations.length
-        alert(`${selectedCount} adet lokasyon bilgisi satış temsilcisine mail olarak gönderildi!\n\nAlıcı: satis@izmiracikhavareklam.com`)
+        alert(`${selectedCount} adet lokasyon bilgisi satış temsilcisine mail olarak gönderildi!\n\nAlıcı: satis @izmiracikhavareklam.com`)
     }
 
     // Opsiyonu Kesine çevir
@@ -408,7 +513,7 @@ export default function ReservationsPage() {
             return;
         }
 
-        const brandToMove = sourceLoc[`marka${reviseSlot}Opsiyon` as keyof Location];
+        const brandToMove = sourceLoc[`marka${reviseSlot} Opsiyon` as keyof Location];
         if (!brandToMove) {
             alert('Seçilen opsiyon alanında marka bulunmuyor!');
             return;
@@ -417,7 +522,7 @@ export default function ReservationsPage() {
         const updated = locations.map(loc => {
             if (loc.id === sourceId) {
                 const newLoc = { ...loc };
-                (newLoc as any)[`marka${reviseSlot}Opsiyon`] = '';
+                (newLoc as any)[`marka${reviseSlot} Opsiyon`] = '';
                 const anyLeft = newLoc.marka1Opsiyon || newLoc.marka2Opsiyon || newLoc.marka3Opsiyon || newLoc.marka4Opsiyon;
                 if (!anyLeft) newLoc.durum = 'BOŞ' as const;
                 return newLoc;
@@ -425,8 +530,8 @@ export default function ReservationsPage() {
             if (loc.id === reviseTargetId) {
                 const newLoc = { ...loc };
                 // Hedefte aynı slot boşsa oraya, değilse ilk boş slot'a koy
-                if (!(newLoc as any)[`marka${reviseSlot}Opsiyon`]) {
-                    (newLoc as any)[`marka${reviseSlot}Opsiyon`] = brandToMove;
+                if (!(newLoc as any)[`marka${reviseSlot} Opsiyon`]) {
+                    (newLoc as any)[`marka${reviseSlot} Opsiyon`] = brandToMove;
                 } else {
                     if (!newLoc.marka1Opsiyon) newLoc.marka1Opsiyon = String(brandToMove);
                     else if (!newLoc.marka2Opsiyon) newLoc.marka2Opsiyon = String(brandToMove);
@@ -468,10 +573,10 @@ export default function ReservationsPage() {
             <div className="flex border-b border-gray-200">
                 <button
                     onClick={() => setActiveTab('list')}
-                    className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'list'
+                    className={`px-6 py-3 text-sm font - medium border-b - 2 transition - colors ${activeTab === 'list'
                         ? 'border-primary-600 text-primary-600 bg-primary-50'
                         : 'border-transparent text-gray-500 hover:text-gray-700'
-                        }`}
+                        } `}
                 >
                     <div className="flex items-center gap-2">
                         <CalendarDays className="w-4 h-4" />
@@ -480,10 +585,10 @@ export default function ReservationsPage() {
                 </button>
                 <button
                     onClick={() => setActiveTab('requests')}
-                    className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'requests'
+                    className={`px-6 py-3 text-sm font - medium border-b - 2 transition - colors ${activeTab === 'requests'
                         ? 'border-primary-600 text-primary-600 bg-primary-50'
                         : 'border-transparent text-gray-500 hover:text-gray-700 font-bold'
-                        }`}
+                        } `}
                 >
                     <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4" />
@@ -604,7 +709,7 @@ export default function ReservationsPage() {
                                         type="text"
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        placeholder="Adres, kod..."
+                                        placeholder="Örn: Adres, kod..."
                                         className="w-full pl-7 pr-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
                                     />
                                 </div>
@@ -776,8 +881,8 @@ export default function ReservationsPage() {
                                     {filteredLocations.map((loc, index) => (
                                         <tr
                                             key={loc.id}
-                                            className={`hover:bg-gray-50 transition-colors ${selectedRows.includes(loc.id) ? 'bg-primary-50' : ''
-                                                } ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                                            className={`hover: bg-gray - 50 transition - colors ${selectedRows.includes(loc.id) ? 'bg-primary-50' : ''
+                                                } ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} `}
                                         >
                                             <td className="px-3 py-2">
                                                 <input
@@ -808,10 +913,10 @@ export default function ReservationsPage() {
                                                 <select
                                                     value={loc.durum}
                                                     onChange={(e) => handleStatusChange(loc.id, e.target.value as 'OPSİYON' | 'KESİN' | 'BOŞ')}
-                                                    className={`px-2 py-1 rounded text-xs font-semibold border-0 ${loc.durum === 'OPSİYON' ? 'bg-yellow-100 text-yellow-800' :
+                                                    className={`px-2 py-1 rounded text-xs font - semibold border-0 ${loc.durum === 'OPSİYON' ? 'bg-yellow-100 text-yellow-800' :
                                                         loc.durum === 'KESİN' ? 'bg-green-100 text-green-800' :
                                                             'bg-gray-100 text-gray-600'
-                                                        }`}
+                                                        } `}
                                                 >
                                                     <option value="OPSİYON">OPSİYON</option>
                                                     <option value="KESİN">KESİN</option>
@@ -856,10 +961,10 @@ export default function ReservationsPage() {
                                                 <button
                                                     key={num}
                                                     onClick={() => setSelectedOpsiyonNumber(num as 1 | 2 | 3 | 4)}
-                                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedOpsiyonNumber === num
+                                                    className={`px-4 py-2 rounded-lg text-sm font - medium transition - colors ${selectedOpsiyonNumber === num
                                                         ? 'bg-primary-600 text-white'
                                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                                        }`}
+                                                        } `}
                                                 >
                                                     {num}. Opsiyon
                                                 </button>
@@ -931,18 +1036,18 @@ export default function ReservationsPage() {
                                         <label className="block text-sm font-bold text-gray-700 mb-2">Hangi Markayı Kaydırmak İstiyorsunuz?</label>
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                             {[1, 2, 3, 4].map((num) => {
-                                                const brand = (locations.find(l => l.id === selectedRows[0]) as any)?.[`marka${num}Opsiyon`];
+                                                const brand = (locations.find(l => l.id === selectedRows[0]) as any)?.[`marka${num} Opsiyon`];
                                                 return (
                                                     <button
                                                         key={num}
                                                         onClick={() => setReviseSlot(num as 1 | 2 | 3 | 4)}
                                                         disabled={!brand}
-                                                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1 ${reviseSlot === num
+                                                        className={`p - 3 rounded-xl border-2 transition - all flex flex - col items-center justify-center gap-1 ${reviseSlot === num
                                                             ? 'border-orange-500 bg-orange-50 text-orange-700 shadow-md'
                                                             : brand
                                                                 ? 'border-gray-200 bg-white hover:border-gray-300'
                                                                 : 'border-gray-100 bg-gray-50 opacity-40 cursor-not-allowed'
-                                                            }`}
+                                                            } `}
                                                     >
                                                         <span className="text-[10px] font-bold uppercase tracking-wider">Opsiyon {num}</span>
                                                         <span className="text-sm font-black truncate w-full text-center">{brand || '-'}</span>
@@ -969,7 +1074,7 @@ export default function ReservationsPage() {
                                                         <tr
                                                             key={loc.id}
                                                             onClick={() => setReviseTargetId(loc.id)}
-                                                            className={`cursor-pointer transition-colors ${reviseTargetId === loc.id ? 'bg-orange-50' : 'hover:bg-gray-50'}`}
+                                                            className={`cursor - pointer transition - colors ${reviseTargetId === loc.id ? 'bg-orange-50' : 'hover:bg-gray-50'} `}
                                                         >
                                                             <td className="p-2 font-bold">{loc.kod}</td>
                                                             <td className="p-2">
@@ -977,12 +1082,12 @@ export default function ReservationsPage() {
                                                                 <p className="text-[10px] text-gray-500">{loc.ilce} / {loc.semt}</p>
                                                             </td>
                                                             <td className="p-2 text-[10px]">
-                                                                <span className={`px-1.5 py-0.5 rounded-full font-bold ${loc.durum === 'BOŞ' ? 'bg-gray-100 text-gray-500' : 'bg-yellow-100 text-yellow-700'}`}>
+                                                                <span className={`px-1.5 py-0.5 rounded-full font - bold ${loc.durum === 'BOŞ' ? 'bg-gray-100 text-gray-500' : 'bg-yellow-100 text-yellow-700'} `}>
                                                                     {loc.durum === 'BOŞ' ? 'BOŞ' : 'DOLU'}
                                                                 </span>
                                                             </td>
                                                             <td className="p-2 text-center">
-                                                                <div className={`w-5 h-5 rounded-full border-2 mx-auto flex items-center justify-center transition-all ${reviseTargetId === loc.id ? 'border-orange-500 bg-orange-500 text-white' : 'border-gray-300'}`}>
+                                                                <div className={`w-5 h-5 rounded-full border-2 mx-auto flex items-center justify-center transition - all ${reviseTargetId === loc.id ? 'border-orange-500 bg-orange-500 text-white' : 'border-gray-300'} `}>
                                                                     {reviseTargetId === loc.id && <Check className="w-3 h-3" />}
                                                                 </div>
                                                             </td>
@@ -1016,6 +1121,54 @@ export default function ReservationsPage() {
             ) : (
                 <div className="space-y-6">
                     {/* Gelen Talepler Sekmesi */}
+                    <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                        <div className="flex items-center gap-3">
+                            <Clock className="w-5 h-5 text-primary-600" />
+                            <h3 className="font-bold text-gray-900">Gelen Yer Listesi Talepleri</h3>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => {
+                                    fetchData();
+                                    toastInfo('Talepler güncellendi.')
+                                }}
+                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors border border-primary-100"
+                            >
+                                <RefreshCw className={`w-4 h-4 ${isLoadingRequests || isLoadingLocations ? 'animate-spin' : ''}`} />
+                                Talepleri Yenile
+                            </button>
+                            <button
+                                onClick={handleMigrateInventory}
+                                disabled={isLoadingLocations}
+                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors border border-amber-100"
+                            >
+                                <Download className="w-4 h-4" />
+                                Envanteri Aktar
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (window.confirm('Tüm işlenmiş (tamamlanmış) talepleri listeden kaldırmak istediğinize emin misiniz?')) {
+                                        const completed = reservationRequests.filter(r => r.status === 'completed');
+                                        try {
+                                            for (const req of completed) {
+                                                await customerRequestsService.delete(req.id);
+                                            }
+                                            fetchData();
+                                            toastSuccess('İşlenmiş talepler backend\'den temizlendi.');
+                                        } catch (error) {
+                                            console.error('Error clearing requests:', error);
+                                            toastInfo('Bazı talepler temizlenirken hata oluştu.');
+                                        }
+                                    }
+                                }}
+                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
+                            >
+                                <X className="w-4 h-4" />
+                                İşlenenleri Temizle
+                            </button>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {reservationRequests.length > 0 ? (
                             reservationRequests.map((req) => (

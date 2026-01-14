@@ -6,6 +6,13 @@ export interface Booking {
     inventory_item_id: string;
     project_id?: string;
     client_id?: string;
+    brand_name?: string;
+    network?: string;
+    face_number?: number;
+    brand_option_1?: string;
+    brand_option_2?: string;
+    brand_option_3?: string;
+    brand_option_4?: string;
     start_date: string;
     end_date: string;
     status: string;
@@ -21,18 +28,20 @@ export interface CreateBookingDto {
     inventory_item_id: string;
     project_id?: string;
     client_id?: string;
+    brand_name?: string;
+    network?: string;
+    face_number?: number;
+    brand_option_1?: string;
+    brand_option_2?: string;
+    brand_option_3?: string;
+    brand_option_4?: string;
     start_date: string;
     end_date: string;
     status?: string;
     notes?: string;
 }
 
-export interface UpdateBookingDto {
-    start_date?: string;
-    end_date?: string;
-    status?: string;
-    notes?: string;
-}
+export interface UpdateBookingDto extends Partial<CreateBookingDto> { }
 
 // Bookings Service
 export const bookingsService = {

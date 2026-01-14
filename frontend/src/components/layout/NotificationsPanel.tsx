@@ -1,70 +1,12 @@
-import { X, Bell, Calendar, DollarSign, Users, Package, CheckCircle, AlertCircle, Info } from 'lucide-react'
-import { useState } from 'react'
-
-interface Notification {
-    id: string
-    type: 'reservation' | 'payment' | 'client' | 'inventory' | 'system'
-    title: string
-    message: string
-    time: string
-    read: boolean
-}
+import { X, Bell, Calendar, DollarSign, Users, Package, CheckCircle, Info, FileText, Loader2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { notificationsService } from '../../services/notificationsService'
+import type { Notification } from '../../services/notificationsService'
 
 interface NotificationsPanelProps {
     isOpen: boolean
     onClose: () => void
 }
-
-const mockNotifications: Notification[] = [
-    {
-        id: '1',
-        type: 'reservation',
-        title: 'Yeni Rezervasyon',
-        message: 'RADİKAL EĞİTİM için BB-BB0101 rezervasyonu oluşturuldu.',
-        time: '5 dk önce',
-        read: false
-    },
-    {
-        id: '2',
-        type: 'payment',
-        title: 'Ödeme Alındı',
-        message: 'MEGA MARKET\'ten ₺125,000 ödeme alındı.',
-        time: '1 saat önce',
-        read: false
-    },
-    {
-        id: '3',
-        type: 'client',
-        title: 'Yeni Müşteri',
-        message: 'Yeni müşteri kaydı: STAR TEKSTİL A.Ş.',
-        time: '2 saat önce',
-        read: false
-    },
-    {
-        id: '4',
-        type: 'inventory',
-        title: 'Envanter Güncellemesi',
-        message: 'MG-MG0015 panosu bakım için işaretlendi.',
-        time: '3 saat önce',
-        read: true
-    },
-    {
-        id: '5',
-        type: 'system',
-        title: 'Sistem Güncellemesi',
-        message: 'Çınar CRM v2.5.0 başarıyla güncellendi.',
-        time: '1 gün önce',
-        read: true
-    },
-    {
-        id: '6',
-        type: 'reservation',
-        title: 'Rezervasyon Hatırlatma',
-        message: 'DENEME FİRMASI rezervasyonu yarın sona eriyor.',
-        time: '1 gün önce',
-        read: true
-    },
-]
 
 const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
@@ -76,6 +18,8 @@ const getNotificationIcon = (type: Notification['type']) => {
             return <Users className="w-5 h-5 text-purple-600" />
         case 'inventory':
             return <Package className="w-5 h-5 text-orange-600" />
+        case 'proposal':
+            return <FileText className="w-5 h-5 text-indigo-600" />
         case 'system':
             return <Info className="w-5 h-5 text-gray-600" />
         default:
@@ -93,6 +37,8 @@ const getNotificationBgColor = (type: Notification['type']) => {
             return 'bg-purple-100'
         case 'inventory':
             return 'bg-orange-100'
+        case 'proposal':
+            return 'bg-indigo-100'
         case 'system':
             return 'bg-gray-100'
         default:
@@ -100,25 +46,74 @@ const getNotificationBgColor = (type: Notification['type']) => {
     }
 }
 
+const formatTime = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return 'Şimdi'
+    if (diffMins < 60) return `${diffMins} dk önce`
+    if (diffHours < 24) return `${diffHours} saat önce`
+    if (diffDays < 7) return `${diffDays} gün önce`
+    return date.toLocaleDateString('tr-TR')
+}
+
 export default function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps) {
-    const [notifications, setNotifications] = useState(mockNotifications)
+    const [notifications, setNotifications] = useState<Notification[]>([])
+    const [loading, setLoading] = useState(false)
     const [filter, setFilter] = useState<'all' | 'unread'>('all')
 
     const unreadCount = notifications.filter(n => !n.read).length
     const filteredNotifications = filter === 'all' ? notifications : notifications.filter(n => !n.read)
 
-    const markAsRead = (id: string) => {
-        setNotifications(prev =>
-            prev.map(n => n.id === id ? { ...n, read: true } : n)
-        )
+    useEffect(() => {
+        if (isOpen) {
+            fetchNotifications()
+        }
+    }, [isOpen])
+
+    const fetchNotifications = async () => {
+        setLoading(true)
+        try {
+            const data = await notificationsService.getAll()
+            setNotifications(data)
+        } catch (error) {
+            console.error('Error fetching notifications:', error)
+        } finally {
+            setLoading(false)
+        }
     }
 
-    const markAllAsRead = () => {
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    const markAsRead = async (id: string) => {
+        try {
+            await notificationsService.markAsRead(id)
+            setNotifications(prev =>
+                prev.map(n => n.id === id ? { ...n, read: true } : n)
+            )
+        } catch (error) {
+            console.error('Error marking notification as read:', error)
+        }
     }
 
-    const deleteNotification = (id: string) => {
-        setNotifications(prev => prev.filter(n => n.id !== id))
+    const markAllAsRead = async () => {
+        try {
+            await notificationsService.markAllAsRead()
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+        } catch (error) {
+            console.error('Error marking all as read:', error)
+        }
+    }
+
+    const deleteNotification = async (id: string) => {
+        try {
+            await notificationsService.delete(id)
+            setNotifications(prev => prev.filter(n => n.id !== id))
+        } catch (error) {
+            console.error('Error deleting notification:', error)
+        }
     }
 
     if (!isOpen) return null
@@ -158,8 +153,8 @@ export default function NotificationsPanel({ isOpen, onClose }: NotificationsPan
                         <button
                             onClick={() => setFilter('all')}
                             className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${filter === 'all'
-                                    ? 'bg-white text-primary-700 shadow-sm'
-                                    : 'text-gray-600 hover:bg-white/50'
+                                ? 'bg-white text-primary-700 shadow-sm'
+                                : 'text-gray-600 hover:bg-white/50'
                                 }`}
                         >
                             Tümü
@@ -167,8 +162,8 @@ export default function NotificationsPanel({ isOpen, onClose }: NotificationsPan
                         <button
                             onClick={() => setFilter('unread')}
                             className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${filter === 'unread'
-                                    ? 'bg-white text-primary-700 shadow-sm'
-                                    : 'text-gray-600 hover:bg-white/50'
+                                ? 'bg-white text-primary-700 shadow-sm'
+                                : 'text-gray-600 hover:bg-white/50'
                                 }`}
                         >
                             Okunmamış ({unreadCount})
@@ -178,10 +173,17 @@ export default function NotificationsPanel({ isOpen, onClose }: NotificationsPan
 
                 {/* Notifications List */}
                 <div className="overflow-y-auto max-h-[400px] custom-scrollbar">
-                    {filteredNotifications.length === 0 ? (
+                    {loading ? (
+                        <div className="p-8 text-center">
+                            <Loader2 className="w-8 h-8 text-primary-600 mx-auto mb-3 animate-spin" />
+                            <p className="text-gray-500">Bildirimler yükleniyor...</p>
+                        </div>
+                    ) : filteredNotifications.length === 0 ? (
                         <div className="p-8 text-center">
                             <CheckCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                            <p className="text-gray-500">Tüm bildirimler okundu</p>
+                            <p className="text-gray-500">
+                                {filter === 'unread' ? 'Tüm bildirimler okundu' : 'Henüz bildirim yok'}
+                            </p>
                         </div>
                     ) : (
                         <div className="divide-y divide-gray-100">
@@ -209,7 +211,7 @@ export default function NotificationsPanel({ isOpen, onClose }: NotificationsPan
                                                 {notification.message}
                                             </p>
                                             <p className="text-xs text-gray-400 mt-1">
-                                                {notification.time}
+                                                {formatTime(notification.created_at)}
                                             </p>
                                         </div>
                                         <button
@@ -237,10 +239,10 @@ export default function NotificationsPanel({ isOpen, onClose }: NotificationsPan
                         Tümünü okundu işaretle
                     </button>
                     <button
-                        onClick={onClose}
+                        onClick={fetchNotifications}
                         className="text-sm font-medium text-gray-600 hover:text-gray-700 transition-colors"
                     >
-                        Tüm bildirimleri gör →
+                        Yenile ↻
                     </button>
                 </div>
             </div>

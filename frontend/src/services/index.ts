@@ -9,6 +9,8 @@ export { default as inventoryService } from './inventoryService';
 export { default as bookingsService } from './bookingsService';
 export { default as tasksService } from './tasksService';
 export { default as financeService } from './financeService';
+export { default as customerRequestsService } from './customerRequestsService';
+export { default as notificationsService } from './notificationsService';
 
 // Export types
 export type { User, LoginCredentials, RegisterData, AuthResponse } from './authService';
@@ -19,3 +21,5 @@ export type { InventoryItem, CreateInventoryItemDto, UpdateInventoryItemDto } fr
 export type { Booking, CreateBookingDto, UpdateBookingDto } from './bookingsService';
 export type { Task, CreateTaskDto, UpdateTaskDto } from './tasksService';
 export type { CreateUserDto, UpdateUserDto } from './usersService';
+export type { CustomerRequest, CreateCustomerRequestDto, UpdateCustomerRequestDto } from './customerRequestsService';
+export type { Notification, CreateNotificationDto, UpdateNotificationDto } from './notificationsService';

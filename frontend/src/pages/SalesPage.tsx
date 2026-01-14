@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import {
     ShoppingBag,
     TrendingUp,
@@ -42,6 +42,17 @@ interface Customer {
     phone: string
     address: string
     createdAt: string
+    tradeName?: string
+    sector?: string
+    taxOffice?: string
+    taxNumber?: string
+    status?: string
+    city?: string
+    district?: string
+    postalCode?: string
+    mobile?: string
+    website?: string
+    notes?: string
 }
 
 // Teklif ürün tipi
@@ -104,7 +115,7 @@ const getProductTypes = () => {
 }
 
 export default function SalesPage() {
-    const [activeTab, setActiveTab] = useState<'customers' | 'proposals' | 'sent' | 'locationRequests' | 'customerRequests'>('customers')
+    const [activeTab, setActiveTab] = useState<'customers' | 'proposals' | 'sent'>('customers')
     const [showCustomerModal, setShowCustomerModal] = useState(false)
     const [showProposalModal, setShowProposalModal] = useState(false)
     const [showEmailModal, setShowEmailModal] = useState(false)
@@ -134,11 +145,22 @@ export default function SalesPage() {
             // Map backend clients to local Customer type
             const mappedCustomers: Customer[] = clientsData.map(c => ({
                 id: c.id,
-                companyName: c.company_name || c.name || 'İsimsiz Şirket',
+                companyName: c.company_name || (c as any).name || 'İsimsiz Şirket',
                 contactPerson: c.contact_person || '-',
                 email: c.email || '-',
                 phone: c.phone || '-',
                 address: c.address || '-',
+                tradeName: (c as any).trade_name || '',
+                sector: (c as any).sector || '',
+                taxOffice: (c as any).tax_office || '',
+                taxNumber: (c as any).tax_number || '',
+                status: (c as any).status || 'Potansiyel',
+                city: (c as any).city || '',
+                district: (c as any).district || '',
+                postalCode: (c as any).postal_code || '',
+                mobile: (c as any).mobile || '',
+                website: (c as any).website || '',
+                notes: (c as any).notes || '',
                 createdAt: c.created_at?.split('T')[0] || new Date().toISOString().split('T')[0]
             }))
             setCustomers(mappedCustomers)
@@ -148,12 +170,12 @@ export default function SalesPage() {
                 id: p.proposal_number || p.id,
                 customerId: p.client_id,
                 customerName: p.client?.company_name || 'Bilinmeyen Müşteri',
-                items: p.items?.map(item => ({
-                    type: 'BB', // Default or map from backend
+                items: (p as any).items?.map((item: any) => ({
+                    type: 'BB',
                     code: item.description,
                     quantity: item.quantity,
                     unitPrice: item.unit_price,
-                    operationCost: 0 // Backend doesn't have this field explicitly in items
+                    operationCost: 0
                 })) || [],
                 totalAmount: p.subtotal,
                 operationTotal: 0,
@@ -170,18 +192,17 @@ export default function SalesPage() {
 
             // Map backend requests to local CustomerRequest type
             const mappedRequests: CustomerRequest[] = requestsData.map(r => ({
-                id: r.id,
-                requestNumber: r.request_number,
-                customerId: r.client_id,
-                customerName: r.client?.company_name || 'Bilinmeyen Müşteri',
-                productType: r.product_type,
-                productDetails: r.product_details || '',
-                quantity: r.quantity,
-                notes: r.notes || '',
-                budgetSource: '', // Not in backend explicitly
-                status: (r.status === 'pending' ? 'pending' :
-                    r.status === 'approved' ? 'approved' : 'rejected') as any,
-                createdAt: r.created_at?.split('T')[0] || new Date().toISOString().split('T')[0]
+                id: (r as any).id,
+                requestNumber: (r as any).request_number,
+                customerId: (r as any).client_id,
+                customerName: (r as any).client?.company_name || 'Bilinmeyen Müşteri',
+                productType: (r as any).product_type,
+                productDetails: (r as any).product_details || '',
+                quantity: (r as any).quantity,
+                notes: (r as any).notes || '',
+                budgetSource: '',
+                status: ((r as any).status === 'pending' ? 'pending' : (r as any).status === 'approved' ? 'approved' : 'rejected') as any,
+                createdAt: (r as any).created_at?.split('T')[0] || new Date().toISOString().split('T')[0]
             }))
             setCustomerRequests(mappedRequests)
 
@@ -439,16 +460,15 @@ export default function SalesPage() {
         try {
             const userId = localStorage.getItem('userId') || ''
 
-            await clientsService.create({
+            const customerData = {
                 company_name: customerForm.companyName,
-                name: customerForm.companyName, // REQUIRED by some backend logic or DB
+                name: customerForm.companyName,
                 trade_name: customerForm.tradeName,
-                type: 'corporate', // Default type REQUIRED by DB
+                type: 'corporate',
                 sector: customerForm.sector,
                 tax_office: customerForm.taxOffice,
                 tax_number: customerForm.taxNumber,
-                status: customerForm.status === 'Aktif' ? 'active' :
-                    customerForm.status === 'Pasif' ? 'inactive' : 'potential',
+                status: customerForm.status === 'Aktif' ? 'active' : customerForm.status === 'Pasif' ? 'inactive' : 'potential',
                 address: customerForm.address,
                 city: customerForm.city,
                 district: customerForm.district,
@@ -458,10 +478,18 @@ export default function SalesPage() {
                 phone: customerForm.phone,
                 notes: customerForm.notes,
                 account_manager_id: userId
-            })
+            }
 
-            success('Müşteri başarıyla kaydedildi.')
+            if (selectedCustomer) {
+                await (clientsService as any).update(selectedCustomer.id, customerData)
+                success('Müşteri başarıyla güncellendi.')
+            } else {
+                await (clientsService as any).create(customerData)
+                success('Müşteri başarıyla kaydedildi.')
+            }
+
             setShowCustomerModal(false)
+            setSelectedCustomer(null)
             fetchData() // Refresh data
 
             setCustomerForm({
@@ -569,6 +597,7 @@ export default function SalesPage() {
         }
         alert(`Teklif ${selectedProposal?.customerName} adresine (${selectedCustomer?.email || 'ali@izmiracikhavareklam.com'}) gönderildi!`)
         setShowEmailModal(false)
+        setActiveTab('sent') // Gönderilen Teklifler sekmesine geç
     }
 
     const handleSaveProposal = async () => {
@@ -591,6 +620,7 @@ export default function SalesPage() {
             success('Teklif taslağı başarıyla kaydedildi.')
             setShowProposalModal(false)
             fetchData() // Refresh data
+            setActiveTab('proposals') // Bütçe Teklifleri sekmesine geç
         } catch (error) {
             console.error('Proposal save error:', error)
             alert('Teklif kaydedilirken hata oluştu.')
@@ -662,30 +692,7 @@ export default function SalesPage() {
                         Gönderilen Teklifler
                     </div>
                 </button>
-                <button
-                    onClick={() => setActiveTab('locationRequests')}
-                    className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === 'locationRequests'
-                        ? 'border-primary-600 text-primary-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                        }`}
-                >
-                    <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        Yer Listesi Talepleri
-                    </div>
-                </button>
-                <button
-                    onClick={() => setActiveTab('customerRequests')}
-                    className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === 'customerRequests'
-                        ? 'border-primary-600 text-primary-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                        }`}
-                >
-                    <div className="flex items-center gap-2">
-                        <Plus className="w-4 h-4" />
-                        Müşteri Talepleri
-                    </div>
-                </button>
+
             </div>
 
             {/* Stats Cards */}
@@ -800,6 +807,33 @@ export default function SalesPage() {
                                     >
                                         Teklif Hazırla
                                     </button>
+                                    <button
+                                        onClick={() => {
+                                            setSelectedCustomer(customer)
+                                            setCustomerForm({
+                                                companyName: customer.companyName,
+                                                tradeName: (customer as any).tradeName || '',
+                                                sector: (customer as any).sector || '',
+                                                taxOffice: (customer as any).taxOffice || '',
+                                                taxNumber: (customer as any).taxNumber || '',
+                                                status: (customer as any).status || 'Potansiyel',
+                                                address: customer.address || '',
+                                                city: (customer as any).city || '',
+                                                district: (customer as any).district || '',
+                                                postalCode: (customer as any).postalCode || '',
+                                                contactPerson: customer.contactPerson,
+                                                email: customer.email,
+                                                phone: customer.phone,
+                                                mobile: (customer as any).mobile || '',
+                                                website: (customer as any).website || '',
+                                                notes: (customer as any).notes || ''
+                                            })
+                                            setShowCustomerModal(true)
+                                        }}
+                                        className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                                    >
+                                        Güncelle
+                                    </button>
                                 </div>
                             </div>
                         ))}
@@ -807,78 +841,79 @@ export default function SalesPage() {
                 </div>
             )}
 
-            {activeTab === 'proposals' && (
-                <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row gap-4 justify-between">
-                        <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Teklif ara..."
-                                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                            />
+            {
+                activeTab === 'proposals' && (
+                    <div className="space-y-4">
+                        <div className="flex flex-col sm:flex-row gap-4 justify-between">
+                            <div className="relative flex-1 max-w-md">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Teklif ara..."
+                                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                />
+                            </div>
+                            <button className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                <Filter className="w-5 h-5 text-gray-500" />
+                                Filtrele
+                            </button>
                         </div>
-                        <button className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                            <Filter className="w-5 h-5 text-gray-500" />
-                            Filtrele
-                        </button>
-                    </div>
 
-                    {/* Proposals Table */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-gray-50 border-b border-gray-100">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Teklif No</th>
-                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Müşteri</th>
-                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Ürünler</th>
-                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Toplam</th>
-                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Durum</th>
-                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">İşlem</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {proposals.filter(p => p.status === 'draft').map((proposal) => (
-                                        <tr key={proposal.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 text-sm font-medium text-gray-900">{proposal.id}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-700">{proposal.customerName}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-700">
-                                                <div className="flex flex-wrap gap-1">
-                                                    {proposal.items.map((item, idx) => (
-                                                        <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                                                            {item.quantity} {item.type}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-sm font-semibold text-gray-900">₺{proposal.totalAmount.toLocaleString()}</td>
-                                            <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800`}>
-                                                    Taslak
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedProposal(proposal)
-                                                        setSelectedCustomer(customers.find(c => c.id === proposal.customerId) || null)
-                                                        setShowEmailModal(true)
-                                                    }}
-                                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
-                                                >
-                                                    <Send className="w-4 h-4" />
-                                                    Gönder
-                                                </button>
-                                            </td>
+                        {/* Proposals Table */}
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead className="bg-gray-50 border-b border-gray-100">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Teklif No</th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Müşteri</th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Ürünler</th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Toplam</th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Durum</th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">İşlem</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {proposals.filter(p => p.status === 'draft').map((proposal) => (
+                                            <tr key={proposal.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 text-sm font-medium text-gray-900">{proposal.id}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-700">{proposal.customerName}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-700">
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {proposal.items.map((item, idx) => (
+                                                            <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                                                {item.quantity} {item.type}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-sm font-semibold text-gray-900">₺{proposal.totalAmount.toLocaleString()}</td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800`}>
+                                                        Taslak
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedProposal(proposal)
+                                                            setSelectedCustomer(customers.find(c => c.id === proposal.customerId) || null)
+                                                            setShowEmailModal(true)
+                                                        }}
+                                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                                                    >
+                                                        <Send className="w-4 h-4" />
+                                                        Gönder
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )
+                )
             }
 
             {
@@ -995,210 +1030,6 @@ export default function SalesPage() {
                 )
             }
 
-            {
-                activeTab === 'locationRequests' && (
-                    <div className="space-y-6">
-                        {/* Header */}
-                        <div className="flex flex-col sm:flex-row gap-4 justify-between">
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900">Yer Listesi Talepleri</h3>
-                                <p className="text-sm text-gray-500">Onaylanan teklifler için yer listesi oluşturma kartları</p>
-                            </div>
-                        </div>
-
-                        {/* Yer Listesi Kartları */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {locationRequests.map((request) => (
-                                <div
-                                    key={request.id}
-                                    className={`bg-white rounded-xl shadow-sm border-2 p-5 transition-all hover:shadow-md ${request.status === 'pending' ? 'border-orange-300' :
-                                        request.status === 'inProgress' ? 'border-blue-300' :
-                                            'border-green-300'
-                                        }`}
-                                >
-                                    {/* Header */}
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${request.status === 'pending' ? 'bg-orange-100 text-orange-800' :
-                                                    request.status === 'inProgress' ? 'bg-blue-100 text-blue-800' :
-                                                        'bg-green-100 text-green-800'
-                                                    }`}>
-                                                    {request.status === 'pending' ? 'Bekliyor' :
-                                                        request.status === 'inProgress' ? 'Hazırlanıyor' :
-                                                            'Tamamlandı'}
-                                                </span>
-                                                <span className="text-xs text-gray-500">{request.id}</span>
-                                            </div>
-                                            <h4 className="font-semibold text-gray-900 mt-2">{request.customerName}</h4>
-                                            <p className="text-xs text-gray-500">Teklif: {request.proposalId}</p>
-                                        </div>
-                                        <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
-                                            <MapPin className="w-5 h-5 text-white" />
-                                        </div>
-                                    </div>
-
-                                    {/* Ürünler */}
-                                    <div className="mb-4">
-                                        <p className="text-xs text-gray-500 mb-2">Ürünler:</p>
-                                        <div className="flex flex-wrap gap-1">
-                                            {request.items.map((item, idx) => (
-                                                <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                                                    {item.quantity} {item.code}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Hafta Bilgileri */}
-                                    <div className="bg-blue-50 rounded-lg p-3 mb-4 space-y-2">
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-gray-600">Kullanım Haftası:</span>
-                                            <span className="font-medium text-blue-800">
-                                                {monthNames[request.usageWeekStart.month - 1]} {request.usageWeekStart.week}. Hafta - {monthNames[request.usageWeekEnd.month - 1]} {request.usageWeekEnd.week}. Hafta
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-gray-600">Rezervasyon Haftası:</span>
-                                            <span className="font-medium text-orange-700">
-                                                {monthNames[request.reservationWeek.month - 1]} {request.reservationWeek.week}. Hafta
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Notlar */}
-                                    {request.notes && (
-                                        <div className="bg-gray-50 rounded-lg p-2 mb-4">
-                                            <p className="text-xs text-gray-600">{request.notes}</p>
-                                        </div>
-                                    )}
-
-                                    {/* Tarih ve Butonlar */}
-                                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                                        <span className="text-xs text-gray-500">Oluşturulma: {request.createdAt}</span>
-                                        {request.status === 'pending' && (
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedLocationRequest(request)
-                                                    setShowLocationListModal(true)
-                                                }}
-                                                className="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
-                                            >
-                                                Yer Listesi Oluştur
-                                            </button>
-                                        )}
-                                        {request.status === 'inProgress' && (
-                                            <button className="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors">
-                                                Detay Gör
-                                            </button>
-                                        )}
-                                        {request.status === 'completed' && (
-                                            <span className="text-xs text-green-600 font-medium flex items-center gap-1">
-                                                <Check className="w-4 h-4" />
-                                                Tamamlandı
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {locationRequests.length === 0 && (
-                            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-                                <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                                <h3 className="text-lg font-medium text-gray-900 mb-2">Henüz Yer Listesi Talebi Yok</h3>
-                                <p className="text-sm text-gray-500">Onaylanan teklifler burada görünecek</p>
-                            </div>
-                        )}
-                    </div>
-                )
-            }
-
-            {
-                activeTab === 'customerRequests' && (
-                    <div className="space-y-6">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-gray-800">Müşteri Talepleri</h2>
-                            <button
-                                onClick={() => {
-                                    setRequestForm({
-                                        customerId: '',
-                                        taxNumber: '',
-                                        productType: 'Billboard',
-                                        productDetails: '',
-                                        quantity: 1,
-                                        notes: '',
-                                        budgetSource: ''
-                                    })
-                                    setShowRequestModal(true)
-                                }}
-                                className="px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg flex items-center gap-2 hover:from-violet-700 hover:to-purple-700 transition-all shadow-md"
-                            >
-                                <Plus className="w-4 h-4" />
-                                Yeni Talep
-                            </button>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                            {customerRequests.map((req) => (
-                                <div key={req.id} className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm hover:shadow-md transition-all group">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-sm font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded">{req.requestNumber}</span>
-                                                <span className={`text-[10px] px-2 py-0.5 rounded-full ${req.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
-                                                    {req.status === 'pending' ? 'Beklemede' : 'Onaylandı'}
-                                                </span>
-                                            </div>
-                                            <h3 className="font-bold text-gray-800 text-sm md:text-base">{req.customerName}</h3>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] text-gray-400">{req.createdAt}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-3 mb-6">
-                                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                                            <ShoppingBag className="w-4 h-4 text-gray-400" />
-                                            <span>{req.productType} - {req.quantity} Adet</span>
-                                        </div>
-                                        {req.productDetails && (
-                                            <div className="flex items-start gap-2 text-sm text-gray-600">
-                                                <FileText className="w-4 h-4 text-gray-400 mt-0.5" />
-                                                <span className="line-clamp-2">{req.productDetails}</span>
-                                            </div>
-                                        )}
-                                        {req.budgetSource && (
-                                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                <DollarSign className="w-4 h-4 text-emerald-500" />
-                                                <span>Bütçe: {req.budgetSource}</span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="flex gap-2">
-                                        <button className="flex-1 px-3 py-2 bg-violet-50 text-violet-600 rounded-lg text-xs font-medium hover:bg-violet-100 transition-colors">
-                                            Detayları Gör
-                                        </button>
-                                        <button className="px-3 py-2 bg-primary-50 text-primary-600 rounded-lg text-xs font-medium hover:bg-primary-100 transition-colors">
-                                            Teklife Dönüştür
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {customerRequests.length === 0 && (
-                            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-                                <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                                <h3 className="text-lg font-medium text-gray-900 mb-2">Henüz Müşteri Talebi Yok</h3>
-                                <p className="text-sm text-gray-500">Yeni bir talep oluşturmak için sağ üstteki butonu kullanın</p>
-                            </div>
-                        )}
-                    </div>
-                )
-            }
-
             {/* Müşteri Kartı Modal */}
             {
                 showCustomerModal && (
@@ -1206,8 +1037,8 @@ export default function SalesPage() {
                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl">
                             {/* Header */}
                             <div className="bg-gradient-to-r from-primary-600 to-secondary-600 p-5 rounded-t-2xl flex items-center justify-between">
-                                <h2 className="text-xl font-semibold text-white">Yeni Müşteri Ekle</h2>
-                                <button onClick={() => setShowCustomerModal(false)} className="text-white/80 hover:text-white">
+                                <h2 className="text-xl font-semibold text-white">{selectedCustomer ? 'Müşteri Güncelle' : 'Yeni Müşteri Ekle'}</h2>
+                                <button onClick={() => { setShowCustomerModal(false); setSelectedCustomer(null); }} className="text-white/80 hover:text-white">
                                     <X className="w-6 h-6" />
                                 </button>
                             </div>
@@ -1323,18 +1154,7 @@ export default function SalesPage() {
                                                 />
                                             </div>
                                         </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Durum</label>
-                                            <select
-                                                value={customerForm.status}
-                                                onChange={(e) => setCustomerForm({ ...customerForm, status: e.target.value })}
-                                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                            >
-                                                <option value="Potansiyel">Potansiyel</option>
-                                                <option value="Aktif">Aktif</option>
-                                                <option value="Pasif">Pasif</option>
-                                            </select>
-                                        </div>
+
                                     </>
                                 )}
 
@@ -1476,7 +1296,7 @@ export default function SalesPage() {
                                 </button>
                             </div>
                         </div>
-                    </div>
+                    </div >
                 )
             }
 
@@ -1976,6 +1796,104 @@ export default function SalesPage() {
                     }
                 }}
             />
+
+            {/* Email Modal */}
+            {showEmailModal && selectedProposal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 animate-in fade-in zoom-in duration-200">
+                        <div className="p-6 border-b border-gray-100">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                                        <Send className="w-5 h-5 text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-gray-900">Teklifi E-posta ile Gönder</h3>
+                                        <p className="text-sm text-gray-500">Rezervasyon@izmiracikhavareklam.com üzerinden</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setShowEmailModal(false)}
+                                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                >
+                                    <X className="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="bg-gray-50 rounded-xl p-4">
+                                <p className="text-sm text-gray-600 mb-1">Teklif No</p>
+                                <p className="font-semibold text-gray-900">{selectedProposal.id}</p>
+                            </div>
+                            <div className="bg-gray-50 rounded-xl p-4">
+                                <p className="text-sm text-gray-600 mb-1">Müşteri</p>
+                                <p className="font-semibold text-gray-900">{selectedProposal.customerName}</p>
+                                <p className="text-sm text-gray-500">{selectedCustomer?.email || 'E-posta bulunamadı'}</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Alıcı E-posta</label>
+                                <input
+                                    type="email"
+                                    id="recipientEmail"
+                                    defaultValue={selectedCustomer?.email || ''}
+                                    placeholder="ornek@firma.com"
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Ek Mesaj (Opsiyonel)</label>
+                                <textarea
+                                    id="emailMessage"
+                                    rows={3}
+                                    placeholder="Müşteriye iletmek istediğiniz ek bir mesaj..."
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                                />
+                            </div>
+                        </div>
+                        <div className="p-6 border-t border-gray-100 flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowEmailModal(false)}
+                                className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                            >
+                                İptal
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    const emailInput = document.getElementById('recipientEmail') as HTMLInputElement;
+                                    const messageInput = document.getElementById('emailMessage') as HTMLTextAreaElement;
+                                    const recipientEmail = emailInput?.value || selectedCustomer?.email;
+                                    const message = messageInput?.value || '';
+
+                                    if (!recipientEmail) {
+                                        info('Lütfen geçerli bir e-posta adresi girin.');
+                                        return;
+                                    }
+
+                                    try {
+                                        // Gerçek API çağrısı
+                                        await proposalsService.sendEmail(selectedProposal.id, recipientEmail, message);
+
+                                        // Teklifi "sent" olarak işaretle
+                                        setProposals(prev => prev.map(p =>
+                                            p.id === selectedProposal.id ? { ...p, status: 'sent', sentAt: new Date().toISOString().split('T')[0] } : p
+                                        ));
+
+                                        success(`Teklif ${recipientEmail} adresine başarıyla gönderildi! 📧`);
+                                        setShowEmailModal(false);
+                                    } catch (error) {
+                                        info('E-posta gönderilemedi. Lütfen tekrar deneyin.');
+                                        console.error('Email send error:', error);
+                                    }
+                                }}
+                                className="px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-500/25 flex items-center gap-2"
+                            >
+                                <Send className="w-4 h-4" />
+                                Gönder
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     )
 }

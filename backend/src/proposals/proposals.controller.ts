@@ -45,6 +45,14 @@ export class ProposalsController {
         return this.proposalsService.updateStatus(id, status);
     }
 
+    @Post(':id/send-email')
+    async sendEmail(
+        @Param('id') id: string,
+        @Body() body: { recipientEmail?: string; message?: string },
+    ) {
+        return this.proposalsService.sendProposalEmail(id, body.recipientEmail, body.message);
+    }
+
     @Delete(':id')
     async delete(@Param('id') id: string) {
         return this.proposalsService.delete(id);

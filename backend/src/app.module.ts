@@ -13,6 +13,8 @@ import { TasksModule } from './tasks/tasks.module';
 import { TimeEntriesModule } from './time-entries/time-entries.module';
 import { CustomerRequestsModule } from './customer-requests/customer-requests.module';
 import { FinanceModule } from './finance/finance.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -31,8 +33,11 @@ import { FinanceModule } from './finance/finance.module';
     TimeEntriesModule,
     CustomerRequestsModule,
     FinanceModule,
+    NotificationsModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule { }
+

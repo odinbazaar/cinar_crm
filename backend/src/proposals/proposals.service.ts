@@ -138,6 +138,20 @@ export class ProposalsService {
 
             const createdProposal = await this.findOne(proposal.id);
             if (!createdProposal) throw new Error('Failed to retrieve created proposal');
+
+            // Otomatik bildirim oluştur
+            try {
+                await supabase.from('notifications').insert([{
+                    type: 'proposal',
+                    title: 'Yeni Teklif Oluşturuldu',
+                    message: `${createProposalDto.title} başlıklı yeni teklif hazırlandı. Toplam: ₺${total.toLocaleString('tr-TR')}`,
+                    related_id: proposal.id,
+                    related_type: 'proposals'
+                }]);
+            } catch (notifError) {
+                console.error('Error creating notification:', notifError);
+            }
+
             console.log('--- END PROPOSAL CREATION SUCCESS ---');
             return createdProposal;
 
@@ -191,5 +205,127 @@ export class ProposalsService {
         const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
 
         return `PROP - ${year}${month}${day} -${time} -${random} `;
+    }
+
+    // Teklif e-posta ile gönder
+    async sendProposalEmail(id: string, recipientEmail?: string, customMessage?: string): Promise<{ success: boolean; message: string }> {
+        const nodemailer = await import('nodemailer');
+
+        // Teklifi getir
+        const proposal = await this.findOne(id);
+        if (!proposal) {
+            throw new Error('Teklif bulunamadı');
+        }
+
+        // Müşteri e-postasını belirle
+        const toEmail = recipientEmail || (proposal as any).client?.email;
+        if (!toEmail) {
+            throw new Error('Müşteri e-posta adresi bulunamadı');
+        }
+
+        // Rezervasyon@izmiracikhavareklam.com hesabından gönder (şifresi çalışıyor)
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.yandex.com.tr',
+            port: 465,
+            secure: true,
+            auth: {
+                user: 'Rezervasyon@izmiracikhavareklam.com',
+                pass: process.env.MAIL_PASS || 'Reziar.075',
+            },
+        });
+
+        // Teklif detaylarını oluştur
+        const items = (proposal as any).items || [];
+        const itemsHtml = items.map((item: any) => `
+            <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.description || '-'}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity || 0}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">₺${(item.unit_price || 0).toLocaleString('tr-TR')}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">₺${(item.total || 0).toLocaleString('tr-TR')}</td>
+            </tr>
+        `).join('');
+
+        const html = `
+            <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 700px; margin: auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                <!-- Header -->
+                <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 30px; text-align: center;">
+                    <h1 style="color: white; margin: 0; font-size: 24px;">Çınar Reklam Ajansı</h1>
+                    <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Teklif Bilgilendirmesi</p>
+                </div>
+
+                <!-- Content -->
+                <div style="padding: 30px;">
+                    <h2 style="color: #1f2937; margin-bottom: 20px;">Sayın ${(proposal as any).client?.company_name || 'Değerli Müşterimiz'},</h2>
+                    
+                    ${customMessage ? `<p style="color: #4b5563; line-height: 1.6; margin-bottom: 20px;">${customMessage}</p>` : ''}
+                    
+                    <p style="color: #4b5563; line-height: 1.6;">
+                        Aşağıda, tarafınıza hazırladığımız teklif detaylarını bulabilirsiniz.
+                    </p>
+
+                    <!-- Proposal Info -->
+                    <div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                        <p style="margin: 5px 0; color: #374151;"><strong>Teklif No:</strong> ${(proposal as any).proposal_number}</p>
+                        <p style="margin: 5px 0; color: #374151;"><strong>Tarih:</strong> ${new Date((proposal as any).created_at).toLocaleDateString('tr-TR')}</p>
+                        <p style="margin: 5px 0; color: #374151;"><strong>Geçerlilik:</strong> ${(proposal as any).valid_until ? new Date((proposal as any).valid_until).toLocaleDateString('tr-TR') : '30 gün'}</p>
+                    </div>
+
+                    <!-- Items Table -->
+                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                        <thead>
+                            <tr style="background: #4f46e5; color: white;">
+                                <th style="padding: 12px; text-align: left;">Açıklama</th>
+                                <th style="padding: 12px; text-align: center;">Adet</th>
+                                <th style="padding: 12px; text-align: right;">Birim Fiyat</th>
+                                <th style="padding: 12px; text-align: right;">Toplam</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsHtml}
+                        </tbody>
+                    </table>
+
+                    <!-- Totals -->
+                    <div style="text-align: right; margin-top: 20px;">
+                        <p style="margin: 5px 0; color: #374151;">Ara Toplam: <strong>₺${((proposal as any).subtotal || 0).toLocaleString('tr-TR')}</strong></p>
+                        <p style="margin: 5px 0; color: #374151;">KDV (%${(proposal as any).tax_rate || 20}): <strong>₺${((proposal as any).tax_amount || 0).toLocaleString('tr-TR')}</strong></p>
+                        <p style="margin: 10px 0; font-size: 18px; color: #4f46e5;"><strong>Genel Toplam: ₺${((proposal as any).total || 0).toLocaleString('tr-TR')}</strong></p>
+                    </div>
+
+                    <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+
+                    <p style="color: #6b7280; font-size: 14px;">
+                        Bu teklif hakkında sorularınız için bizimle iletişime geçebilirsiniz.<br>
+                        <strong>Tel:</strong> 0232 XXX XX XX<br>
+                        <strong>E-posta:</strong> Rezervasyon@izmiracikhavareklam.com
+                    </p>
+                </div>
+
+                <!-- Footer -->
+                <div style="background: #1f2937; padding: 20px; text-align: center;">
+                    <p style="color: #9ca3af; margin: 0; font-size: 12px;">
+                        © ${new Date().getFullYear()} Çınar Reklam Ajansı - Tüm hakları saklıdır.
+                    </p>
+                </div>
+            </div>
+        `;
+
+        try {
+            await transporter.sendMail({
+                from: '"Çınar Reklam" <Rezervasyon@izmiracikhavareklam.com>',
+                to: toEmail,
+                subject: `Teklif: ${(proposal as any).proposal_number} - ${(proposal as any).title || 'Çınar Reklam'}`,
+                html: html,
+            });
+
+            // Durumu "SENT" olarak güncelle
+            await this.updateStatus(id, 'SENT');
+
+            console.log(`✅ Teklif e-postası gönderildi: ${toEmail}`);
+            return { success: true, message: `Teklif ${toEmail} adresine başarıyla gönderildi.` };
+        } catch (error) {
+            console.error('❌ E-posta gönderme hatası:', error);
+            throw new Error(`E-posta gönderilemedi: ${error.message}`);
+        }
     }
 }

@@ -83,3 +83,24 @@ Stack: Error: Failed to retrieve created proposal
     at async D:\acursor\jul3\backend\node_modules\@nestjs\core\router\router-proxy.js:9:17
 
 [2025-12-18T11:28:35.887Z] FindOne Error: {"message":"TypeError: fetch failed","details":"TypeError: fetch failed\n\nCaused by: ConnectTimeoutError: Connect Timeout Error (attempted address: slanoowprgrcksfqrgak.supabase.co:443, timeout: 10000ms) (UND_ERR_CONNECT_TIMEOUT)\nConnectTimeoutError: Connect Timeout Error (attempted address: slanoowprgrcksfqrgak.supabase.co:443, timeout: 10000ms)\n    at onConnectTimeout (node:internal/deps/undici/undici:2602:28)\n    at Immediate._onImmediate (node:internal/deps/undici/undici:2568:35)\n    at process.processImmediate (node:internal/timers:491:21)","hint":"","code":""} 
+
+[2026-01-14T09:37:49.000Z] CRITICAL ERROR: Could not find the 'created_by_id' column of 'proposals' in the schema cache 
+Stack: undefined 
+
+[2026-01-14T09:46:32.167Z] CRITICAL ERROR: Could not find the 'created_by_id' column of 'proposals' in the schema cache 
+Stack: undefined 
+
+[2026-01-14T09:50:03.519Z] CRITICAL ERROR: Could not find the 'created_by_id' column of 'proposals' in the schema cache 
+Stack: undefined 
+
+[2026-01-14T09:51:58.631Z] CRITICAL ERROR: Could not find the 'created_by_id' column of 'proposals' in the schema cache 
+Stack: undefined 
+
+[2026-01-14T09:52:17.486Z] CRITICAL ERROR: Could not find the 'created_by_id' column of 'proposals' in the schema cache 
+Stack: undefined 
+
+[2026-01-14T09:55:30.175Z] CRITICAL ERROR: Could not find the 'created_by_id' column of 'proposals' in the schema cache 
+Stack: undefined 
+
+[2026-01-14T09:56:03.573Z] CRITICAL ERROR: Could not find the 'created_by_id' column of 'proposals' in the schema cache 
+Stack: undefined 

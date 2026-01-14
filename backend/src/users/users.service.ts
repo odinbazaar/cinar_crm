@@ -44,8 +44,13 @@ export class UsersService {
             .from('users')
             .insert([
                 {
-                    ...createUserDto,
-                    password: hashedPassword,
+                    email: createUserDto.email,
+                    password_hash: hashedPassword,
+                    first_name: createUserDto.first_name,
+                    last_name: createUserDto.last_name,
+                    role: createUserDto.role,
+                    phone: createUserDto.phone,
+                    hourly_rate: createUserDto.hourly_rate,
                     status: 'ACTIVE',
                 },
             ])

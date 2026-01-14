@@ -137,10 +137,73 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
 
     if (!isOpen || !proposal) return null
 
-    const handleCheckAvailability = () => {
+    const handleCheckAvailability = async () => {
         setIsLoading(true)
 
-        // Check against current inventory from localStorage
+        try {
+            const { inventoryService, bookingsService } = await import('../../services');
+
+            // 1. Fetch from Backend
+            const [inventory, bookings] = await Promise.all([
+                inventoryService.getAll(),
+                bookingsService.getAll()
+            ]);
+
+            if (inventory && inventory.length > 0) {
+                // Filter inventory by static attributes if needed, but results come from JOINING with bookings
+                const matchingItems = inventory.filter(item =>
+                    String(item.network) === String(requestData.network) &&
+                    (item.type === (requestData.productType === 'BB' ? 'Billboard' : requestData.productType))
+                );
+
+                const available: any[] = [];
+                const options: any[] = [];
+                const occupied: any[] = [];
+
+                matchingItems.forEach(item => {
+                    const itemBookings = bookings.filter(b => b.inventory_item_id === item.id && b.start_date === requestData.week);
+                    const booking = itemBookings[0];
+
+                    const uiItem = {
+                        id: item.id,
+                        kod: item.code,
+                        durum: booking?.status || 'BOŞ',
+                        marka1Opsiyon: booking?.brand_option_1 || '',
+                        marka2Opsiyon: booking?.brand_option_2 || '',
+                        marka3Opsiyon: booking?.brand_option_3 || '',
+                        marka4Opsiyon: booking?.brand_option_4 || '',
+                        ilce: item.district,
+                        semt: item.neighborhood,
+                        adres: item.address
+                    };
+
+                    if (!booking || booking.status === 'BOŞ') {
+                        if (available.length < requestData.quantity) available.push(uiItem);
+                    } else if (booking.status === 'OPSİYON') {
+                        if ((available.length + options.length) < requestData.quantity && (!booking.brand_option_4)) {
+                            options.push(uiItem);
+                        }
+                    } else if (booking.status === 'KESİN') {
+                        occupied.push(uiItem);
+                    }
+                });
+
+                setResults({ available, options, occupied });
+                setStep(2);
+                setIsLoading(false);
+
+                if (matchingItems.length === 0) {
+                    info(`Seçilen dönem (${requestData.year} - ${requestData.week}) için henüz envanter oluşturulmamış. "Talebi İşle" dediğinizde otomatik oluşturulacaktır.`)
+                } else {
+                    info(`${available.length} boş yer, ${options.length} opsiyonel yer bulundu.`)
+                }
+                return;
+            }
+        } catch (error) {
+            console.warn('Backend check failed, falling back to local data', error);
+        }
+
+        // FALLBACK to current inventory from localStorage/reservationsData
         setTimeout(() => {
             const savedInventory = localStorage.getItem('inventoryLocations')
             let currentInventory = []
@@ -186,66 +249,51 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
             } else {
                 info(`${available.length} boş yer, ${options.length} opsiyonel yer bulundu.`)
             }
-        }, 1500)
+        }, 800) // Reduced timeout for fallback
     }
 
-    const handleCreateReservations = () => {
+    const handleCreateReservations = async () => {
         if (!proposal) return
         setIsLoading(true)
-        // Simulate saving
-        setTimeout(() => {
-            try {
-                // Save to localStorage so ReservationsPage can see it
-                const newRequest = {
-                    id: `REQ-${Date.now()}`,
-                    proposalId: proposal.id,
-                    proposal_number: proposal.proposal_number || proposal.id,
-                    customerName: proposal.client?.company_name || proposal.client?.name || 'Bilinmeyen Müşteri',
-                    brandName: requestData.brandName,
-                    productType: requestData.productType,
-                    year: requestData.year,
-                    month: requestData.month,
-                    week: requestData.week,
-                    network: requestData.network,
-                    quantity: requestData.quantity,
-                    availableCount: (results.available || []).length,
-                    optionsCount: (results.options || []).length,
-                    selectedLocations: [...(results.available || []), ...(results.options || [])],
-                    status: 'pending',
-                    createdAt: new Date().toISOString()
-                }
 
-                const storageKey = 'reservationRequests'
-                const existingRequestsStr = localStorage.getItem(storageKey)
-                let existingRequests = []
-                if (existingRequestsStr) {
-                    try {
-                        existingRequests = JSON.parse(existingRequestsStr)
-                        if (!Array.isArray(existingRequests)) existingRequests = []
-                    } catch (e) {
-                        console.error('Error parsing existing requests:', e)
-                        existingRequests = []
-                    }
-                }
+        try {
+            const { customerRequestsService } = await import('../../services/customerRequestsService');
 
-                localStorage.setItem(storageKey, JSON.stringify([newRequest, ...existingRequests]))
+            // Prepare the request data for the backend
+            // We'll store the extra fields (year, month, week, network, selectedLocations) in product_details or notes as JSON
+            const details = {
+                brandName: requestData.brandName,
+                year: requestData.year,
+                month: requestData.month,
+                week: requestData.week,
+                network: requestData.network,
+                availableCount: (results.available || []).length,
+                optionsCount: (results.options || []).length,
+                selectedLocations: [...(results.available || []), ...(results.options || [])].map(l => ({ id: l.id, kod: l.kod }))
+            };
 
-                // Trigger a storage event manually for the same window to react
-                window.dispatchEvent(new StorageEvent('storage', {
-                    key: storageKey,
-                    newValue: JSON.stringify([newRequest, ...existingRequests])
-                }))
+            await customerRequestsService.create({
+                client_id: proposal.client_id,
+                product_type: requestData.productType === 'BB' ? 'billboard' :
+                    requestData.productType === 'ML' ? 'megalight' :
+                        requestData.productType === 'LED' ? 'digital_screen' : 'other',
+                product_details: JSON.stringify(details),
+                quantity: requestData.quantity,
+                start_date: requestData.week.split('.').reverse().join('-'), // Convert DD.MM.YYYY to YYYY-MM-DD
+                end_date: requestData.week.split('.').reverse().join('-'), // Placeholder end date
+                priority: 'medium',
+                notes: `Otomatik talep: ${requestData.brandName}`
+            });
 
-                setIsLoading(false)
-                success('Rezervasyon talebi başarıyla iletildi.')
-                if (onComplete) onComplete()
-                onClose()
-            } catch (error) {
-                console.error('Error in handleCreateReservations:', error)
-                setIsLoading(false)
-                alert('Talep iletilirken bir hata oluştu. Lütfen tekrar deneyin.')
-            }
-        }, 800)
+            setIsLoading(false)
+            success('Rezervasyon talebi başarıyla backend\'e iletildi.')
+            if (onComplete) onComplete()
+            onClose()
+        } catch (err: any) {
+            console.error('Error in handleCreateReservations:', err)
+            setIsLoading(false)
+            error('Talep iletilirken bir hata oluştu: ' + (err.message || 'Bilinmeyen hata'))
+        }
     }
 
     return (

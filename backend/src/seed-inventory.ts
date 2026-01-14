@@ -21,51 +21,26 @@ async function seedInventory() {
 
     try {
         const inventoryItems = [
-             {
-                code: 'BB-IST-001',
-                type: 'Billboard',
-                district: 'Kadikoy',
-                neighborhood: 'Caferaga',
-                address: 'Moda Caddesi No:1',
-                network: 'Asian Side',
-                is_active: true
-            },
-            {
-                code: 'CLP-IST-002',
-                type: 'CLP',
-                district: 'Besiktas',
-                neighborhood: 'Levent',
-                address: 'Buyukdere Caddesi Kanyon AVM Onu',
-                network: 'European Side',
-                is_active: true
-            },
-            {
-                code: 'MEG-IST-003',
-                type: 'Megaboard',
-                district: 'Sisli',
-                neighborhood: 'Mecidiyekoy',
-                address: 'E-5 Yanyol',
-                network: 'High Traffic',
-                is_active: true
-            }
+            { code: 'BB0101', type: 'Billboard', district: 'Konak', neighborhood: 'Alsancak', address: 'Gündoğdu Meydanı', network: '1', is_active: true },
+            { code: 'BB0102', type: 'Billboard', district: 'Konak', neighborhood: 'Alsancak', address: 'Kıbrıs Şehitleri Cd.', network: '1', is_active: true },
+            { code: 'BB0201', type: 'Billboard', district: 'Karşıyaka', neighborhood: 'Bostanlı', address: 'Bostanlı İskele', network: '2', is_active: true },
+            { code: 'BB0202', type: 'Billboard', district: 'Karşıyaka', neighborhood: 'Bostanlı', address: 'Çarşı Girişi', network: '2', is_active: true },
+            { code: 'CLP0101', type: 'CLP', district: 'Bornova', neighborhood: 'Küçükpark', address: 'Ege Üni Giriş', network: '1', is_active: true },
+            { code: 'ML0101', type: 'Megalight', district: 'Balçova', neighborhood: 'Eğitim', address: 'Teleferik Karşısı', network: '3', is_active: true }
         ];
 
-        // Check for existing items to avoid duplicates/errors if uniq constraints exist
-        // For simplicity, we just try to insert and catch duplicate error or use upsert if we had IDs.
-        // Since we don't have IDs and code might be unique, let's check first.
-        
         for (const item of inventoryItems) {
             const { data: existing } = await supabase
-                .from('inventory')
+                .from('inventory_items')
                 .select('id')
                 .eq('code', item.code)
                 .single();
 
             if (!existing) {
-                 const { error } = await supabase
-                    .from('inventory')
+                const { error } = await supabase
+                    .from('inventory_items')
                     .insert(item);
-                
+
                 if (error) {
                     console.error(`❌ Failed to insert ${item.code}:`, error);
                 } else {
