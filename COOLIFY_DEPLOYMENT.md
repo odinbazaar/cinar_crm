@@ -7,8 +7,8 @@ This guide covers deploying the Ã‡Ä±nar CRM application using Coolify, a self-ho
 - Coolify instance running
 - Supabase project created: `cinar-crm` (ID: lalnmyfkrveepkagnhh)
 - Domain names configured:
-  - Frontend: `cinarcrm.online` or your Coolify domain
-  - Backend: `backend.cinarcrm.online` or your Coolify domain
+  - Frontend: `cýnar.online` or your Coolify domain
+  - Backend: `backend.cýnar.online` or your Coolify domain
 
 ## ðŸ”‘ Environment Variables
 
@@ -16,7 +16,7 @@ This guide covers deploying the Ã‡Ä±nar CRM application using Coolify, a self-ho
 
 ```bash
 # API Configuration
-VITE_API_URL=https://backend.cinarcrm.online/api
+VITE_API_URL=https://backend.cýnar.online/api
 
 # Supabase Configuration
 VITE_SUPABASE_URL=https://slanoowprgrcksfqrgak.supabase.co
@@ -48,7 +48,7 @@ PORT=3000
 NODE_ENV=production
 
 # CORS (Frontend URL)
-FRONTEND_URL=https://cinarcrm.online
+FRONTEND_URL=https://cýnar.online
 
 # Mail Configuration (Reservations)
 MAIL_HOST=smtp.yandex.com.tr
@@ -89,13 +89,13 @@ ALI_MAIL_PASS=Reziar.075
 #### Frontend Configuration
 - **Port**: Auto (static files)
 - **SSL**: Enable automatic SSL
-- **Domain**: `cinarcrm.online`
+- **Domain**: `cýnar.online`
 - **Build Pack**: Static/Node.js
 
 #### Backend Configuration
 - **Port**: `3000`
 - **SSL**: Enable automatic SSL
-- **Domain**: `backend.cinarcrm.online`
+- **Domain**: `backend.cýnar.online`
 - **Health Check**: `/api/health` or `/api`
 - **Restart Policy**: Always
 
@@ -117,8 +117,8 @@ For each project:
 
 ### 5. Verify Deployment
 
-- Frontend: Visit `https://cinarcrm.online`
-- Backend API: Visit `https://backend.cinarcrm.online/api`
+- Frontend: Visit `https://cýnar.online`
+- Backend API: Visit `https://backend.cýnar.online/api`
 - Test login with credentials from DEPLOYMENT.md
 
 ## ðŸ”„ Updates
@@ -232,3 +232,4 @@ For deployment issues:
 2. Verify Supabase connection
 3. Review browser console for frontend errors
 4. Check backend logs in Coolify
+

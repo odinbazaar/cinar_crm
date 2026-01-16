@@ -71,7 +71,7 @@ Coolify'da bu environment variable'ların set olduğundan emin ol:
 
 ### Frontend:
 ```bash
-VITE_API_URL=https://backend.cinarcrm.online/api
+VITE_API_URL=https://backend.c�nar.online/api
 VITE_SUPABASE_URL=https://slanoowprgrcksfqrgak.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbG...
 VITE_COMPANY_NAME=İZMİR AÇIK HAVA REKLAM SAN. VE TİC. LTD. ŞTİ.
@@ -186,8 +186,9 @@ Build hatası çözüldü! Artık:
 
 1. Değişikliği Git'e push et
 2. Coolify'da build başarılı olduğunu kontrol et
-3. https://cinarcrm.online sitesini aç
+3. https://c�nar.online sitesini aç
 4. Browser cache temizle (CTRL+SHIFT+R)
 5. Değişikliklerin yüklendiğini doğrula
 
 Herhangi bir sorun olursa log'ları paylaş! 🚀
+

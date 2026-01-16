@@ -4,9 +4,9 @@
 
 ```
 /var/www/
-├── cinarcrm.online/          # Frontend (statik dosyalar)
-│   └── dist/                  # npm run build çıktısı
-└── backend.cinarcrm.online/   # Backend (Node.js)
+├── cınar.online/                # Frontend (statik dosyalar)
+│   └── dist/                     # npm run build çıktısı
+└── backend.cınar.online/         # Backend (Node.js)
     ├── dist/                  # npm run build çıktısı
     ├── node_modules/
     ├── .env                   # Production env dosyası
@@ -40,11 +40,11 @@ sudo apt-get install -y certbot python3-certbot-nginx
 
 ```bash
 # Klasör oluştur
-sudo mkdir -p /var/www/cinarcrm.online
+sudo mkdir -p /var/www/c�nar.online
 
 # Yerel bilgisayardan dosyaları yükle (SCP ile)
 # Yerel bilgisayarda çalıştır:
-scp -r frontend/dist/* root@YOUR_VPS_IP:/var/www/cinarcrm.online/
+scp -r frontend/dist/* root@YOUR_VPS_IP:/var/www/c�nar.online/
 
 # Veya FileZilla/WinSCP ile yükle
 ```
@@ -53,15 +53,15 @@ scp -r frontend/dist/* root@YOUR_VPS_IP:/var/www/cinarcrm.online/
 
 ```bash
 # Klasör oluştur
-sudo mkdir -p /var/www/backend.cinarcrm.online
+sudo mkdir -p /var/www/backend.c�nar.online
 
 # Yerel bilgisayardan dosyaları yükle
-scp -r backend/dist root@YOUR_VPS_IP:/var/www/backend.cinarcrm.online/
-scp backend/package.json root@YOUR_VPS_IP:/var/www/backend.cinarcrm.online/
-scp backend/.env.production root@YOUR_VPS_IP:/var/www/backend.cinarcrm.online/.env
+scp -r backend/dist root@YOUR_VPS_IP:/var/www/backend.c�nar.online/
+scp backend/package.json root@YOUR_VPS_IP:/var/www/backend.c�nar.online/
+scp backend/.env.production root@YOUR_VPS_IP:/var/www/backend.c�nar.online/.env
 
 # Sunucuda dependencies kur
-cd /var/www/backend.cinarcrm.online
+cd /var/www/backend.c�nar.online
 npm install --production
 
 # PM2 ile başlat
@@ -72,16 +72,16 @@ pm2 startup
 
 ## 🌐 5. Nginx Konfigürasyonu
 
-### Frontend (cinarcrm.online)
+### Frontend (c�nar.online)
 ```bash
-sudo nano /etc/nginx/sites-available/cinarcrm.online
+sudo nano /etc/nginx/sites-available/c�nar.online
 ```
 
 ```nginx
 server {
     listen 80;
-    server_name cinarcrm.online www.cinarcrm.online;
-    root /var/www/cinarcrm.online;
+    server_name c�nar.online www.c�nar.online;
+    root /var/www/c�nar.online;
     index index.html;
 
     location / {
@@ -95,15 +95,15 @@ server {
 }
 ```
 
-### Backend (backend.cinarcrm.online)
+### Backend (backend.c�nar.online)
 ```bash
-sudo nano /etc/nginx/sites-available/backend.cinarcrm.online
+sudo nano /etc/nginx/sites-available/backend.c�nar.online
 ```
 
 ```nginx
 server {
     listen 80;
-    server_name backend.cinarcrm.online;
+    server_name backend.c�nar.online;
 
     location / {
         proxy_pass http://127.0.0.1:3000;
@@ -121,8 +121,8 @@ server {
 
 ### Konfigürasyonları Aktif Et
 ```bash
-sudo ln -s /etc/nginx/sites-available/cinarcrm.online /etc/nginx/sites-enabled/
-sudo ln -s /etc/nginx/sites-available/backend.cinarcrm.online /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/c�nar.online /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/backend.c�nar.online /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -130,24 +130,24 @@ sudo systemctl reload nginx
 ## 🔒 6. SSL Sertifikası (HTTPS)
 
 ```bash
-sudo certbot --nginx -d cinarcrm.online -d www.cinarcrm.online
-sudo certbot --nginx -d backend.cinarcrm.online
+sudo certbot --nginx -d c�nar.online -d www.c�nar.online
+sudo certbot --nginx -d backend.c�nar.online
 ```
 
 ## ✅ 7. Test
 
-- Frontend: https://cinarcrm.online
-- Backend API: https://backend.cinarcrm.online/api
+- Frontend: https://c�nar.online
+- Backend API: https://backend.c�nar.online/api
 
 ## 🔄 8. Güncellemeler İçin
 
 ```bash
 # Frontend güncelleme
-scp -r frontend/dist/* root@YOUR_VPS_IP:/var/www/cinarcrm.online/
+scp -r frontend/dist/* root@YOUR_VPS_IP:/var/www/c�nar.online/
 
 # Backend güncelleme
-scp -r backend/dist root@YOUR_VPS_IP:/var/www/backend.cinarcrm.online/
-ssh root@YOUR_VPS_IP "cd /var/www/backend.cinarcrm.online && pm2 restart cinar-backend"
+scp -r backend/dist root@YOUR_VPS_IP:/var/www/backend.c�nar.online/
+ssh root@YOUR_VPS_IP "cd /var/www/backend.c�nar.online && pm2 restart cinar-backend"
 ```
 
 ## 📝 Notlar
@@ -168,3 +168,4 @@ ssh root@YOUR_VPS_IP "cd /var/www/backend.cinarcrm.online && pm2 restart cinar-b
 | simge@izmiracikhavareklam.com | Cinarcrm123! | Employee |
 | can@izmiracikhavareklam.com | Cinarcrm123! | Employee |
 | cihangir@izmiracikhavareklam.com | Cinarcrm123! | Employee |
+

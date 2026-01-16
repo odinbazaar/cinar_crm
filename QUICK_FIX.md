@@ -31,7 +31,7 @@ CTRL + SHIFT + R (Hard Reload)
 
 ### Adım 4: Test Et
 ```
-1. https://cinarcrm.online adresine git
+1. https://c�nar.online adresine git
 2. F12 bas (Developer Tools)
 3. Console tab'ına git
 4. Şunu yapıştır:
@@ -40,7 +40,7 @@ console.log('API:', import.meta.env.VITE_API_URL);
 console.log('Supabase:', import.meta.env.VITE_SUPABASE_URL);
 
 5. Şunu görmeli:
-   API: https://backend.cinarcrm.online/api
+   API: https://backend.c�nar.online/api
    Supabase: https://slanoowprgrcksfqrgak.supabase.co
 ```
 
@@ -52,7 +52,7 @@ console.log('Supabase:', import.meta.env.VITE_SUPABASE_URL);
 
 #### Coolify Frontend Environment:
 ```bash
-VITE_API_URL=https://backend.cinarcrm.online/api
+VITE_API_URL=https://backend.c�nar.online/api
 VITE_SUPABASE_URL=https://slanoowprgrcksfqrgak.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsYW5vb3dwcmdyY2tzZnFyZ2FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3ODU2NzYsImV4cCI6MjA4MDM2MTY3Nn0.mbm0PFKd-dkIJmMlu9-DLlIvghDzKsLudwtOR6vT28U
 VITE_COMPANY_NAME=İZMİR AÇIK HAVA REKLAM SAN. VE TİC. LTD. ŞTİ.
@@ -77,7 +77,7 @@ JWT_SECRET=cinar-crm-super-secret-jwt-key-2024
 JWT_EXPIRES_IN=7d
 PORT=3000
 NODE_ENV=production
-FRONTEND_URL=https://cinarcrm.online
+FRONTEND_URL=https://c�nar.online
 MAIL_HOST=smtp.yandex.com.tr
 MAIL_PORT=465
 MAIL_USER=Rezervasyon@izmiracikhavareklam.com
@@ -124,7 +124,7 @@ ALI_MAIL_PASS=Reziar.075
 
 Mobilde de test et:
 1. Telefon ile aynı network'e bağlan
-2. https://cinarcrm.online aç
+2. https://c�nar.online aç
 3. Değişiklikleri kontrol et
 
 ---
@@ -198,3 +198,4 @@ npm run preview  # http://localhost:4173
 - Browser console hataları (screenshot)
 - Network tab'ındaki failed requests (screenshot)
 ```
+
