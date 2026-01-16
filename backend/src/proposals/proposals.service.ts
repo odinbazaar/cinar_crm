@@ -121,6 +121,7 @@ export class ProposalsService {
                     total: (item as any).total || (qty * unitPrice),
                     estimated_hours: (item as any).estimated_hours || 0,
                     hourly_rate: (item as any).hourly_rate || 0,
+                    metadata: item.metadata || {},
                     order: index,
                 };
             });
@@ -165,15 +166,86 @@ export class ProposalsService {
     }
 
     async update(id: string, updateProposalDto: UpdateProposalDto): Promise<Proposal> {
-        const { data, error } = await supabase
-            .from('proposals')
-            .update(updateProposalDto)
-            .eq('id', id)
-            .select()
-            .single();
+        try {
+            console.log(`--- START PROPOSAL UPDATE: ${id} ---`);
 
-        if (error) throw new Error(error.message);
-        return data as Proposal;
+            let subtotal: number | undefined;
+            let taxAmount: number | undefined;
+            let total: number | undefined;
+            const taxRate = 20;
+
+            // Calculate new totals if items are provided
+            if (updateProposalDto.items) {
+                subtotal = updateProposalDto.items.reduce((sum, item) => {
+                    const qty = Number(item.quantity) || 0;
+                    const price = Number(item.unit_price) || 0;
+                    return sum + (qty * price);
+                }, 0);
+
+                taxAmount = (subtotal * taxRate) / 100;
+                total = subtotal + taxAmount;
+            }
+
+            // Update main proposal table
+            const updateProps: any = { ...updateProposalDto };
+            delete updateProps.items;
+
+            if (subtotal !== undefined) {
+                updateProps.subtotal = subtotal;
+                updateProps.tax_amount = taxAmount;
+                updateProps.total = total;
+            }
+
+            const { data: proposal, error: proposalError } = await supabase
+                .from('proposals')
+                .update(updateProps)
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (proposalError) throw proposalError;
+
+            // If items are provided, sync them
+            if (updateProposalDto.items) {
+                // Delete existing items
+                const { error: deleteError } = await supabase
+                    .from('proposal_items')
+                    .delete()
+                    .eq('proposal_id', id);
+
+                if (deleteError) throw deleteError;
+
+                // Insert new items
+                const newItems = updateProposalDto.items.map((item, index) => ({
+                    proposal_id: id,
+                    description: item.description,
+                    quantity: Number(item.quantity) || 0,
+                    unit_price: Number(item.unit_price) || 0,
+                    total: (Number(item.quantity) || 0) * (Number(item.unit_price) || 0),
+                    estimated_hours: item.estimated_hours || 0,
+                    hourly_rate: item.hourly_rate || 0,
+                    metadata: item.metadata || {},
+                    order: index
+                }));
+
+                const { error: insertError } = await supabase
+                    .from('proposal_items')
+                    .insert(newItems);
+
+                if (insertError) throw insertError;
+            }
+
+            const updatedProposal = await this.findOne(id);
+            if (!updatedProposal) throw new Error('Failed to retrieve updated proposal');
+
+            console.log(`--- END PROPOSAL UPDATE SUCCESS: ${id} ---`);
+            return updatedProposal;
+
+        } catch (error) {
+            console.error(`--- PROPOSAL UPDATE FAILED: ${id} ---`);
+            console.error(error);
+            throw error;
+        }
     }
 
     async delete(id: string): Promise<void> {
@@ -199,12 +271,11 @@ export class ProposalsService {
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
-        const time = String(now.getHours()).padStart(2, '0') +
-            String(now.getMinutes()).padStart(2, '0') +
-            String(now.getSeconds()).padStart(2, '0');
-        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
 
-        return `PROP - ${year}${month}${day} -${time} -${random} `;
+        // Use a 5-digit random for better look
+        const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
+
+        return `İAR-${year}${month}${day}-${random}`;
     }
 
     // Teklif e-posta ile gönder
@@ -236,20 +307,30 @@ export class ProposalsService {
 
         // Teklif detaylarını oluştur
         const items = (proposal as any).items || [];
-        const itemsHtml = items.map((item: any) => `
-            <tr>
-                <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.description || '-'}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity || 0}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">₺${(item.unit_price || 0).toLocaleString('tr-TR')}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">₺${(item.total || 0).toLocaleString('tr-TR')}</td>
-            </tr>
-        `).join('');
+        const itemsHtml = items.map((item: any) => {
+            const m = item.metadata || {};
+            const duration = m.duration ? `(${m.duration} ${m.period?.includes('GÜN') ? 'Gün' : 'Hafta'})` : '';
+            const dates = m.start_date && m.end_date ? `<br/><small style="color: #666;">${m.start_date} - ${m.end_date}</small>` : '';
+
+            return `
+                <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid #eee;">
+                        <div style="font-weight: bold; color: #1f2937;">${item.description || '-'}</div>
+                        ${dates}
+                    </td>
+                    <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity || 0}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">${duration || '-'}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right;">₺${(item.unit_price || 0).toLocaleString('tr-TR')}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">₺${(item.total || 0).toLocaleString('tr-TR')}</td>
+                </tr>
+            `;
+        }).join('');
 
         const html = `
             <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 700px; margin: auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
                 <!-- Header -->
                 <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 30px; text-align: center;">
-                    <h1 style="color: white; margin: 0; font-size: 24px;">Çınar Reklam Ajansı</h1>
+                    <h1 style="color: white; margin: 0; font-size: 24px;">${process.env.COMPANY_NAME || 'Çınar Reklam Ajansı'}</h1>
                     <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Teklif Bilgilendirmesi</p>
                 </div>
 
@@ -276,6 +357,7 @@ export class ProposalsService {
                             <tr style="background: #4f46e5; color: white;">
                                 <th style="padding: 12px; text-align: left;">Açıklama</th>
                                 <th style="padding: 12px; text-align: center;">Adet</th>
+                                <th style="padding: 12px; text-align: center;">Dönem</th>
                                 <th style="padding: 12px; text-align: right;">Birim Fiyat</th>
                                 <th style="padding: 12px; text-align: right;">Toplam</th>
                             </tr>
@@ -304,7 +386,7 @@ export class ProposalsService {
                 <!-- Footer -->
                 <div style="background: #1f2937; padding: 20px; text-align: center;">
                     <p style="color: #9ca3af; margin: 0; font-size: 12px;">
-                        © ${new Date().getFullYear()} Çınar Reklam Ajansı - Tüm hakları saklıdır.
+                        © ${new Date().getFullYear()} ${process.env.COMPANY_NAME || 'Çınar Reklam Ajansı'} - Tüm hakları saklıdır.
                     </p>
                 </div>
             </div>
@@ -312,8 +394,9 @@ export class ProposalsService {
 
         try {
             await transporter.sendMail({
-                from: '"Çınar Reklam" <Rezervasyon@izmiracikhavareklam.com>',
+                from: `"${process.env.COMPANY_NAME || 'Çınar Reklam'}" <Rezervasyon@izmiracikhavareklam.com>`,
                 to: toEmail,
+                cc: 'Rezervasyon@izmiracikhavareklam.com',
                 subject: `Teklif: ${(proposal as any).proposal_number} - ${(proposal as any).title || 'Çınar Reklam'}`,
                 html: html,
             });

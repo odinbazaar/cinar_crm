@@ -14,7 +14,8 @@ import {
     ClipboardList,
     ShoppingBag,
     CalendarDays,
-    Calculator
+    Calculator,
+    FileSignature
 } from 'lucide-react'
 import { useState } from 'react'
 import NotificationsPanel from './NotificationsPanel'
@@ -31,6 +32,7 @@ const navigation = [
     { name: 'Envanter', href: '/inventory', icon: MapPin },
     { name: 'Asım Listesi', href: '/asim-listesi', icon: Calendar },
     { name: 'Teklifler', href: '/proposals', icon: FileText },
+    { name: 'Sözleşmeler', href: '/contracts', icon: FileSignature },
 ]
 
 

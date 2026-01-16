@@ -25,7 +25,8 @@ import {
     ChevronDown,
     RefreshCw,
     CheckCircle,
-    Loader2
+    Loader2,
+    Trash2
 } from 'lucide-react'
 import LocationRequestModal from '../components/proposals/LocationRequestModal'
 import { useToast } from '../hooks/useToast'
@@ -67,6 +68,7 @@ interface ProposalItem {
 // Teklif tipi
 interface Proposal {
     id: string
+    proposalNumber?: string
     customerId: string
     customerName: string
     items: ProposalItem[]
@@ -167,7 +169,8 @@ export default function SalesPage() {
 
             // Map backend proposals to local Proposal type
             const mappedProposals: Proposal[] = proposalsData.map(p => ({
-                id: p.proposal_number || p.id,
+                id: p.id, // Use actual UUID for API calls
+                proposalNumber: p.proposal_number, // Keep proposal_number for display
                 customerId: p.client_id,
                 customerName: p.client?.company_name || 'Bilinmeyen Müşteri',
                 items: (p as any).items?.map((item: any) => ({
@@ -585,19 +588,69 @@ export default function SalesPage() {
         return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })
     }
 
-    const handleSendEmail = () => {
-        // Email gönderme simülasyonu
-        if (selectedProposal) {
-            const updatedProposals = proposals.map(p =>
-                p.id === selectedProposal.id
-                    ? { ...p as Proposal, status: 'sent' as const, sentAt: new Date().toISOString().split('T')[0] }
-                    : p
-            )
-            setProposals(updatedProposals)
+    const handleSendEmail = async () => {
+        if (!selectedProposal) return;
+
+        try {
+            setIsLoading(true);
+            const emailInput = document.getElementById('recipientEmail') as HTMLInputElement;
+            const messageInput = document.getElementById('emailMessage') as HTMLTextAreaElement;
+            const email = emailInput?.value || selectedCustomer?.email;
+            const message = messageInput?.value || `Sayın ${selectedCustomer?.contactPerson || 'Yetkili'},\n\nEkte reklam alanları için hazırladığımız bütçe teklifimizi bulabilirsiniz.\n\nSaygılarımızla,\nÇınar Reklam Ajansı`;
+
+            if (!email) {
+                alert('Lütfen geçerli bir e-posta adresi girin.');
+                return;
+            }
+
+            const response = await proposalsService.sendEmail(selectedProposal.id, email, message);
+
+            if (response.success) {
+                success(response.message);
+                setShowEmailModal(false);
+                fetchData(); // Refresh list
+                setActiveTab('sent');
+            } else {
+                alert('E-posta gönderilirken bir hata oluştu: ' + response.message);
+            }
+        } catch (error: any) {
+            console.error('Email send error:', error);
+            alert('E-posta gönderilemedi: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setIsLoading(false);
         }
-        alert(`Teklif ${selectedProposal?.customerName} adresine (${selectedCustomer?.email || 'ali@izmiracikhavareklam.com'}) gönderildi!`)
-        setShowEmailModal(false)
-        setActiveTab('sent') // Gönderilen Teklifler sekmesine geç
+    }
+
+    const handleDeleteProposal = async (id: string) => {
+        if (!window.confirm('Bu teklifi silmek istediğinize emin misiniz?')) return;
+
+        try {
+            setIsLoading(true);
+            await proposalsService.delete(id);
+            success('Teklif başarıyla silindi.');
+            fetchData(); // Refresh list
+        } catch (error: any) {
+            console.error('Delete error:', error);
+            alert('Teklif silinirken hata oluştu: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    const handleDeleteCustomer = async (id: string) => {
+        if (!window.confirm('Bu müşteriyi ve tüm ilişkili verilerini silmek istediğinize emin misiniz?')) return;
+
+        try {
+            setIsLoading(true);
+            await clientsService.delete(id);
+            success('Müşteri başarıyla silindi.');
+            fetchData(); // Refresh list
+        } catch (error: any) {
+            console.error('Customer delete error:', error);
+            alert('Müşteri silinirken hata oluştu: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setIsLoading(false);
+        }
     }
 
     const handleSaveProposal = async () => {
@@ -831,8 +884,16 @@ export default function SalesPage() {
                                             setShowCustomerModal(true)
                                         }}
                                         className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                                        title="Güncelle"
                                     >
-                                        Güncelle
+                                        Revize
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteCustomer(customer.id)}
+                                        className="px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                                        title="Sil"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
                                     </button>
                                 </div>
                             </div>
@@ -876,7 +937,7 @@ export default function SalesPage() {
                                     <tbody className="divide-y divide-gray-100">
                                         {proposals.filter(p => p.status === 'draft').map((proposal) => (
                                             <tr key={proposal.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4 text-sm font-medium text-gray-900">{proposal.id}</td>
+                                                <td className="px-6 py-4 text-sm font-medium text-gray-900">{proposal.proposalNumber || proposal.id}</td>
                                                 <td className="px-6 py-4 text-sm text-gray-700">{proposal.customerName}</td>
                                                 <td className="px-6 py-4 text-sm text-gray-700">
                                                     <div className="flex flex-wrap gap-1">
@@ -894,17 +955,27 @@ export default function SalesPage() {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedProposal(proposal)
-                                                            setSelectedCustomer(customers.find(c => c.id === proposal.customerId) || null)
-                                                            setShowEmailModal(true)
-                                                        }}
-                                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
-                                                    >
-                                                        <Send className="w-4 h-4" />
-                                                        Gönder
-                                                    </button>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedProposal(proposal)
+                                                                setSelectedCustomer(customers.find(c => c.id === proposal.customerId) || null)
+                                                                setShowEmailModal(true)
+                                                            }}
+                                                            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                                                        >
+                                                            <Send className="w-4 h-4" />
+                                                            Gönder
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteProposal(proposal.id)}
+                                                            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                                                            title="Sil"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                            Sil
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -1012,6 +1083,13 @@ export default function SalesPage() {
                                                             Yer Talebi Oluştur
                                                         </button>
                                                     )}
+                                                    <button
+                                                        onClick={() => handleDeleteProposal(proposal.id)}
+                                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                                                        title="Sil"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
@@ -1533,75 +1611,6 @@ export default function SalesPage() {
                 )
             }
 
-            {/* Email Gönderme Modal */}
-            {
-                showEmailModal && (
-                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-                            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                                <h2 className="text-xl font-semibold text-gray-900">Teklif Gönder</h2>
-                                <button onClick={() => setShowEmailModal(false)} className="text-gray-400 hover:text-gray-600">
-                                    <X className="w-6 h-6" />
-                                </button>
-                            </div>
-                            <div className="p-6 space-y-4">
-                                <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
-                                    <Mail className="w-5 h-5 text-green-600 mt-0.5" />
-                                    <div>
-                                        <p className="text-sm font-medium text-green-800">
-                                            Teklif aşağıdaki adrese gönderilecek:
-                                        </p>
-                                        <p className="text-sm text-green-700 mt-1">
-                                            {selectedCustomer?.email || 'ali@izmiracikhavareklam.com'}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Konu</label>
-                                    <input
-                                        type="text"
-                                        defaultValue={`Çınar CRM - Bütçe Teklifi ${selectedProposal?.id || 'TKL-XXX'}`}
-                                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Mesaj</label>
-                                    <textarea
-                                        rows={4}
-                                        defaultValue={`Sayın ${selectedCustomer?.contactPerson || 'Yetkili'},\n\nEkte reklam alanları için hazırladığımız bütçe teklifimizi bulabilirsiniz.\n\nSaygılarımızla,\nÇınar Reklam Ajansı`}
-                                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                    />
-                                </div>
-
-                                <div className="bg-gray-50 rounded-lg p-4">
-                                    <p className="text-xs text-gray-500 mb-2">Ek: Bütçe Teklifi PDF</p>
-                                    <div className="flex items-center gap-2">
-                                        <FileText className="w-4 h-4 text-red-500" />
-                                        <span className="text-sm text-gray-700">Teklif_{selectedProposal?.id || 'TKL-XXX'}.pdf</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="p-6 border-t border-gray-100 flex gap-3 justify-end">
-                                <button
-                                    onClick={() => setShowEmailModal(false)}
-                                    className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                                >
-                                    İptal
-                                </button>
-                                <button
-                                    onClick={handleSendEmail}
-                                    className="px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-green-600 to-green-700 rounded-lg hover:from-green-700 hover:to-green-800 transition-all flex items-center gap-2"
-                                >
-                                    <Send className="w-4 h-4" />
-                                    Teklif Gönder
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
             {/* Yeni Müşteri Talebi Modalı */}
             {
                 showRequestModal && (
@@ -1823,7 +1832,7 @@ export default function SalesPage() {
                         <div className="p-6 space-y-4">
                             <div className="bg-gray-50 rounded-xl p-4">
                                 <p className="text-sm text-gray-600 mb-1">Teklif No</p>
-                                <p className="font-semibold text-gray-900">{selectedProposal.id}</p>
+                                <p className="font-semibold text-gray-900">{selectedProposal.proposalNumber || selectedProposal.id}</p>
                             </div>
                             <div className="bg-gray-50 rounded-xl p-4">
                                 <p className="text-sm text-gray-600 mb-1">Müşteri</p>
@@ -1858,33 +1867,7 @@ export default function SalesPage() {
                                 İptal
                             </button>
                             <button
-                                onClick={async () => {
-                                    const emailInput = document.getElementById('recipientEmail') as HTMLInputElement;
-                                    const messageInput = document.getElementById('emailMessage') as HTMLTextAreaElement;
-                                    const recipientEmail = emailInput?.value || selectedCustomer?.email;
-                                    const message = messageInput?.value || '';
-
-                                    if (!recipientEmail) {
-                                        info('Lütfen geçerli bir e-posta adresi girin.');
-                                        return;
-                                    }
-
-                                    try {
-                                        // Gerçek API çağrısı
-                                        await proposalsService.sendEmail(selectedProposal.id, recipientEmail, message);
-
-                                        // Teklifi "sent" olarak işaretle
-                                        setProposals(prev => prev.map(p =>
-                                            p.id === selectedProposal.id ? { ...p, status: 'sent', sentAt: new Date().toISOString().split('T')[0] } : p
-                                        ));
-
-                                        success(`Teklif ${recipientEmail} adresine başarıyla gönderildi! 📧`);
-                                        setShowEmailModal(false);
-                                    } catch (error) {
-                                        info('E-posta gönderilemedi. Lütfen tekrar deneyin.');
-                                        console.error('Email send error:', error);
-                                    }
-                                }}
+                                onClick={handleSendEmail}
                                 className="px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-500/25 flex items-center gap-2"
                             >
                                 <Send className="w-4 h-4" />

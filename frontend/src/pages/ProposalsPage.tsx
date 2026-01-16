@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, FileText, Download, Eye, MoreVertical, Send, Upload, FileSignature, MapPin } from 'lucide-react'
+import { Plus, Search, FileText, Download, Eye, MoreVertical, Send, Upload, FileSignature, MapPin, Mail, Printer, ChevronDown, Pencil } from 'lucide-react'
 import { proposalsService, type Proposal } from '../services'
 import { useToast } from '../hooks/useToast'
 import ProposalFormModal from '../components/proposals/ProposalFormModal'
@@ -7,10 +7,15 @@ import ProposalContractModal from '../components/proposals/ProposalContractModal
 import LocationRequestModal from '../components/proposals/LocationRequestModal'
 import DataImportModal from '../components/common/DataImportModal'
 
+import { useNavigate, Link } from 'react-router-dom'
+
 export default function ProposalsPage() {
+    const navigate = useNavigate()
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState('ALL')
+    const [editingProposal, setEditingProposal] = useState<Proposal | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [dropdownOpen, setDropdownOpen] = useState(false)
     const [proposals, setProposals] = useState<Proposal[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isImportOpen, setIsImportOpen] = useState(false)
@@ -77,9 +82,10 @@ export default function ProposalsPage() {
     }
 
     const filteredProposals = proposals.filter(proposal => {
+        const cleanSearch = searchTerm.toLowerCase().replace(/[\s-]/g, '');
         const matchesSearch =
             (proposal.client?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            proposal.proposal_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            proposal.proposal_number.toLowerCase().replace(/[\s-]/g, '').includes(cleanSearch) ||
             proposal.title.toLowerCase().includes(searchTerm.toLowerCase())
 
         const matchesFilter = statusFilter === 'ALL' || proposal.status === statusFilter
@@ -89,14 +95,26 @@ export default function ProposalsPage() {
 
     const handleCreateProposal = async (newProposalData: any) => {
         try {
-            const newProposal = await proposalsService.create(newProposalData)
-            setProposals([newProposal, ...proposals])
+            if (editingProposal) {
+                const updatedProposal = await proposalsService.update(editingProposal.id, newProposalData)
+                setProposals(proposals.map(p => p.id === editingProposal.id ? updatedProposal : p))
+                success('Teklif başarıyla güncellendi')
+            } else {
+                const newProposal = await proposalsService.create(newProposalData)
+                setProposals([newProposal, ...proposals])
+                success('Teklif başarıyla oluşturuldu')
+            }
             setIsModalOpen(false)
-            success('Teklif başarıyla oluşturuldu')
+            setEditingProposal(null)
         } catch (err: any) {
-            console.error('Failed to create proposal:', err)
-            error(err.message || 'Teklif oluşturulurken bir hata oluştu')
+            console.error('Failed to save proposal:', err)
+            error(err.message || 'Teklif işlenirken bir hata oluştu')
         }
+    }
+
+    const handleEditClick = (proposal: Proposal) => {
+        setEditingProposal(proposal)
+        setIsModalOpen(true)
     }
 
     const handleSendProposal = async (id: string) => {
@@ -174,6 +192,73 @@ export default function ProposalsPage() {
                     <p className="text-gray-600 mt-1">Müşteri tekliflerini yönetin ve takip edin</p>
                 </div>
                 <div className="flex items-center gap-3">
+                    <Link
+                        to="/contracts"
+                        className="btn btn-secondary flex items-center gap-2 bg-purple-600 text-white border-purple-700 hover:bg-purple-700 shadow-sm no-underline"
+                    >
+                        <FileSignature className="w-4 h-4" />
+                        Sözleşmeler Sayfası
+                    </Link>
+
+                    <div className="relative">
+                        <button
+                            onClick={() => setDropdownOpen(!dropdownOpen)}
+                            className="btn btn-secondary flex items-center gap-2 bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+                        >
+                            <FileText className="w-4 h-4" />
+                            Şablonlar
+                            <ChevronDown className={`w-4 h-4 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {dropdownOpen && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)}></div>
+                                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                                    <div className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 mb-1">
+                                        Standart Sözleşme
+                                    </div>
+                                    <a
+                                        href="/IAR_SOZLESME.pdf"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
+                                    >
+                                        <Eye className="w-4 h-4" />
+                                        Görüntüle (PDF)
+                                    </a>
+                                    <a
+                                        href="/IAR_SOZLESME.pdf"
+                                        download="IAR_SOZLESME.pdf"
+                                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                        İndir (PDF)
+                                    </a>
+
+                                    <div className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 mt-2 mb-1">
+                                        Tevkifatlı Sözleşme
+                                    </div>
+                                    <a
+                                        href="/IAR_SOZLESME_TEVKIFATLI.pdf"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors"
+                                    >
+                                        <Eye className="w-4 h-4 text-red-500" />
+                                        Görüntüle (PDF)
+                                    </a>
+                                    <a
+                                        href="/IAR_SOZLESME_TEVKIFATLI.pdf"
+                                        download="IAR_SOZLESME_TEVKIFATLI.pdf"
+                                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors"
+                                    >
+                                        <Download className="w-4 h-4 text-red-500" />
+                                        İndir (PDF)
+                                    </a>
+                                </div>
+                            </>
+                        )}
+                    </div>
                     <button
                         onClick={() => setIsImportOpen(true)}
                         className="btn btn-secondary flex items-center gap-2"
@@ -198,8 +283,8 @@ export default function ProposalsPage() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
                             type="text"
-                            placeholder="Teklif no, müşteri veya başlık ara..."
-                            className="input pl-10"
+                            placeholder="Teklif No (örn: 092430), Müşteri veya Başlık"
+                            className="input pl-10 focus:ring-2 focus:ring-red-500 transition-all font-medium"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -283,6 +368,13 @@ export default function ProposalsPage() {
                                     <td className="px-6 py-4 whitespace-nowrap text-right">
                                         <div className="flex items-center justify-end gap-2">
                                             <button
+                                                onClick={() => handleEditClick(proposal)}
+                                                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                title="Düzenle"
+                                            >
+                                                <Pencil className="w-4 h-4" />
+                                            </button>
+                                            <button
                                                 onClick={() => handleViewContract(proposal)}
                                                 className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                                                 title="Sözleşme"
@@ -311,7 +403,7 @@ export default function ProposalsPage() {
                                                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                                         title="Tekrar Gönder"
                                                     >
-                                                        <Send className="w-4 h-4" />
+                                                        <Mail className="w-4 h-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => handleCreateLocationRequest(proposal)}
@@ -333,7 +425,11 @@ export default function ProposalsPage() {
 
             <ProposalFormModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                proposal={editingProposal}
+                onClose={() => {
+                    setIsModalOpen(false)
+                    setEditingProposal(null)
+                }}
                 onSave={handleCreateProposal}
             />
 

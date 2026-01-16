@@ -203,6 +203,7 @@ export default function InventoryPage() {
                                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200">Mahalle</th>
                                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200 w-1/3">Adres</th>
                                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200">Network</th>
+                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200">Rout NO</th>
                                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200">Durum</th>
                                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">İşlemler</th>
                             </tr>
@@ -235,6 +236,9 @@ export default function InventoryPage() {
                                     </td>
                                     <td className="px-4 py-2 text-sm text-gray-600 border-r border-gray-200 whitespace-nowrap">
                                         {item.network ? `Network ${item.network}` : '-'}
+                                    </td>
+                                    <td className="px-4 py-2 text-sm font-bold text-primary-600 border-r border-gray-200 whitespace-nowrap">
+                                        {item.routeNo || '-'}
                                     </td>
                                     <td className="px-4 py-2 text-sm border-r border-gray-200 whitespace-nowrap">
                                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${item.is_active ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'

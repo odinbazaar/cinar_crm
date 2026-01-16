@@ -10,6 +10,7 @@ export { default as bookingsService } from './bookingsService';
 export { default as tasksService } from './tasksService';
 export { default as financeService } from './financeService';
 export { default as customerRequestsService } from './customerRequestsService';
+export { default as dashboardService } from './dashboardService';
 export { default as notificationsService } from './notificationsService';
 
 // Export types

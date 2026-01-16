@@ -26,9 +26,10 @@ interface ProposalFormModalProps {
     isOpen: boolean
     onClose: () => void
     onSave: (proposal: any) => void
+    proposal?: any
 }
 
-export default function ProposalFormModal({ isOpen, onClose, onSave }: ProposalFormModalProps) {
+export default function ProposalFormModal({ isOpen, onClose, onSave, proposal }: ProposalFormModalProps) {
     const [step, setStep] = useState(1)
     const [clients, setClients] = useState<Client[]>([])
     const [selectedClientId, setSelectedClientId] = useState('')
@@ -41,6 +42,61 @@ export default function ProposalFormModal({ isOpen, onClose, onSave }: ProposalF
         terms: 'Teklifimize ilan reklam vergileri dahil, KDV hariçtir. Her türlü iptal talebi, en geç kampanya başlangıç tarihine 20 gün kala bildirilmelidir. Daha geç bildirilen iptaller için kiracı, kira bedelinin %50\'sini cezai şart olarak ödemeyi kabul ve taahhüt eder.',
         description: ''
     })
+
+    useEffect(() => {
+        if (proposal) {
+            setSelectedClientId(proposal.client_id)
+            // Map items back to ProposalItem format
+            // In the real system, some items are grouped (OP BEDELİ, BASKI)
+            // For now, let's try to extract unique items based on description and metadata
+            const mappedItems: ProposalItem[] = []
+
+            // This is a simplified mapping, might need refinement based on exact data structure
+            const baseItems = proposal.items.filter((item: any) => !item.description.includes('OP. BEDELİ') && !item.description.includes('BASKI BEDELİ'))
+
+            baseItems.forEach((bi: any) => {
+                const opBedelItem = proposal.items.find((i: any) => i.description.includes('OP. BEDELİ') && i.metadata?.measurements === bi.metadata?.measurements)
+                const baskiItem = proposal.items.find((i: any) => i.description.includes('BASKI BEDELİ') && i.metadata?.measurements === bi.metadata?.measurements)
+
+                mappedItems.push({
+                    id: Math.random().toString(36).substr(2, 9),
+                    inventoryItemId: bi.metadata?.inventoryItemId || '',
+                    code: bi.description.split(' - ')[0],
+                    type: bi.metadata?.type || '',
+                    description: bi.description.split(' - ')[1] || '',
+                    price: bi.unit_price / (bi.metadata?.duration || 1),
+                    quantity: bi.quantity,
+                    duration: bi.metadata?.duration || 1,
+                    opBedel: opBedelItem ? opBedelItem.unit_price : 0,
+                    baskiFiyati: baskiItem ? baskiItem.unit_price : 0,
+                    measurements: bi.metadata?.measurements || '',
+                    minPeriod: bi.metadata?.period || '1 HAFTA',
+                    district: bi.metadata?.district || '',
+                    periodType: bi.metadata?.period?.includes('GÜN') ? 'GÜN' : 'HAFTA'
+                })
+            })
+
+            setFormData({
+                title: proposal.title,
+                date: proposal.created_at.split('T')[0],
+                validUntil: proposal.valid_until ? proposal.valid_until.split('T')[0] : '',
+                items: mappedItems,
+                terms: proposal.terms || formData.terms,
+                description: proposal.description || ''
+            })
+        } else {
+            // Reset to defaults if no proposal
+            setFormData({
+                title: '',
+                date: new Date().toISOString().split('T')[0],
+                validUntil: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                items: [],
+                terms: 'Teklifimize ilan reklam vergileri dahil, KDV hariçtir. Her türlü iptal talebi, en geç kampanya başlangıç tarihine 20 gün kala bildirilmelidir. Daha geç bildirilen iptaller için kiracı, kira bedelinin %50\'sini cezai şart olarak ödemeyi kabul ve taahhüt eder.',
+                description: ''
+            })
+            setSelectedClientId('')
+        }
+    }, [proposal])
     const [searchTerm, setSearchTerm] = useState('')
     const [taxSearch, setTaxSearch] = useState('')
 
@@ -450,7 +506,7 @@ export default function ProposalFormModal({ isOpen, onClose, onSave }: ProposalF
                                 disabled={formData.items.length === 0}
                                 className="px-8 py-2 bg-[#B91C1C] text-white rounded font-bold hover:bg-red-800 transition-colors shadow-md disabled:opacity-50"
                             >
-                                TEKLİFİ OLUŞTUR
+                                {proposal ? "GÜNCELLE" : "TEKLİFİ OLUŞTUR"}
                             </button>
                         )}
                     </div>

@@ -1,0 +1,1532 @@
+[
+  {
+    "code": "BB0101",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Yeni Girne",
+    "address": "Kent A.Ş Karşısı",
+    "coordinates": "38.49505, 27.11641",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB0102",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Yeni Girne",
+    "address": "Kent A.Ş Karşısı",
+    "coordinates": "38.49505, 27.11641",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB0301",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Esin Sitesi",
+    "address": "Park Önü Kavşak",
+    "coordinates": "38.4925, 27.09205",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB0302",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Esin Sitesi",
+    "address": "Park Önü Kavşak",
+    "coordinates": "38.4925, 27.09205",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB0605",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Esin Sitesi",
+    "address": "Soyak Siesta Kavşak Sol",
+    "coordinates": "38.48713, 27.09191",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB0606",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Esin Sitesi",
+    "address": "Soyak Siesta Kavşak Sol",
+    "coordinates": "38.48713, 27.09191",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB1001",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "PTT Önü",
+    "coordinates": "38.46105, 27.09613",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB1002",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "PTT Önü",
+    "coordinates": "38.46105, 27.09613",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB1302",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "3M Migros Önü",
+    "coordinates": "38.45861, 27.09988",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB1303",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "3M Migros Önü",
+    "coordinates": "38.45861, 27.09988",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB1501",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Pazar Yeri Önü",
+    "coordinates": "38.45897, 27.08947",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB1502",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Pazar Yeri Önü",
+    "coordinates": "38.45897, 27.08947",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB1701",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Atılgan Suit Önü",
+    "coordinates": "38.47725, 27.07025",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB1702",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Atılgan Suit Önü",
+    "coordinates": "38.47725, 27.07025",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB2101",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Sports International Önü",
+    "coordinates": "38.46786, 27.0805",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB2102",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Sports International Önü",
+    "coordinates": "38.46786, 27.0805",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB2401",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Örnekköy",
+    "address": "Saklıbahçe Karakol Yanı",
+    "coordinates": "38.48194, 27.11319",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB2402",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Örnekköy",
+    "address": "Saklıbahçe Karakol Yanı",
+    "coordinates": "38.48194, 27.11319",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB2701",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bahriye Üçok",
+    "address": "Karşıyaka Hükümet Konağı Önü",
+    "coordinates": "38.45958, 27.11452",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "BB2702",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bahriye Üçok",
+    "address": "Karşıyaka Hükümet Konağı Önü",
+    "coordinates": "38.45958, 27.11452",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "Kod",
+    "type": "Billboard (BB)",
+    "district": "İlçe",
+    "neighborhood": "Semt",
+    "address": "Adres",
+    "coordinates": "Koordinat",
+    "network": "Network",
+    "is_active": true
+  },
+  {
+    "code": "BB0201",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Yeni Girne",
+    "address": "Karşıyaka Tenis Kortları Karşısı",
+    "coordinates": "38.49472, 27.11613",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB0202",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Yeni Girne",
+    "address": "Karşıyaka Tenis Kortları Karşısı",
+    "coordinates": "38.49472, 27.11613",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB0401",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Esin Sitesi",
+    "address": "Coeur de Lion Karşısı",
+    "coordinates": "38.49221, 27.09148",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB0402",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Esin Sitesi",
+    "address": "Coeur de Lion Karşısı",
+    "coordinates": "38.49221, 27.09148",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB0603",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Esin Sitesi",
+    "address": "Soyak Siesta Kavşak Sağ",
+    "coordinates": "38.48713, 27.09191",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB0604",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Esin Sitesi",
+    "address": "Soyak Siesta Kavşak Sağ",
+    "coordinates": "38.48713, 27.09191",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB1203",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Gode Cengiz Futbol Sahası Önü",
+    "coordinates": "38.46113, 27.09972",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB1204",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Gode Cengiz Futbol Sahası Önü",
+    "coordinates": "38.46113, 27.09972",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB1401",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Atakent",
+    "address": "Evrensel Çocuk Müzesi Önü",
+    "coordinates": "38.47475, 27.08333",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB1402",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Atakent",
+    "address": "Evrensel Çocuk Müzesi Önü",
+    "coordinates": "38.47475, 27.08333",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB1602",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Atakent",
+    "address": "Hasan Türker Futbol",
+    "coordinates": "38.46622, 27.08827",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB1603",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Atakent",
+    "address": "Hasan Türker Futbol",
+    "coordinates": "38.46622, 27.08827",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB2001",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Modern 4  Kavşak",
+    "coordinates": "38.47796, 27.08661",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB2002",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Modern 4  Kavşak",
+    "coordinates": "38.47796, 27.08661",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB2301",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Yeni Girne",
+    "address": "Yeni Girne Çevreyolu Kavşağı",
+    "coordinates": "38.49066, 27.11522",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB2302",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Yeni Girne",
+    "address": "Yeni Girne Çevreyolu Kavşağı",
+    "coordinates": "38.49066, 27.11522",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB2801",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Mavibahçe AVM, Spor Salonu Girişi",
+    "coordinates": "38.47377, 27.07583",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB2802",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Mavibahçe AVM, Spor Salonu Girişi",
+    "coordinates": "38.47377, 27.07583",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB2901",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Mavibahçe AVM Sahil Girişi",
+    "coordinates": "38.47225, 27.07572",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "BB2902",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Mavibahçe AVM Sahil Girişi",
+    "coordinates": "38.47225, 27.07572",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "Kod",
+    "type": "Billboard (BB)",
+    "district": "İlçe",
+    "neighborhood": "Semt",
+    "address": "Adres",
+    "coordinates": "Koordinat",
+    "network": "Network",
+    "is_active": true
+  },
+  {
+    "code": "BB0203",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Yeni Girne",
+    "address": "Karşıyaka Tenis Kortları Karşısı",
+    "coordinates": "38.49472, 27.11613",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB0204",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Yeni Girne",
+    "address": "Karşıyaka Tenis Kortları Karşısı",
+    "coordinates": "38.49472, 27.11613",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB0503",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Esin Sitesi",
+    "address": "Coeur de Lion Çevreyolu Çıkışı",
+    "coordinates": "38.4909, 27.0909",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB0504",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Esin Sitesi",
+    "address": "Coeur de Lion Çevreyolu Çıkışı",
+    "coordinates": "38.4909, 27.0909",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB0601",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Esin Sitesi",
+    "address": "Soyak Siesta Kavşak Sağ",
+    "coordinates": "38.48713, 27.09191",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB0602",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Esin Sitesi",
+    "address": "Soyak Siesta Kavşak Sağ",
+    "coordinates": "38.48713, 27.09191",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB1101",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Demirköprü",
+    "address": "Demirköprü Alt Geçidi",
+    "coordinates": "38.46524, 27.09875",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB1102",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Demirköprü",
+    "address": "Demirköprü Alt Geçidi",
+    "coordinates": "38.46524, 27.09875",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB1201",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Gode Cengiz Futbol Sahası Önü",
+    "coordinates": "38.46113, 27.09972",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB1202",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Gode Cengiz Futbol Sahası Önü",
+    "coordinates": "38.46113, 27.09972",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB1503",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Pazar Yeri Önü",
+    "coordinates": "38.45897, 27.08947",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB1504",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Pazar Yeri Önü",
+    "coordinates": "38.45897, 27.08947",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB1604",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Atakent",
+    "address": "Hasan Türker Futbol",
+    "coordinates": "38.46622, 27.08827",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB1605",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Atakent",
+    "address": "Hasan Türker Futbol",
+    "coordinates": "38.46622, 27.08827",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB1903",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Flamingo Caddesi Hilltown Girişi",
+    "coordinates": "38.47633, 27.06923",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB1904",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Flamingo Caddesi Hilltown Girişi",
+    "coordinates": "38.47633, 27.06923",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB2103",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Sports International Önü",
+    "coordinates": "38.46786, 27.0805",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB2104",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Sports International Önü",
+    "coordinates": "38.46786, 27.0805",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB2303",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Yeni Girne",
+    "address": "Yeni Girne Çevreyolu Kavşağı",
+    "coordinates": "38.49066, 27.11522",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "BB2304",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Yeni Girne",
+    "address": "Yeni Girne Çevreyolu Kavşağı",
+    "coordinates": "38.49066, 27.11522",
+    "network": "3",
+    "is_active": true
+  },
+  {
+    "code": "Kod",
+    "type": "Billboard (BB)",
+    "district": "İlçe",
+    "neighborhood": "Semt",
+    "address": "Adres",
+    "coordinates": "Koordinat",
+    "network": "Network",
+    "is_active": true
+  },
+  {
+    "code": "BB0501",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Esin Sitesi",
+    "address": "Coeur de Lion Çevreyolu Çıkışı",
+    "coordinates": "38.4909, 27.0909",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB0502",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Esin Sitesi",
+    "address": "Coeur de Lion Çevreyolu Çıkışı",
+    "coordinates": "38.4909, 27.0909",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB0607",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Esin Sitesi",
+    "address": "Soyak Siesta Kavşak Sol",
+    "coordinates": "38.48713, 27.09191",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB0608",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Esin Sitesi",
+    "address": "Soyak Siesta Kavşak Sol",
+    "coordinates": "38.48713, 27.09191",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB0801",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Demirköprü",
+    "address": "Demirköprü Diş Hastanesi Önü",
+    "coordinates": "38.471, 27.09958",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB0802",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Demirköprü",
+    "address": "Demirköprü Diş Hastanesi Önü",
+    "coordinates": "38.471, 27.09958",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB1304",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "3M Migros Önü",
+    "coordinates": "38.45861, 27.09988",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB1305",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "3M Migros Önü",
+    "coordinates": "38.45861, 27.09988",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB1505",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Pazar Yeri Önü",
+    "coordinates": "38.45897, 27.08947",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB1506",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Pazar Yeri Önü",
+    "coordinates": "38.45897, 27.08947",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB1703",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Atılgan Suit Önü",
+    "coordinates": "38.47725, 27.07025",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB1704",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Atılgan Suit Önü",
+    "coordinates": "38.47725, 27.07025",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB1901",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Flamingo Caddesi Hilltown Girişi",
+    "coordinates": "38.47633, 27.06923",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB1902",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Flamingo Caddesi Hilltown Girişi",
+    "coordinates": "38.47633, 27.06923",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB2003",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Modern 4  Kavşak",
+    "coordinates": "38.47796, 27.08661",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB2004",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Modern 4  Kavşak",
+    "coordinates": "38.47796, 27.08661",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB2601",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Girne",
+    "address": "Kültürpark Önü",
+    "coordinates": "38.46216, 27.10822",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB2602",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Girne",
+    "address": "Kültürpark Önü",
+    "coordinates": "38.46216, 27.10822",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB3101",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "İnönü Mah.",
+    "address": "Meydan AVM Önü",
+    "coordinates": "38.486469,27.08894",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "BB3102",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "İnönü Mah.",
+    "address": "Meydan AVM Önü",
+    "coordinates": "38.486469,27.08894",
+    "network": "4",
+    "is_active": true
+  },
+  {
+    "code": "Kod",
+    "type": "Billboard (BB)",
+    "district": "İlçe",
+    "neighborhood": "Semt",
+    "address": "Adres",
+    "coordinates": "Koordinat",
+    "network": "Network",
+    "is_active": true
+  },
+  {
+    "code": "BB0103",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Yeni Girne",
+    "address": "Kent A.Ş Karşısı",
+    "coordinates": "38.49505, 27.11641",
+    "network": "BLD",
+    "is_active": true
+  },
+  {
+    "code": "BB0104",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Yeni Girne",
+    "address": "Kent A.Ş Karşısı",
+    "coordinates": "38.49505, 27.11641",
+    "network": "BLD",
+    "is_active": true
+  },
+  {
+    "code": "BB0701",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Cumhuriyet Mahallesi",
+    "address": "Pazar Yeri",
+    "coordinates": "38.4828, 27.09677",
+    "network": "BLD",
+    "is_active": true
+  },
+  {
+    "code": "BB0702",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Cumhuriyet Mahallesi",
+    "address": "Pazar Yeri",
+    "coordinates": "38.4828, 27.09677",
+    "network": "BLD",
+    "is_active": true
+  },
+  {
+    "code": "BB0901",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Demirköprü",
+    "address": "Demirköprü Alt Geçidi Çıkışı",
+    "coordinates": "38.465, 27.09666",
+    "network": "BLD",
+    "is_active": true
+  },
+  {
+    "code": "BB1003",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "PTT Önü",
+    "coordinates": "38.46105, 27.09613",
+    "network": "BLD",
+    "is_active": true
+  },
+  {
+    "code": "BB1301",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "3M Migros Önü",
+    "coordinates": "38.45861, 27.09988",
+    "network": "BLD",
+    "is_active": true
+  },
+  {
+    "code": "BB1601",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Atakent",
+    "address": "Hasan Türker Futbol",
+    "coordinates": "38.46622, 27.08827",
+    "network": "BLD",
+    "is_active": true
+  },
+  {
+    "code": "BB1801",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Atılgan Suit Karşısı",
+    "coordinates": "38.47711, 27.07055",
+    "network": "BLD",
+    "is_active": true
+  },
+  {
+    "code": "BB1802",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Atılgan Suit Karşısı",
+    "coordinates": "38.47711, 27.07055",
+    "network": "BLD",
+    "is_active": true
+  },
+  {
+    "code": "BB2201",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Girne",
+    "address": "Atatürk Bulvarı Vatan Bilgisayar Yanı",
+    "coordinates": "38.46269, 27.10969",
+    "network": "BLD",
+    "is_active": true
+  },
+  {
+    "code": "BB2501",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Şemikler",
+    "address": "15 Temmuz Şehitler Anadolu Lisesi",
+    "coordinates": "38.48316, 27.08644",
+    "network": "BLD",
+    "is_active": true
+  },
+  {
+    "code": "BB3001",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Girne",
+    "address": "Nergiz İzban Yanı",
+    "coordinates": "38.460609,27.10347",
+    "network": "BLD",
+    "is_active": true
+  },
+  {
+    "code": "BB3103",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "İnönü Mah.",
+    "address": "Meydan AVM Önü",
+    "coordinates": "38.486469,27.08894",
+    "network": "BLD",
+    "is_active": true
+  },
+  {
+    "code": "BB3201",
+    "type": "Billboard (BB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Yeni Girne",
+    "address": "Şantiye Tesis Önü",
+    "coordinates": "38.495577,27.11939",
+    "network": "BLD",
+    "is_active": true
+  },
+  {
+    "code": "CLP0101",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Esin Sitesi",
+    "address": "Yamaç Mah Soyak Siesta Carrefour",
+    "coordinates": "38.48647, 27.08905",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "CLP0201",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Örnekköy",
+    "address": "Züftü Işıl Spor Salonu Önü",
+    "coordinates": "38.49502, 27.11258",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "CLP0301",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Demirköprü",
+    "address": "Demirköprü Alt Geçit",
+    "coordinates": "38.46541, 27.09855",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "CLP0401",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Cengiz Topel Parkı-1",
+    "coordinates": "38.45927, 27.09494",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "CLP0501",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Bostanlı Cengiz Topel Parkı-2",
+    "coordinates": "38.45883, 27.09483",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "CLP0601",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Atakent",
+    "address": "Atakent Efes Sitesi Restoran Önü-1",
+    "coordinates": "38.46794, 27.08583",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "CLP0701",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Atakent",
+    "address": "Atakent Efes Sitesi Restoran Önü-2",
+    "coordinates": "38.46786, 27.08613",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "CLP0801",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Alaybey",
+    "address": "Naldöken İzban Yanı-1",
+    "coordinates": "38.46488, 27.1293",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "CLP0901",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Alaybey",
+    "address": "Naldöken İzban Yanı-2",
+    "coordinates": "38.46497, 27.12902",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "CLP1001",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bahriye Üçok",
+    "address": "Çarşı İzban Önü",
+    "coordinates": "38.45819, 27.11525",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "CLP1101",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Girne",
+    "address": "8 Mart Dünya Emekçi Kadınlar Parkı",
+    "coordinates": "38.467, 27.10955",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "Kod",
+    "type": "Raket (CLP)",
+    "district": "İlçe",
+    "neighborhood": "Semt",
+    "address": "Adres",
+    "coordinates": "Koordinat",
+    "network": "Network",
+    "is_active": true
+  },
+  {
+    "code": "CLP0102",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Esin Sitesi",
+    "address": "Yamaç Mah Soyak Siesta Carrefour",
+    "coordinates": "38.48647, 27.08905",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "CLP0202",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Örnekköy",
+    "address": "Züftü Işıl Spor Salonu Önü",
+    "coordinates": "38.49502, 27.11258",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "CLP0302",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Demirköprü",
+    "address": "Demirköprü Alt Geçit",
+    "coordinates": "38.46541, 27.09855",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "CLP0402",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Cengiz Topel Parkı-1",
+    "coordinates": "38.45927, 27.09494",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "CLP0502",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Bostanlı Cengiz Topel Parkı-2",
+    "coordinates": "38.45883, 27.09483",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "CLP0602",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Atakent",
+    "address": "Atakent Efes Sitesi Restoran Önü-1",
+    "coordinates": "38.46794, 27.08583",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "CLP0702",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Atakent",
+    "address": "Atakent Efes Sitesi Restoran Önü-2",
+    "coordinates": "38.46786, 27.08613",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "CLP0802",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Alaybey",
+    "address": "Naldöken İzban Yanı-1",
+    "coordinates": "38.46488, 27.1293",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "CLP0902",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Alaybey",
+    "address": "Naldöken İzban Yanı-2",
+    "coordinates": "38.46497, 27.12902",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "CLP1002",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bahriye Üçok",
+    "address": "Çarşı İzban Önü",
+    "coordinates": "38.45819, 27.11525",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "CLP1102",
+    "type": "Raket (CLP)",
+    "district": "Karşıyaka",
+    "neighborhood": "Girne",
+    "address": "8 Mart Dünya Emekçi Kadınlar Parkı",
+    "coordinates": "38.467, 27.10955",
+    "network": "2",
+    "is_active": true
+  },
+  {
+    "code": "MGL0101",
+    "type": "Megalight (MGL)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Caher Dudayev Bulvarı Hilltown AVM Yönü",
+    "coordinates": "38.47534, 27.08048",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "MGL0102",
+    "type": "Megalight (MGL)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Caher Dudayev Bulvarı Hilltown AVM Yönü",
+    "coordinates": "38.47534, 27.08048",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "LED1",
+    "type": "Led Board (LB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Atakent",
+    "address": "Atakent Kavşak",
+    "coordinates": "38.4710057,27.0857181",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "LED2",
+    "type": "Led Board (LB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Mavibahçe Önü",
+    "coordinates": "38.472764, 27.073822",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "GB01",
+    "type": "Giant Board (GB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Atakent",
+    "address": "Opera Caddesi Çıkışı",
+    "coordinates": "38.4697156,27.0843265",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "GB02",
+    "type": "Giant Board (GB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Mavişehir Doğa Koleji Önü",
+    "coordinates": "38.475577,27.0844865",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "GB03",
+    "type": "Giant Board (GB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Bostanlı Sahil Girişi",
+    "coordinates": "38.4538855,27.1006139",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "GB04",
+    "type": "Giant Board (GB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Suat Taşer Tiyatro Girişi",
+    "coordinates": "38.4551142,27.0998484",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "GB05",
+    "type": "Giant Board (GB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Vilayet Evler Girişi",
+    "coordinates": "38.4601898,27.0904086",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "GB06",
+    "type": "Giant Board (GB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "3M Migros Şehitler Bulvarı Çıkışı",
+    "coordinates": "38.4608702,27.1030315",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "GB07",
+    "type": "Giant Board (GB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Alaybey",
+    "address": "Bahçelievler Altınyol Çıkışı",
+    "coordinates": "38.4649613,27.1293213",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "GB08",
+    "type": "Giant Board (GB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Denizkent Restoran Girişi",
+    "coordinates": "38.4694473,27.0759623",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "GB09",
+    "type": "Giant Board (GB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Yeni Girne",
+    "address": "Medical Point Girişi",
+    "coordinates": "38.4734871,27.1131394",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "MB01",
+    "type": "Megalight Board (MB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Hilltown Karşısı Hamza Rüstem Müzesi Önü",
+    "coordinates": "38.4795839,27.0710831",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "MB02",
+    "type": "Megalight Board (MB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Emlak Konutları Önü",
+    "coordinates": "38.4693292,27.0758151",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "MB03",
+    "type": "Megalight Board (MB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Atakent",
+    "address": "Filizler Anaokulu Önü",
+    "coordinates": "38.4745176,27.0825227",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "MB04",
+    "type": "Megalight Board (MB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Atakent",
+    "address": "Başkent Hastanesi Önü",
+    "coordinates": "38.471374, 27.086219",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "MB05",
+    "type": "Megalight Board (MB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Sevgi Yolu Tramvay Hattı Önü",
+    "coordinates": "38.4595549,27.091661",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "MB06",
+    "type": "Megalight Board (MB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Mavibahçe AVM Girişi Okul Yönü",
+    "coordinates": "38.473827,27.0738548",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "MB07",
+    "type": "Megalight Board (MB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Bostanlı",
+    "address": "Barlar Sokağı Çıkışı",
+    "coordinates": "38.4564804,27.096951",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "KB01",
+    "type": "Kule Billboard (KB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Caher Dudayev Park Yaşam Satış Ofisi Önü",
+    "coordinates": "38.4753326,27.069884",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "KB02",
+    "type": "Kule Billboard (KB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Caher Dudayev Bulvarı Bilim Müzesi",
+    "coordinates": "38.4751816,27.0811617",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "KB03",
+    "type": "Kule Billboard (KB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Mustafa Kemal Atatürk Spor Kompleksi Önü",
+    "coordinates": "38.4753151,27.0772341",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "KB04",
+    "type": "Kule Billboard (KB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Karıyaka Filizler Anaokulu",
+    "coordinates": "38.4746572,27.0822106",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "KB05",
+    "type": "Kule Billboard (KB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Atakent",
+    "address": "Atakent Kavşağı",
+    "coordinates": "38.4707229,27.0857081",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "KB06",
+    "type": "Kule Billboard (KB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Hamza Rüstem Fotoraf Müzesi Hilltown AVM Önü",
+    "coordinates": "38.4798787,27.0758663",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "KB07",
+    "type": "Kule Billboard (KB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Caher Dudayev Bulvarı Bilim Müzesi Önü Hilltown Yönü",
+    "coordinates": "38.475373,27.0797775",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "KB08",
+    "type": "Kule Billboard (KB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Mavişehir",
+    "address": "Bahçeşehir Koleji Önü",
+    "coordinates": "38.472628,27.0679774",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "KB09",
+    "type": "Kule Billboard (KB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Şemikler",
+    "address": "Ahmet Piriştina Kültür Merkezi Önü",
+    "coordinates": "38.4739822,27.0966477",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "KB10",
+    "type": "Kule Billboard (KB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Alaybey",
+    "address": "Atatürk Bulvarı Zübeyde Hanım Anıtı Önü",
+    "coordinates": "38.461466, 27.117076",
+    "network": "1",
+    "is_active": true
+  },
+  {
+    "code": "KB11",
+    "type": "Kule Billboard (KB)",
+    "district": "Karşıyaka",
+    "neighborhood": "Yeni Girne",
+    "address": "Çevreyolu Çıkışı Kardelenler Anaokulu Önü",
+    "coordinates": "38.482148, 27.112945",
+    "network": "1",
+    "is_active": true
+  }
+]

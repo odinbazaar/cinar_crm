@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { X, Printer, Download, Mail, Check, Loader2 } from 'lucide-react'
+import { X, Printer, Download, Mail, Check, Loader2, AlertCircle } from 'lucide-react'
 import type { Proposal } from '../../services/proposalsService'
 import { proposalsService } from '../../services/proposalsService'
 import { useToast } from '../../hooks/useToast'
@@ -13,6 +13,7 @@ interface ProposalContractModalProps {
 
 export default function ProposalContractModal({ isOpen, onClose, proposal, onStatusUpdate }: ProposalContractModalProps) {
     const printRef = useRef<HTMLDivElement>(null)
+    const [contractType, setContractType] = useState<'standard' | 'tevkifat'>('standard')
     const [isSending, setIsSending] = useState(false)
     const { success, error } = useToast()
 
@@ -42,14 +43,15 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
         try {
             setIsSending(true)
 
-            // Real status update in backend
-            await proposalsService.updateStatus(proposal.id, 'SENT')
+            // Send real email via backend
+            const targetEmail = proposal.client?.contact_email || proposal.client?.email;
+            await proposalsService.sendEmail(proposal.id, targetEmail);
 
             if (onStatusUpdate) {
                 onStatusUpdate(proposal.id, 'SENT')
             }
 
-            success(`Teklif başarıyla ${targetEmail} adresine gönderildi`)
+            success(`Teklif başarıyla ${targetEmail || 'ilgili adrese'} gönderildi`)
         } catch (err: any) {
             console.error('Failed to send email:', err)
             error(err.message || 'E-posta gönderilirken bir hata oluştu')
@@ -59,11 +61,12 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
     }
 
     const companyInfo = {
-        name: 'İZMİR AÇIK HAVA REKLAM SAN. VE TİC. LTD. ŞTİ.',
-        address: 'MANAS BULVARI ADALET MAHALLESİ NO:47 KAT:28 FOLKART TOWERS BAYRAKLI İZMİR',
-        phone: '0232 431 00 75',
-        taxOffice: 'KARŞIYAKA',
-        taxNo: '6490546546'
+        name: import.meta.env.VITE_COMPANY_NAME || 'İZMİR AÇIK HAVA REKLAM SAN. VE TİC. LTD. ŞTİ.',
+        address: import.meta.env.VITE_COMPANY_ADDRESS || 'MANAS BULVARI ADALET MAHALLESİ NO:47 KAT:28 FOLKART TOWERS BAYRAKLI İZMİR',
+        phone: import.meta.env.VITE_COMPANY_PHONE || '0232 431 0 75',
+        fax: import.meta.env.VITE_COMPANY_FAX || '0232 431 00 73',
+        taxOffice: import.meta.env.VITE_COMPANY_TAX_OFFICE || 'KARŞIYAKA V.D.',
+        taxNo: import.meta.env.VITE_COMPANY_TAX_NO || '6490546546'
     }
 
     return (
@@ -78,43 +81,62 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
                         <h2 className="text-sm font-bold text-gray-900 uppercase tracking-tight">Teklif Önizleme</h2>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="flex flex-col items-end">
+                        <div className="flex bg-gray-200 p-1 rounded-lg mr-2">
                             <button
-                                onClick={handleSendEmail}
-                                disabled={isSending}
-                                className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-1.5 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed group relative"
-                                title={proposal.status === 'SENT' ? 'Tekrar Gönder' : 'E-posta Gönder'}
+                                onClick={() => setContractType('standard')}
+                                className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${contractType === 'standard' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                             >
-                                {isSending ? (
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : proposal.status === 'SENT' ? (
-                                    <Check className="w-3.5 h-3.5 text-white" />
-                                ) : (
-                                    <Mail className="w-3.5 h-3.5" />
-                                )}
-                                {isSending ? 'GÖNDERİLİYOR...' : proposal.status === 'SENT' ? 'TEKRAR GÖNDER' : 'E-POSTA GÖNDER'}
+                                STANDART
                             </button>
-                            {proposal.client && (proposal.client.contact_email || proposal.client.email) && (
-                                <span className="text-[9px] text-gray-500 mt-0.5 font-bold tracking-tight bg-gray-100 px-1.5 py-0.5 rounded uppercase">
-                                    ALICI: {proposal.client.contact_email || proposal.client.email}
+                            <button
+                                onClick={() => setContractType('tevkifat')}
+                                className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${contractType === 'tevkifat' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                TEVKİFATLI
+                            </button>
+                        </div>
+                        <div className="flex flex-col items-end">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={handleSendEmail}
+                                    disabled={isSending}
+                                    className="p-2.5 rounded bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed group relative shadow-sm"
+                                    title={proposal.status === 'SENT' ? 'Tekrar Gönder' : 'E-posta Gönder'}
+                                >
+                                    {isSending ? (
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                    ) : (
+                                        <Mail className="w-5 h-5" />
+                                    )}
+                                </button>
+                                <button
+                                    onClick={handlePrint}
+                                    className="p-2.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors flex items-center justify-center shadow-sm"
+                                    title="Yazdır / PDF"
+                                >
+                                    <Printer className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                                {proposal.client && (proposal.client.contact_email || proposal.client.email) && (
+                                    <span className="text-[9px] text-gray-500 font-bold tracking-tight bg-gray-100 px-1.5 py-0.5 rounded uppercase">
+                                        ALICI: {proposal.client.contact_email || proposal.client.email}
+                                    </span>
+                                )}
+                                <span className="text-[9px] text-red-600 font-bold tracking-tight bg-red-50 px-1.5 py-0.5 rounded uppercase border border-red-100">
+                                    CC: Rezervasyon@izmiracikhavareklam.com
                                 </span>
-                            )}
+                            </div>
                         </div>
                         <button
-                            onClick={handlePrint}
-                            className="px-4 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors flex items-center gap-2 text-sm font-bold"
-                        >
-                            <Printer className="w-4 h-4" />
-                            YAZDIR / PDF
-                        </button>
-                        <button
                             onClick={onClose}
-                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors ml-2"
                         >
                             <X className="w-6 h-6" />
                         </button>
                     </div>
                 </div>
+
 
                 {/* Contract Content */}
                 <div className="flex-1 overflow-y-auto p-8 bg-gray-200">
@@ -133,50 +155,76 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
                             <div className="text-right text-[9px] font-bold text-gray-600 space-y-1">
                                 <p>{companyInfo.name}</p>
                                 <p>{companyInfo.address}</p>
-                                <p>TEL: {companyInfo.phone} | V.D: {companyInfo.taxOffice} - V.N: {companyInfo.taxNo}</p>
+                                <p>TEL: {companyInfo.phone} FAKS: {companyInfo.fax} | V.D: {companyInfo.taxOffice} - V.N: {companyInfo.taxNo}</p>
                             </div>
                         </div>
 
                         {/* Title Bar */}
-                        <div className="bg-red-600 text-white text-center py-2 px-4 mb-8">
-                            <h2 className="text-lg font-black uppercase tracking-widest">AÇIK HAVA REKLAM BÜTÇESİ</h2>
+                        <div className="text-center mb-8">
+                            <h2 className="text-sm font-black uppercase tracking-widest text-gray-900 leading-tight">REKLAM YERİ KULLANIM SÖZLEŞMESİ</h2>
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-700">BÖLÜM A ÖZEL HÜKÜMLER</h3>
                         </div>
 
                         {/* Info Section */}
-                        <div className="grid grid-cols-2 gap-10 mb-8 text-[11px]">
-                            <div className="space-y-2">
-                                <div className="flex border-b border-gray-100 py-1">
-                                    <span className="w-24 font-bold text-red-700">MÜŞTERİ:</span>
-                                    <span className="font-bold uppercase tracking-tight">{proposal.client?.company_name || proposal.client?.name}</span>
+                        <div className="grid grid-cols-2 gap-x-12 gap-y-1 mb-8 text-[10px]">
+                            <div className="space-y-1">
+                                <div className="flex gap-4">
+                                    <span className="w-32 font-bold text-gray-900 uppercase">SÖZLEŞME NO</span>
+                                    <span className="flex-1">: IAR {proposal.proposal_number.split('-').pop()}</span>
                                 </div>
-                                <div className="flex border-b border-gray-100 py-1">
-                                    <span className="w-24 font-bold text-red-700">KAMPANYA:</span>
-                                    <span className="uppercase">{proposal.title}</span>
+                                <div className="flex gap-4">
+                                    <span className="w-32 font-bold text-gray-900 uppercase">KİRALAYAN</span>
+                                    <span className="flex-1 tracking-tight">: {companyInfo.name}</span>
+                                </div>
+                                <div className="mt-4 pt-4"></div>
+                                <div className="flex gap-4">
+                                    <span className="w-32 font-bold text-gray-900 uppercase">KİRACI</span>
+                                    <span className="flex-1 font-black">: {proposal.client?.company_name || proposal.client?.name}</span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <span className="w-32 font-bold text-gray-900 uppercase italic text-[9px]"></span>
+                                    <span className="flex-1 text-gray-600 border-b border-gray-100 pb-1">: {proposal.client?.address || '—'}</span>
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                <div className="flex border-b border-gray-100 py-1">
-                                    <span className="w-24 font-bold text-red-700">TEKLİF NO:</span>
-                                    <span className="font-mono">{proposal.proposal_number}</span>
+
+                            <div className="space-y-1">
+                                <div className="flex gap-4 pt-[72px]">
+                                    <span className="w-32 font-bold text-gray-900 uppercase">KİRACI TEL / FAX</span>
+                                    <span className="flex-1">: {proposal.client?.phone || '—'}</span>
                                 </div>
-                                <div className="flex border-b border-gray-100 py-1">
-                                    <span className="w-24 font-bold text-red-700">TARİH:</span>
-                                    <span>{new Date(proposal.created_at).toLocaleDateString('tr-TR')}</span>
+                                <div className="flex gap-4">
+                                    <span className="w-32 font-bold text-gray-900 uppercase">KİRACI VD. / NO</span>
+                                    <span className="flex-1">: {proposal.client?.tax_office || '—'} VD / {proposal.client?.tax_no || '—'}</span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <span className="w-32 font-bold text-gray-900 uppercase">MARKA-ÜRÜN</span>
+                                    <span className="flex-1">: {proposal.title}</span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <span className="w-32 font-bold text-gray-900 uppercase">KAMPANYA</span>
+                                    <span className="flex-1">: {proposal.description || 'GENEL KAMPANYA'}</span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <span className="w-32 font-bold text-gray-900 uppercase">REZERVASYON TARİHİ</span>
+                                    <span className="flex-1">: {new Date(proposal.created_at).toLocaleDateString('tr-TR')}</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Products Table */}
+                        <div className="mb-4">
+                            <h4 className="text-[11px] font-black text-center uppercase mb-2 border-y-2 border-gray-900 py-1.5 tracking-tighter">TEKLİF İÇERİĞİ</h4>
+                        </div>
                         <table className="w-full border-collapse mb-10 text-[10px]">
                             <thead>
                                 <tr className="bg-red-600 text-white font-bold uppercase text-center border-b-2 border-red-800">
-                                    <th className="p-2 border border-red-700">ŞEHİR / İLÇE</th>
-                                    <th className="p-2 border border-red-700">ÜRÜN</th>
-                                    <th className="p-2 border border-red-700">ÖLÇÜ</th>
+                                    <th className="p-2 border border-red-700 w-[30%]">ÜRÜN</th>
                                     <th className="p-2 border border-red-700">ADET</th>
-                                    <th className="p-2 border border-red-700">SÜRE</th>
                                     <th className="p-2 border border-red-700">DÖNEM</th>
-                                    <th className="p-2 border border-red-700">BİRİM FİYAT</th>
+                                    <th className="p-2 border border-red-700">GÜN</th>
+                                    <th className="p-2 border border-red-700">BAŞLANGIÇ</th>
+                                    <th className="p-2 border border-red-700">BİTİŞ</th>
+                                    <th className="p-2 border border-red-700">BİRİM FİYATI</th>
                                     <th className="p-2 border border-red-700">TOPLAM</th>
                                 </tr>
                             </thead>
@@ -184,22 +232,15 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
                                 {proposal.items?.map((item, index) => {
                                     const metadata = (item as any).metadata || {};
                                     return (
-                                        <tr key={index} className="text-center font-bold border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                                            <td className="p-3 border-x border-gray-200 uppercase">{metadata.district || 'İZMİR'}</td>
-                                            <td className="p-3 border-x border-gray-200 text-left">
-                                                <div className="font-black text-red-600">{item.description.split(' - ')[0]}</div>
-                                                <div className="text-[9px] text-gray-500 font-normal">{item.description.split(' - ')[1] || ''}</div>
-                                            </td>
-                                            <td className="p-3 border-x border-gray-200">{metadata.measurements || '—'}</td>
-                                            <td className="p-3 border-x border-gray-200">{item.quantity}</td>
-                                            <td className="p-3 border-x border-gray-200">{metadata.duration || '1'} {
-                                                metadata.period?.includes('HAFTA') ? 'Hafta' :
-                                                    metadata.period?.includes('GÜN') ? 'Gün' :
-                                                        'Ay'
-                                            }</td>
-                                            <td className="p-3 border-x border-gray-200 text-[9px] font-normal">{metadata.period || 'HAFTALIK'}</td>
-                                            <td className="p-3 border-x border-gray-200">₺{item.unit_price.toLocaleString('tr-TR')}</td>
-                                            <td className="p-3 border-x border-gray-200 font-black text-red-600 bg-red-50/30">₺{(item.total || 0).toLocaleString('tr-TR')}</td>
+                                        <tr key={index} className="text-center font-bold border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                            <td className="p-3 border-x border-gray-100 text-left font-black uppercase text-gray-800">{item.description.split(' - ')[0]}</td>
+                                            <td className="p-3 border-x border-gray-100">{item.quantity}</td>
+                                            <td className="p-3 border-x border-gray-100">{metadata.duration || '1'}</td>
+                                            <td className="p-3 border-x border-gray-100">{metadata.days || '—'}</td>
+                                            <td className="p-3 border-x border-gray-100">{metadata.start_date || '—'}</td>
+                                            <td className="p-3 border-x border-gray-100">{metadata.end_date || '—'}</td>
+                                            <td className="p-3 border-x border-gray-100">₺{item.unit_price.toLocaleString('tr-TR')}</td>
+                                            <td className="p-3 border-x border-gray-100 font-black text-gray-900 bg-gray-50/50">₺{(item.total || 0).toLocaleString('tr-TR')}</td>
                                         </tr>
                                     )
                                 })}
@@ -207,27 +248,71 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
                         </table>
 
                         {/* Totals Section */}
-                        <div className="flex justify-end mb-16">
-                            <div className="w-1/2 space-y-1">
+                        <div className="flex justify-end mb-16 px-1">
+                            <div className="w-[340px] space-y-1">
                                 <div className="flex">
-                                    <div className="flex-1 bg-black text-white p-2 font-black text-xs uppercase tracking-tighter">ARA TOPLAM (KDV HARİÇ)</div>
-                                    <div className="w-32 border border-black p-2 text-right font-black text-xs">₺{proposal.subtotal.toLocaleString('tr-TR')}</div>
+                                    <div className="flex-1 bg-gray-900 text-white p-2.5 font-bold text-[11px] uppercase tracking-wider flex items-center">KDV HARİÇ TUTAR</div>
+                                    <div className="w-36 border-2 border-gray-900 p-2 text-right font-black text-xs flex items-center justify-end">
+                                        ₺{proposal.subtotal.toLocaleString('tr-TR')}
+                                    </div>
                                 </div>
-                                <div className="flex text-gray-600">
-                                    <div className="flex-1 border border-gray-200 p-2 font-bold text-xs">KDV (%{proposal.tax_rate})</div>
-                                    <div className="w-32 border border-gray-200 p-2 text-right font-bold text-xs">₺{proposal.tax_amount.toLocaleString('tr-TR')}</div>
+
+                                {contractType === 'tevkifat' && (
+                                    <div className="flex text-red-700 bg-red-50/50">
+                                        <div className="flex-1 border border-red-200 p-2 font-bold text-[11px] uppercase tracking-wider flex items-center italic">TEVKİFAT (3/10)</div>
+                                        <div className="w-36 border border-red-200 p-2 text-right font-bold text-xs flex items-center justify-end italic">
+                                            - ₺{(proposal.tax_amount * 0.3).toLocaleString('tr-TR')}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="flex text-gray-700">
+                                    <div className="flex-1 border border-gray-200 p-2 font-bold text-[11px] uppercase tracking-wider flex items-center">KDV (%{proposal.tax_rate})</div>
+                                    <div className="w-36 border border-gray-200 p-2 text-right font-bold text-xs flex items-center justify-end">
+                                        ₺{proposal.tax_amount.toLocaleString('tr-TR')}
+                                    </div>
                                 </div>
-                                <div className="flex pt-1">
-                                    <div className="flex-1 bg-red-600 text-white p-3 font-black text-sm uppercase">GENEL TOPLAM</div>
-                                    <div className="w-32 bg-red-600 text-white p-3 text-right font-black text-lg">₺{proposal.total.toLocaleString('tr-TR')}</div>
+
+                                <div className="flex">
+                                    <div className="flex-1 bg-gray-100 border border-gray-300 p-2 font-bold text-[11px] uppercase tracking-wider flex items-center text-gray-800">TOPLAM (KDV DAHİL)</div>
+                                    <div className="w-36 border border-gray-300 bg-gray-50 p-2 text-right font-black text-xs flex items-center justify-end">
+                                        ₺{proposal.total.toLocaleString('tr-TR')}
+                                    </div>
                                 </div>
+
+                                {contractType === 'tevkifat' ? (
+                                    <div className="flex pt-1.5">
+                                        <div className="flex-1 bg-red-600 text-white p-3.5 font-black text-[13px] uppercase tracking-widest flex items-center shadow-sm">ÖDENECEK TUTAR</div>
+                                        <div className="w-36 bg-red-600 text-white p-3.5 text-right font-black text-xl flex items-center justify-end shadow-sm">
+                                            ₺{(proposal.total - (proposal.tax_amount * 0.3)).toLocaleString('tr-TR')}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex pt-1.5">
+                                        <div className="flex-1 bg-red-600 text-white p-3.5 font-black text-[13px] uppercase tracking-widest flex items-center shadow-sm">GENEL TOPLAM</div>
+                                        <div className="w-36 bg-red-600 text-white p-3.5 text-right font-black text-xl flex items-center justify-end shadow-sm">
+                                            ₺{proposal.total.toLocaleString('tr-TR')}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         {/* Legal Conditions */}
-                        <div className="bg-gray-50 p-6 rounded-lg text-[9px] text-gray-600 italic leading-relaxed border border-gray-200 mb-16">
-                            <p className="font-bold text-red-700 uppercase mb-2 not-italic">Önemli Notlar ve Koşullar:</p>
-                            {proposal.terms || 'Teklifimize ilan reklam vergileri dahil, KDV hariçtir. Her türlü iptal talebi, en geç kampanya başlangıç tarihine 20 gün kala bildirilmelidir.'}
+                        <div className="bg-gray-50 p-6 rounded-lg text-[10px] text-gray-700 italic leading-relaxed border border-gray-200 mb-16 relative overflow-hidden">
+                            <div className={`absolute top-0 left-0 w-1 h-full ${contractType === 'tevkifat' ? 'bg-red-600' : 'bg-gray-400'}`}></div>
+                            <p className="font-bold text-gray-900 uppercase mb-2 not-italic flex items-center gap-2">
+                                <AlertCircle className="w-4 h-4 text-red-600" />
+                                Önemli Notlar ve Koşullar:
+                            </p>
+                            {contractType === 'tevkifat' ? (
+                                <div className="space-y-2">
+                                    <p className="font-black text-red-700">311 Seri No.lu Katma Değer Vergisi Genel Uygulama Tebliği uyarınca Ticari Reklam Hizmetleri kapsamında 3/10 oranında KDV Tevkifatı uygulanmaktadır.</p>
+                                    <p>{proposal.terms || 'Teklifimize ilan reklam vergileri dahil, KDV hariçtir. Her türlü iptal talebi, en geç kampanya başlangıç tarihine 20 gün kala bildirilmelidir.'}</p>
+                                </div>
+                            ) : (
+                                <p>{proposal.terms || 'Teklifimize ilan reklam vergileri dahil, KDV hariçtir. Her türlü iptal talebi, en geç kampanya başlangıç tarihine 20 gün kala bildirilmelidir.'}</p>
+                            )}
                         </div>
 
                         {/* Signatures */}

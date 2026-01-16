@@ -124,18 +124,18 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
                     {/* Demo Credentials */}
                     <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-600 font-medium mb-2">Demo Hesaplar:</p>
+                        <p className="text-xs text-gray-600 font-medium mb-2">Giriş Bilgileri:</p>
                         <div className="text-xs text-gray-500 space-y-1">
-                            <p>Admin: admin@cinar.com / admin123</p>
-                            <p>PM: pm@cinar.com / pm123</p>
-                            <p>Designer: designer@cinar.com / designer123</p>
+                            <p>Admin: ali@izmiracikhavareklam.com / Cinarcrm123!</p>
+                            <p>Çalışan: ayse@izmiracikhavareklam.com / Cinarcrm123!</p>
+                            <p>Yönetici: muhasebe@izmiracikhavareklam.com / Cinarcrm123!</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Footer */}
                 <p className="text-center text-primary-100 text-sm mt-6">
-                    © 2024 Çınar Reklam Ajansı. Tüm hakları saklıdır.
+                    © 2026 Çınar Reklam Ajansı. Tüm hakları saklıdır.
                 </p>
             </div>
         </div>

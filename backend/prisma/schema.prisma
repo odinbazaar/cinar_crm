@@ -441,6 +441,8 @@ model InventoryItem {
   productId   String?
   product     Product?      @relation(fields: [productId], references: [id])
   
+  routeNo     String?   @map("route_no")    // Rout No (Sıra No)
+  
   district    String        // İlçe (Örn: Karşıyaka)
   neighborhood String?      // Semt (Örn: Bostanlı)
   address     String        // Adres (Örn: Kent A.Ş Karşısı)

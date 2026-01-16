@@ -19,6 +19,7 @@ export default function InventoryFormModal({ isOpen, onClose, onSave, initialDat
         address: '',
         coordinates: '',
         network: '',
+        routeNo: '',
         is_active: true
     })
 
@@ -34,6 +35,7 @@ export default function InventoryFormModal({ isOpen, onClose, onSave, initialDat
                 address: '',
                 coordinates: '',
                 network: '',
+                routeNo: '',
                 is_active: true
             })
         }
@@ -158,6 +160,19 @@ export default function InventoryFormModal({ isOpen, onClose, onSave, initialDat
                                 onChange={e => setFormData({ ...formData, network: e.target.value })}
                                 className="input w-full"
                                 placeholder="Örn: 1, 2, BELEDİYE"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Rout No
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.routeNo}
+                                onChange={e => setFormData({ ...formData, routeNo: e.target.value })}
+                                className="input w-full"
+                                placeholder="Örn: 1-A"
                             />
                         </div>
 

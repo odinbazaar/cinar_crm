@@ -8,6 +8,7 @@ export interface InventoryItem {
     address: string;
     coordinates?: string;
     network?: string;
+    routeNo?: string;
     is_active: boolean;
     created_at: Date;
     updated_at: Date;
@@ -21,6 +22,7 @@ export interface CreateInventoryItemDto {
     address: string;
     coordinates?: string;
     network?: string;
+    routeNo?: string;
 }
 
 export interface UpdateInventoryItemDto {
@@ -31,5 +33,6 @@ export interface UpdateInventoryItemDto {
     address?: string;
     coordinates?: string;
     network?: string;
+    routeNo?: string;
     is_active?: boolean;
 }

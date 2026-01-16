@@ -38,9 +38,9 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
     // Form states
     const [requestData, setRequestData] = useState({
         brandName: '',
-        year: 2025,
+        year: 2026,
         month: 'Ocak',
-        week: '06.01.2025',
+        week: '05.01.2026',
         network: 1,
         productType: 'BB' as any,
         quantity: 10
@@ -167,6 +167,7 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                     const uiItem = {
                         id: item.id,
                         kod: item.code,
+                        routeNo: item.routeNo,
                         durum: booking?.status || 'BOŞ',
                         marka1Opsiyon: booking?.brand_option_1 || '',
                         marka2Opsiyon: booking?.brand_option_2 || '',
@@ -344,11 +345,11 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                                         value={requestData.year}
                                         onChange={e => setRequestData({ ...requestData, year: parseInt(e.target.value) })}
                                     >
-                                        <option value={2024}>2024</option>
-                                        <option value={2025}>2025</option>
                                         <option value={2026}>2026</option>
                                         <option value={2027}>2027</option>
                                         <option value={2028}>2028</option>
+                                        <option value={2029}>2029</option>
+                                        <option value={2030}>2030</option>
                                     </select>
                                 </div>
                                 <div>
@@ -460,6 +461,7 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                                         <thead className="bg-gray-50 sticky top-0">
                                             <tr>
                                                 <th className="p-2 border-b">Kod</th>
+                                                <th className="p-2 border-b">Rout No</th>
                                                 <th className="p-2 border-b">İlçe / Semt</th>
                                                 <th className="p-2 border-b">Durum</th>
                                                 <th className="p-2 border-b">Eylem</th>
@@ -469,6 +471,7 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                                             {results.available.map((loc, i) => (
                                                 <tr key={i} className="border-b">
                                                     <td className="p-2 font-mono font-bold">{loc.kod}</td>
+                                                    <td className="p-2 font-bold text-primary-600">{loc.routeNo || '-'}</td>
                                                     <td className="p-2">{loc.ilce} / {loc.semt}</td>
                                                     <td className="p-2"><span className="badge badge-success px-1 py-0 text-[10px]">BOŞ</span></td>
                                                     <td className="p-2 font-bold text-green-600">REZERVASYON</td>
@@ -477,6 +480,7 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                                             {results.options.map((loc, i) => (
                                                 <tr key={i} className="border-b">
                                                     <td className="p-2 font-mono font-bold">{loc.kod}</td>
+                                                    <td className="p-2 font-bold text-primary-600">{loc.routeNo || '-'}</td>
                                                     <td className="p-2">{loc.ilce} / {loc.semt}</td>
                                                     <td className="p-2"><span className="badge badge-warning px-1 py-0 text-[10px]">OPSİYON</span></td>
                                                     <td className="p-2 font-bold text-yellow-600">OPSİYON {loc.marka2Opsiyon ? '3' : '2'}</td>

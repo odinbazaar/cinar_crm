@@ -15,6 +15,7 @@ interface Location {
     semt: string
     adres: string
     kod: string
+    routeNo?: string
     network: number
     marka1Opsiyon: string
     marka2Opsiyon: string
@@ -24,11 +25,16 @@ interface Location {
     productType: 'BB' | 'CLP' | 'ML' | 'LED' | 'GB' | 'MB' | 'KB'
 }
 
-// Verileri tip güvenli hale getirelim
+// Verileri tip güvenli hale getirelim ve başlangıçta temizleyelim
 const typedReservations = (reservationsData as any[]).map(loc => ({
     ...loc,
-    durum: (loc.durum === 'KESİN' || loc.durum === 'OPSİYON' || loc.durum === 'BOŞ') ? loc.durum : 'BOŞ'
+    marka1Opsiyon: '',
+    marka2Opsiyon: '',
+    marka3Opsiyon: '',
+    marka4Opsiyon: '',
+    durum: 'BOŞ'
 })) as Location[]
+
 
 const sampleLocations: Location[] = typedReservations
 
@@ -36,17 +42,11 @@ const sampleLocations: Location[] = typedReservations
 
 
 export default function ReservationsPage() {
-    const [locations, setLocations] = useState<Location[]>(() => {
-        const saved = localStorage.getItem('inventoryLocations')
-        if (saved) {
-            try { return JSON.parse(saved) } catch (e) { return sampleLocations }
-        }
-        return sampleLocations
-    })
-    const [selectedYear, setSelectedYear] = useState<number>(sampleLocations[0]?.yil || 2025)
-    const [selectedMonth, setSelectedMonth] = useState<string>(sampleLocations[0]?.ay || 'Kasım')
-    const [selectedWeek, setSelectedWeek] = useState(sampleLocations[0]?.hafta || '')
-    const [selectedNetwork, setSelectedNetwork] = useState<any>(sampleLocations[0]?.network || 1)
+    const [locations, setLocations] = useState<Location[]>([])
+    const [selectedYear, setSelectedYear] = useState<number>(2026)
+    const [selectedMonth, setSelectedMonth] = useState<string>('Ocak')
+    const [selectedWeek, setSelectedWeek] = useState('05.01.2026')
+    const [selectedNetwork, setSelectedNetwork] = useState<any>(1)
     const [selectedDistrict, setSelectedDistrict] = useState<string>('Tümü')
     const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('Tümü')
     const [selectedProductType, setSelectedProductType] = useState<string>('Tümü')
@@ -63,7 +63,7 @@ export default function ReservationsPage() {
 
     // Sabit Seçenekler
     const allMonths = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık']
-    const yearOptions = [2024, 2025, 2026, 2027, 2028]
+    const yearOptions = [2026, 2027, 2028, 2029, 2030]
     const networkOptions = [1, 2, 3, 4, 5, 6, 7, 8]
     const productTypes = ['Tümü', 'BB', 'CLP', 'ML', 'LED', 'GB', 'MB', 'KB']
 
@@ -88,7 +88,7 @@ export default function ReservationsPage() {
         while (curr.getFullYear() <= selectedYear) {
             const day = String(curr.getDate()).padStart(2, '0')
             const month = String(curr.getMonth() + 1).padStart(2, '0')
-            const dateStr = `${day}.${month}.${curr.getFullYear()} `
+            const dateStr = `${day}.${month}.${curr.getFullYear()}`
             generatedWeeks.push(dateStr)
             curr.setDate(curr.getDate() + 7)
         }
@@ -148,12 +148,26 @@ export default function ReservationsPage() {
                 bookingsService.getAll()
             ]);
 
+            // Helper function to normalize date formats for comparison
+            const normalizeDate = (dateStr: string): string => {
+                if (!dateStr) return '';
+                // Handle ISO format: 2026-01-05 or 2026-01-05T00:00:00
+                if (dateStr.includes('-')) {
+                    const parts = dateStr.split('T')[0].split('-');
+                    return `${parts[2]}.${parts[1]}.${parts[0]}`; // Convert to DD.MM.YYYY
+                }
+                return dateStr; // Already in DD.MM.YYYY format
+            };
+
             if (inventory && inventory.length > 0) {
                 // Combine inventory with bookings to create UI locations
-                // Filter by currently selected filters (Year, Month, Week, Network)
                 const currentLocations = inventory.map((item: any) => {
-                    const itemBookings = bookings.filter(b => b.inventory_item_id === item.id && b.start_date === selectedWeek);
-                    const booking = itemBookings[0]; // Simplistic join for now
+                    // Compare normalized dates
+                    const itemBookings = bookings.filter(b =>
+                        b.inventory_item_id === item.id &&
+                        normalizeDate(b.start_date) === selectedWeek
+                    );
+                    const booking = itemBookings[0];
 
                     return {
                         id: item.id,
@@ -165,6 +179,7 @@ export default function ReservationsPage() {
                         semt: item.neighborhood || '',
                         adres: item.address,
                         kod: item.code,
+                        routeNo: item.routeNo,
                         network: Number(item.network) || 1,
                         marka1Opsiyon: booking?.brand_option_1 || '',
                         marka2Opsiyon: booking?.brand_option_2 || '',
@@ -233,6 +248,9 @@ export default function ReservationsPage() {
     };
 
     useEffect(() => {
+        // Clear localStorage to force fresh data from backend
+        localStorage.removeItem('inventoryLocations');
+        localStorage.removeItem('reservationRequests');
         fetchData();
         // Set up periodic refresh every 30 seconds
         const interval = setInterval(fetchData, 30000);
@@ -377,11 +395,23 @@ export default function ReservationsPage() {
         toastSuccess(message);
     }
 
-    const handleResetData = () => {
+    const handleResetData = async () => {
         if (window.confirm('Tüm rezervasyon verilerini sıfırlayıp fabrika ayarlarına dönmek istediğinize emin misiniz? (Tüm atanmış markalar silinecektir)')) {
-            localStorage.removeItem('inventoryLocations')
-            localStorage.removeItem('reservationRequests')
-            window.location.reload()
+            try {
+                // Backend cleanup
+                const bookings = await bookingsService.getAll();
+                for (const b of bookings) {
+                    await bookingsService.delete(b.id);
+                }
+
+                localStorage.removeItem('inventoryLocations')
+                localStorage.removeItem('reservationRequests')
+                toastSuccess('Sistem verileri başarıyla sıfırlandı.');
+                setTimeout(() => window.location.reload(), 1000);
+            } catch (error) {
+                console.error('Reset error:', error);
+                toastInfo('Sıfırlama sırasında bazı hatalar oluştu.');
+            }
         }
     }
 
@@ -428,31 +458,57 @@ export default function ReservationsPage() {
         setIsAutoAssigning(true)
         const brandUpper = brandName.toUpperCase()
 
-        // Simülasyon
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        try {
+            // Get all existing bookings once for efficiency
+            const existingBookings = await bookingsService.getAll();
 
-        const updated = locations.map(loc => {
-            if (selectedRows.includes(loc.id)) {
-                const newLoc = { ...loc }
-                if (selectedOpsiyonNumber === 1) newLoc.marka1Opsiyon = brandUpper
-                else if (selectedOpsiyonNumber === 2) newLoc.marka2Opsiyon = brandUpper
-                else if (selectedOpsiyonNumber === 3) newLoc.marka3Opsiyon = brandUpper
-                else if (selectedOpsiyonNumber === 4) newLoc.marka4Opsiyon = brandUpper
+            const updated = await Promise.all(locations.map(async (loc) => {
+                if (selectedRows.includes(loc.id)) {
+                    const newLoc = { ...loc }
+                    if (selectedOpsiyonNumber === 1) newLoc.marka1Opsiyon = brandUpper
+                    else if (selectedOpsiyonNumber === 2) newLoc.marka2Opsiyon = brandUpper
+                    else if (selectedOpsiyonNumber === 3) newLoc.marka3Opsiyon = brandUpper
+                    else if (selectedOpsiyonNumber === 4) newLoc.marka4Opsiyon = brandUpper
 
-                if (newLoc.durum === 'BOŞ') newLoc.durum = 'OPSİYON'
-                return newLoc
-            }
-            return loc
-        })
+                    if (newLoc.durum === 'BOŞ') newLoc.durum = 'OPSİYON'
 
-        setLocations(updated)
-        localStorage.setItem('inventoryLocations', JSON.stringify(updated))
+                    // Always save to database
+                    const existing = existingBookings.find(b => b.inventory_item_id === loc.id && b.start_date === selectedWeek);
 
-        setIsAutoAssigning(false)
-        setShowAssignModal(false)
-        setSelectedRows([])
-        setBrandName('')
-        alert(`${selectedRows.length} adet lokasyona ${brandUpper} markası(Opsiyon ${selectedOpsiyonNumber}) atandı!`)
+                    const bookingData = {
+                        inventory_item_id: loc.id,
+                        brand_option_1: newLoc.marka1Opsiyon,
+                        brand_option_2: newLoc.marka2Opsiyon,
+                        brand_option_3: newLoc.marka3Opsiyon,
+                        brand_option_4: newLoc.marka4Opsiyon,
+                        start_date: selectedWeek,
+                        end_date: selectedWeek,
+                        status: newLoc.durum,
+                        network: String(selectedNetwork)
+                    };
+
+                    if (existing) {
+                        await bookingsService.update(existing.id, bookingData);
+                    } else {
+                        await bookingsService.create(bookingData);
+                    }
+                    return newLoc
+                }
+                return loc
+            }));
+
+            setLocations(updated as any)
+            localStorage.setItem('inventoryLocations', JSON.stringify(updated))
+            toastSuccess(`${selectedRows.length} adet lokasyona ${brandUpper} markası atandı!`)
+        } catch (error) {
+            console.error('Auto assign error:', error);
+            toastInfo('Bazı kayıtlar güncellenemedi.');
+        } finally {
+            setIsAutoAssigning(false)
+            setShowAssignModal(false)
+            setSelectedRows([])
+            setBrandName('')
+        }
     }
 
     // Durumu değiştir
@@ -467,12 +523,61 @@ export default function ReservationsPage() {
         localStorage.setItem('inventoryLocations', JSON.stringify(updated))
     }
 
+    // Seçili rezervasyonları sil
+    const handleDeleteSelected = async () => {
+        if (selectedRows.length === 0) {
+            toastInfo('Lütfen silmek istediğiniz satırları seçin.');
+            return;
+        }
+
+        const confirmMessage = `${selectedRows.length} adet lokasyonun marka atamasını silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz!`;
+
+        if (!window.confirm(confirmMessage)) {
+            return;
+        }
+
+        try {
+            // Backend'den rezervasyonları sil
+            for (const locId of selectedRows) {
+                if (locId.length > 20) { // UUID check
+                    const existingBookings = await bookingsService.getAll();
+                    const toDelete = existingBookings.filter(b => b.inventory_item_id === locId);
+                    for (const booking of toDelete) {
+                        await bookingsService.delete(booking.id);
+                    }
+                }
+            }
+
+            // UI'da marka bilgilerini temizle
+            const updated = locations.map(loc => {
+                if (selectedRows.includes(loc.id)) {
+                    return {
+                        ...loc,
+                        marka1Opsiyon: '',
+                        marka2Opsiyon: '',
+                        marka3Opsiyon: '',
+                        marka4Opsiyon: '',
+                        durum: 'BOŞ' as const
+                    };
+                }
+                return loc;
+            });
+
+            setLocations(updated);
+            setSelectedRows([]);
+            toastSuccess(`${selectedRows.length} adet lokasyonun marka ataması başarıyla silindi.`);
+        } catch (error) {
+            console.error('Delete error:', error);
+            toastInfo('Silme işlemi sırasında bir hata oluştu.');
+        }
+    }
+
     // Excel export
     const handleExportExcel = () => {
         const csvContent = [
-            ['Yıl', 'Ay', 'Hafta', 'Koordinat', 'İlçe', 'Semt', 'Adres', 'Kod', 'Network', 'Marka 1.Opsiyon', 'Marka 2.Opsiyon', 'Marka 3.Opsiyon', 'Marka 4.Opsiyon', 'Durum'].join('\t'),
+            ['Yıl', 'Ay', 'Hafta', 'Koordinat', 'İlçe', 'Semt', 'Adres', 'Kod', 'Rout No', 'Network', 'Marka 1.Opsiyon', 'Marka 2.Opsiyon', 'Marka 3.Opsiyon', 'Marka 4.Opsiyon', 'Durum'].join('\t'),
             ...filteredLocations.map(loc =>
-                [loc.yil, loc.ay, loc.hafta, loc.koordinat, loc.ilce, loc.semt, loc.adres, loc.kod, loc.network, loc.marka1Opsiyon, loc.marka2Opsiyon, loc.marka3Opsiyon, loc.marka4Opsiyon, loc.durum].join('\t')
+                [loc.yil, loc.ay, loc.hafta, loc.koordinat, loc.ilce, loc.semt, loc.adres, loc.kod, loc.routeNo || '-', loc.network, loc.marka1Opsiyon, loc.marka2Opsiyon, loc.marka3Opsiyon, loc.marka4Opsiyon, loc.durum].join('\t')
             )
         ].join('\n')
 
@@ -490,20 +595,61 @@ export default function ReservationsPage() {
     }
 
     // Opsiyonu Kesine çevir
-    const handleConfirmSelected = () => {
-        const updated = locations.map(loc => {
-            if (selectedRows.includes(loc.id)) {
-                return { ...loc, durum: 'KESİN' as const }
-            }
-            return loc
-        })
-        setLocations(updated)
-        localStorage.setItem('inventoryLocations', JSON.stringify(updated))
-        setSelectedRows([])
-        alert(`${selectedRows.length} adet opsiyon KESİN olarak onaylandı!`)
+    const handleConfirmSelected = async () => {
+        if (selectedRows.length === 0) return;
+
+        try {
+            // Get all existing bookings once
+            const existingBookings = await bookingsService.getAll();
+
+            const updated = await Promise.all(locations.map(async (loc) => {
+                if (selectedRows.includes(loc.id)) {
+                    const newLoc = { ...loc, durum: 'KESİN' as const };
+
+                    // Find existing booking for this location and week
+                    const existing = existingBookings.find(
+                        b => b.inventory_item_id === loc.id && b.start_date === selectedWeek
+                    );
+
+                    if (existing) {
+                        // Update existing booking to KESİN status
+                        await bookingsService.update(existing.id, {
+                            status: 'KESİN',
+                            brand_option_1: loc.marka1Opsiyon || existing.brand_option_1,
+                            brand_option_2: loc.marka2Opsiyon || existing.brand_option_2,
+                            brand_option_3: loc.marka3Opsiyon || existing.brand_option_3,
+                            brand_option_4: loc.marka4Opsiyon || existing.brand_option_4,
+                        });
+                    } else {
+                        // Create new booking with KESİN status
+                        await bookingsService.create({
+                            inventory_item_id: loc.id,
+                            start_date: selectedWeek,
+                            end_date: selectedWeek,
+                            status: 'KESİN',
+                            network: String(selectedNetwork),
+                            brand_option_1: loc.marka1Opsiyon || '',
+                            brand_option_2: loc.marka2Opsiyon || '',
+                            brand_option_3: loc.marka3Opsiyon || '',
+                            brand_option_4: loc.marka4Opsiyon || '',
+                        });
+                    }
+                    return newLoc;
+                }
+                return loc;
+            }));
+
+            setLocations(updated as any);
+            localStorage.setItem('inventoryLocations', JSON.stringify(updated));
+            setSelectedRows([]);
+            toastSuccess(`${selectedRows.length} adet opsiyon KESİN olarak onaylandı ve Asım Listesi'ne eklendi!`);
+        } catch (error) {
+            console.error('Confirm error:', error);
+            toastInfo('Onaylama sırasında bir hata oluştu.');
+        }
     }
 
-    const handleSaveRevision = () => {
+    const handleSaveRevision = async () => {
         const sourceId = selectedRows[0];
         const sourceLoc = locations.find(l => l.id === sourceId);
         const targetLoc = locations.find(l => l.id === reviseTargetId);
@@ -513,43 +659,85 @@ export default function ReservationsPage() {
             return;
         }
 
-        const brandToMove = sourceLoc[`marka${reviseSlot} Opsiyon` as keyof Location];
+        const brandToMove = sourceLoc[`marka${reviseSlot}Opsiyon` as keyof Location];
         if (!brandToMove) {
             alert('Seçilen opsiyon alanında marka bulunmuyor!');
             return;
         }
 
-        const updated = locations.map(loc => {
-            if (loc.id === sourceId) {
-                const newLoc = { ...loc };
-                (newLoc as any)[`marka${reviseSlot} Opsiyon`] = '';
-                const anyLeft = newLoc.marka1Opsiyon || newLoc.marka2Opsiyon || newLoc.marka3Opsiyon || newLoc.marka4Opsiyon;
-                if (!anyLeft) newLoc.durum = 'BOŞ' as const;
-                return newLoc;
-            }
-            if (loc.id === reviseTargetId) {
-                const newLoc = { ...loc };
-                // Hedefte aynı slot boşsa oraya, değilse ilk boş slot'a koy
-                if (!(newLoc as any)[`marka${reviseSlot} Opsiyon`]) {
-                    (newLoc as any)[`marka${reviseSlot} Opsiyon`] = brandToMove;
-                } else {
-                    if (!newLoc.marka1Opsiyon) newLoc.marka1Opsiyon = String(brandToMove);
-                    else if (!newLoc.marka2Opsiyon) newLoc.marka2Opsiyon = String(brandToMove);
-                    else if (!newLoc.marka3Opsiyon) newLoc.marka3Opsiyon = String(brandToMove);
-                    else if (!newLoc.marka4Opsiyon) newLoc.marka4Opsiyon = String(brandToMove);
-                }
-                newLoc.durum = 'OPSİYON' as const;
-                return newLoc;
-            }
-            return loc;
-        });
+        try {
+            const updated = await Promise.all(locations.map(async (loc) => {
+                if (loc.id === sourceId) {
+                    const newLoc = { ...loc };
+                    (newLoc as any)[`marka${reviseSlot}Opsiyon`] = '';
+                    const anyLeft = newLoc.marka1Opsiyon || newLoc.marka2Opsiyon || newLoc.marka3Opsiyon || newLoc.marka4Opsiyon;
+                    if (!anyLeft) newLoc.durum = 'BOŞ' as const;
 
-        setLocations(updated);
-        localStorage.setItem('inventoryLocations', JSON.stringify(updated));
-        setShowReviseModal(false);
-        setReviseTargetId('');
-        setSelectedRows([]);
-        toastSuccess('Rezervasyon başarıyla başka bir lokasyona kaydırıldı.');
+                    // Backend update for source
+                    if (loc.id.length > 20) {
+                        const existingBookings = await bookingsService.getAll();
+                        const existing = existingBookings.find(b => b.inventory_item_id === loc.id && b.start_date === selectedWeek);
+                        if (existing) {
+                            await bookingsService.update(existing.id, {
+                                brand_option_1: newLoc.marka1Opsiyon,
+                                brand_option_2: newLoc.marka2Opsiyon,
+                                brand_option_3: newLoc.marka3Opsiyon,
+                                brand_option_4: newLoc.marka4Opsiyon,
+                                status: newLoc.durum
+                            });
+                        }
+                    }
+                    return newLoc;
+                }
+                if (loc.id === reviseTargetId) {
+                    const newLoc = { ...loc };
+                    if (!(newLoc as any)[`marka${reviseSlot}Opsiyon`]) {
+                        (newLoc as any)[`marka${reviseSlot}Opsiyon`] = brandToMove;
+                    } else {
+                        if (!newLoc.marka1Opsiyon) newLoc.marka1Opsiyon = String(brandToMove);
+                        else if (!newLoc.marka2Opsiyon) newLoc.marka2Opsiyon = String(brandToMove);
+                        else if (!newLoc.marka3Opsiyon) newLoc.marka3Opsiyon = String(brandToMove);
+                        else if (!newLoc.marka4Opsiyon) newLoc.marka4Opsiyon = String(brandToMove);
+                    }
+                    newLoc.durum = 'OPSİYON' as const;
+
+                    // Backend update for target
+                    if (loc.id.length > 20) {
+                        const existingBookings = await bookingsService.getAll();
+                        const existing = existingBookings.find(b => b.inventory_item_id === loc.id && b.start_date === selectedWeek);
+                        const bookingData = {
+                            inventory_item_id: loc.id,
+                            brand_option_1: newLoc.marka1Opsiyon,
+                            brand_option_2: newLoc.marka2Opsiyon,
+                            brand_option_3: newLoc.marka3Opsiyon,
+                            brand_option_4: newLoc.marka4Opsiyon,
+                            start_date: selectedWeek,
+                            end_date: selectedWeek,
+                            status: newLoc.durum,
+                            network: String(selectedNetwork)
+                        };
+
+                        if (existing) {
+                            await bookingsService.update(existing.id, bookingData);
+                        } else {
+                            await bookingsService.create(bookingData);
+                        }
+                    }
+                    return newLoc;
+                }
+                return loc;
+            }));
+
+            setLocations(updated as any);
+            localStorage.setItem('inventoryLocations', JSON.stringify(updated));
+            setShowReviseModal(false);
+            setReviseTargetId('');
+            setSelectedRows([]);
+            toastSuccess('Rezervasyon başarıyla başka bir lokasyona kaydırıldı.');
+        } catch (error) {
+            console.error('Revision error:', error);
+            toastInfo('Kaydırma işlemi sırasında hata oluştu.');
+        }
     }
 
     // İstatistikler
@@ -839,7 +1027,16 @@ export default function ReservationsPage() {
                             <Send className="w-5 h-5" />
                             Mail Gönder
                         </button>
+                        <button
+                            onClick={handleDeleteSelected}
+                            disabled={selectedRows.length === 0}
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <Trash2 className="w-5 h-5" />
+                            Seçilenleri Sil ({selectedRows.length})
+                        </button>
                     </div>
+
 
                     {/* Lokasyon Tablosu */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -870,6 +1067,7 @@ export default function ReservationsPage() {
                                         <th className="px-3 py-3 text-left font-semibold">Adres</th>
                                         <th className="px-3 py-3 text-left font-semibold">Kod</th>
                                         <th className="px-3 py-3 text-left font-semibold">Network</th>
+                                        <th className="px-3 py-3 text-left font-semibold">Rout No</th>
                                         <th className="px-3 py-3 text-left font-semibold bg-green-700">Marka 1.Opsiyon</th>
                                         <th className="px-3 py-3 text-left font-semibold bg-green-700">Marka 2.Opsiyon</th>
                                         <th className="px-3 py-3 text-left font-semibold bg-green-700">Marka 3.Opsiyon</th>
@@ -905,6 +1103,7 @@ export default function ReservationsPage() {
                                                 </span>
                                             </td>
                                             <td className="px-3 py-2 text-center text-gray-900">{loc.network}</td>
+                                            <td className="px-3 py-2 text-primary-600 font-bold">{loc.routeNo || '-'}</td>
                                             <td className="px-3 py-2 text-primary-700 font-medium">{loc.marka1Opsiyon || '-'}</td>
                                             <td className="px-3 py-2 text-blue-700 font-medium">{loc.marka2Opsiyon || '-'}</td>
                                             <td className="px-3 py-2 text-purple-700 font-medium">{loc.marka3Opsiyon || '-'}</td>
@@ -1246,7 +1445,8 @@ export default function ReservationsPage() {
                         )}
                     </div>
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     )
 }

@@ -1,11 +1,11 @@
 {
-  "title": "abc a.ş - Bütçe Teklifi",
-  "client_id": "4e9706b0-9b19-4ad6-a5b6-b2ea17098744",
-  "created_by_id": "2ba14659-ec59-465d-9b03-43d9b269cba3",
+  "title": "abc - Bütçe Teklifi",
+  "client_id": "c3b9fc89-55cd-492f-b753-cff8a9b5d89b",
+  "created_by_id": "4772ee3b-e513-435a-b52e-2c28c1a9b567",
   "items": [
     {
       "description": "Billboard",
-      "quantity": 1,
+      "quantity": 3,
       "unit_price": 3500
     }
   ]

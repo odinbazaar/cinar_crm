@@ -15,6 +15,7 @@ import SettingsPage from './pages/SettingsPage'
 import SalesPage from './pages/SalesPage'
 import ReservationsPage from './pages/ReservationsPage'
 import CostSettingsPage from './pages/CostSettingsPage'
+import ContractsPage from './pages/ContractsPage'
 
 // Layout
 import MainLayout from './components/layout/MainLayout'
@@ -74,6 +75,7 @@ function App() {
                         <Route path="inventory" element={<InventoryPage />} />
                         <Route path="proposals" element={<ProposalsPage />} />
                         <Route path="asim-listesi" element={<AsimListesiPage />} />
+                        <Route path="contracts" element={<ContractsPage />} />
                         <Route path="settings" element={<SettingsPage />} />
                         <Route path="cost-settings" element={<CostSettingsPage />} />
 

@@ -15,6 +15,7 @@ import { CustomerRequestsModule } from './customer-requests/customer-requests.mo
 import { FinanceModule } from './finance/finance.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MailModule } from './mail/mail.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { MailModule } from './mail/mail.module';
     FinanceModule,
     NotificationsModule,
     MailModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

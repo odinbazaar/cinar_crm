@@ -50,12 +50,15 @@ export interface CreateProposalItemDto {
     unit_price: number;
     estimated_hours?: number;
     hourly_rate?: number;
+    metadata?: any;
 }
 
 export interface UpdateProposalDto {
     title?: string;
+    client_id?: string;
     status?: string;
     description?: string;
     terms?: string;
     valid_until?: Date;
+    items?: CreateProposalItemDto[];
 }

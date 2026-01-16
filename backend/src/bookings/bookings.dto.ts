@@ -4,27 +4,42 @@ export interface Booking {
     inventory_item_id: string;
     project_id?: string;
     client_id?: string;
-    start_date: Date;
-    end_date: Date;
+    brand_name?: string;
+    network?: string;
+    brand_option_1?: string;
+    brand_option_2?: string;
+    brand_option_3?: string;
+    brand_option_4?: string;
+    start_date: string;
+    end_date: string;
     status: string;
     notes?: string;
-    created_at: Date;
-    updated_at: Date;
+    created_at: string;
+    updated_at: string;
 }
 
 export interface CreateBookingDto {
     inventory_item_id: string;
     project_id?: string;
     client_id?: string;
-    start_date: Date;
-    end_date: Date;
+    brand_name?: string;
+    network?: string;
+    brand_option_1?: string;
+    brand_option_2?: string;
+    brand_option_3?: string;
+    brand_option_4?: string;
+    start_date: string;
+    end_date: string;
     status?: string;
     notes?: string;
 }
 
 export interface UpdateBookingDto {
-    start_date?: Date;
-    end_date?: Date;
     status?: string;
+    brand_option_1?: string;
+    brand_option_2?: string;
+    brand_option_3?: string;
+    brand_option_4?: string;
     notes?: string;
 }
+

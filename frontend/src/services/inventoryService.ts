@@ -10,6 +10,7 @@ export interface InventoryItem {
     address: string;
     coordinates?: string;
     network?: string;
+    routeNo?: string;
     is_active: boolean;
     created_at: string;
     updated_at: string;
@@ -23,6 +24,7 @@ export interface CreateInventoryItemDto {
     address: string;
     coordinates?: string;
     network?: string;
+    routeNo?: string;
 }
 
 export interface UpdateInventoryItemDto extends Partial<CreateInventoryItemDto> {
@@ -32,15 +34,25 @@ export interface UpdateInventoryItemDto extends Partial<CreateInventoryItemDto> 
 // Inventory Service
 export const inventoryService = {
     async getAll(): Promise<InventoryItem[]> {
-        return apiClient.get<InventoryItem[]>('/inventory');
+        const data = await apiClient.get<any[]>('/inventory');
+        // Map snake_case route_no to camelCase routeNo
+        return data.map(item => ({
+            ...item,
+            routeNo: item.route_no || item.routeNo
+        }));
     },
 
     async getOne(id: string): Promise<InventoryItem> {
-        return apiClient.get<InventoryItem>(`/inventory/${id}`);
+        const data = await apiClient.get<any>(`/inventory/${id}`);
+        return { ...data, routeNo: data.route_no || data.routeNo };
     },
 
     async getByDistrict(district: string): Promise<InventoryItem[]> {
-        return apiClient.get<InventoryItem[]>(`/inventory/district/${district}`);
+        const data = await apiClient.get<any[]>(`/inventory/district/${district}`);
+        return data.map(item => ({
+            ...item,
+            routeNo: item.route_no || item.routeNo
+        }));
     },
 
     async create(data: CreateInventoryItemDto): Promise<InventoryItem> {

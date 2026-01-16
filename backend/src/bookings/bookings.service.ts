@@ -7,12 +7,7 @@ export class BookingsService {
     async findAll(): Promise<Booking[]> {
         const { data, error } = await supabase
             .from('bookings')
-            .select(`
-        *,
-        inventory_item:inventory_items(id, code, type, district, address),
-        project:projects(id, name),
-        client:clients(id, name)
-      `)
+            .select('*')
             .order('start_date', { ascending: false });
 
         if (error) {
@@ -25,12 +20,7 @@ export class BookingsService {
     async findOne(id: string): Promise<Booking | null> {
         const { data, error } = await supabase
             .from('bookings')
-            .select(`
-        *,
-        inventory_item:inventory_items(id, code, type, district, address, coordinates),
-        project:projects(id, name),
-        client:clients(id, name, email, phone)
-      `)
+            .select('*')
             .eq('id', id)
             .single();
 
@@ -87,7 +77,7 @@ export class BookingsService {
     async getByProject(projectId: string): Promise<Booking[]> {
         const { data, error } = await supabase
             .from('bookings')
-            .select('*, inventory_item:inventory_items(code, type, district)')
+            .select('*')
             .eq('project_id', projectId);
 
         if (error) throw new Error(error.message);
