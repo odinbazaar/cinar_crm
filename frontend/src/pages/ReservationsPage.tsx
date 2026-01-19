@@ -112,6 +112,17 @@ export default function ReservationsPage() {
 
     const { success: toastSuccess, info: toastInfo } = useToast()
 
+    // Helper function to normalize date formats for comparison
+    const normalizeDate = (dateStr: string): string => {
+        if (!dateStr) return '';
+        // Handle ISO format: 2026-01-05 or 2026-01-05T00:00:00
+        if (dateStr.includes('-')) {
+            const parts = dateStr.split('T')[0].split('-');
+            return `${parts[2]}.${parts[1]}.${parts[0]}`; // Convert to DD.MM.YYYY
+        }
+        return dateStr; // Already in DD.MM.YYYY format
+    };
+
     const fetchData = async () => {
         setIsLoadingRequests(true);
         setIsLoadingLocations(true);
@@ -148,16 +159,6 @@ export default function ReservationsPage() {
                 bookingsService.getAll()
             ]);
 
-            // Helper function to normalize date formats for comparison
-            const normalizeDate = (dateStr: string): string => {
-                if (!dateStr) return '';
-                // Handle ISO format: 2026-01-05 or 2026-01-05T00:00:00
-                if (dateStr.includes('-')) {
-                    const parts = dateStr.split('T')[0].split('-');
-                    return `${parts[2]}.${parts[1]}.${parts[0]}`; // Convert to DD.MM.YYYY
-                }
-                return dateStr; // Already in DD.MM.YYYY format
-            };
 
             // Combine inventory with bookings to create UI locations
             const currentLocations = inventory.map((item: any) => {
@@ -272,130 +273,116 @@ export default function ReservationsPage() {
     }, []);
 
     const handleProcessRequest = async (request: any) => {
-        let currentLocations = [...locations];
-
-        // 1. Check if we need to seed the year/week for the requested inventory
-        const periodExists = currentLocations.some(l =>
-            l.yil === request.year &&
-            l.hafta === request.week &&
-            String(l.network) === String(request.network)
-        );
-
-        let seededCount = 0;
-        if (!periodExists) {
-            const hasDataForWeek = reservationsData.some((l: any) => l.hafta === request.week);
-
-            if (hasDataForWeek) {
-                const clones = reservationsData
-                    .filter((l: any) => l.hafta === request.week)
-                    .map((l: any) => ({
-                        ...l,
-                        id: `clone-${l.id}-${Date.now()}`,
-                        yil: request.year,
-                        marka1Opsiyon: '',
-                        marka2Opsiyon: '',
-                        marka3Opsiyon: '',
-                        marka4Opsiyon: ''
-                    }));
-                currentLocations = [...currentLocations, ...clones];
-                seededCount = clones.length;
-            }
-        }
-
-        // 2. Identify locations to update
-        let updatedCount = 0;
-        const targetIds = (request.selectedLocations || []).map((sl: any) => sl.id);
-        const brandUpper = request.brandName.toUpperCase();
-
-        const updatedLocations = currentLocations.map(loc => {
-            const isIdMatch = targetIds.includes(loc.id);
-            const isMetaMatch = !targetIds.length &&
-                updatedCount < request.quantity &&
-                loc.yil === request.year &&
-                loc.hafta === request.week &&
-                String(loc.network) === String(request.network) &&
-                loc.productType === request.productType &&
-                (loc.durum === 'BOŞ' || (loc.durum === 'OPSİYON' && (!loc.marka1Opsiyon || !loc.marka2Opsiyon || !loc.marka3Opsiyon || !loc.marka4Opsiyon)));
-
-            if (isIdMatch || isMetaMatch) {
-                const newLoc = { ...loc };
-                if (newLoc.durum === 'BOŞ') {
-                    newLoc.durum = 'OPSİYON';
-                    newLoc.marka1Opsiyon = brandUpper;
-                    if (isMetaMatch) updatedCount++;
-                    return newLoc;
-                } else if (newLoc.durum === 'OPSİYON') {
-                    if (!newLoc.marka1Opsiyon) newLoc.marka1Opsiyon = brandUpper;
-                    else if (!newLoc.marka2Opsiyon) newLoc.marka2Opsiyon = brandUpper;
-                    else if (!newLoc.marka3Opsiyon) newLoc.marka3Opsiyon = brandUpper;
-                    else if (!newLoc.marka4Opsiyon) newLoc.marka4Opsiyon = brandUpper;
-                    newLoc.durum = 'OPSİYON';
-                    if (isMetaMatch) updatedCount++;
-                    return newLoc;
-                }
-            }
-            return loc;
-        });
-
-        setLocations(updatedLocations);
-
-        // Update request status in BACKEND
+        setIsLoadingRequests(true);
+        setIsLoadingLocations(true);
         try {
-            // Create Bookings in Supabase
-            const modifiedLocs = updatedLocations.filter(loc => {
-                const oldLoc = locations.find(ol => ol.id === loc.id);
-                return JSON.stringify(oldLoc) !== JSON.stringify(loc);
+            // 1. Fetch fresh data to ensure we are looking at real availability
+            const [inventory, allBookings] = await Promise.all([
+                inventoryService.getAll(),
+                bookingsService.getAll()
+            ]);
+
+            // IDs selected by the salesperson
+            const targetIds = (request.selectedLocations || []).map((sl: any) => sl.id);
+
+            // Filter matching inventory for the requested period/network/type
+            const matchingInventory = inventory.filter(item =>
+                String(item.network) === String(request.network) &&
+                item.type === request.productType
+            );
+
+            // Get bookings for the requested week
+            const targetWeek = request.week;
+            const periodBookings = allBookings.filter(b => normalizeDate(b.start_date) === targetWeek);
+
+            // Separate items into categories
+            const selectedAvailable: any[] = [];
+            const autoAvailable: any[] = [];
+            const partiallyAvailable: any[] = [];
+
+            matchingInventory.forEach(item => {
+                const booking = periodBookings.find(b => b.inventory_item_id === item.id);
+                const isIdSelected = targetIds.includes(item.id);
+
+                if (!booking || booking.status === 'BOŞ') {
+                    if (isIdSelected) selectedAvailable.push({ item, booking: null });
+                    else autoAvailable.push({ item, booking: null });
+                } else if (booking.status === 'OPSİYON') {
+                    // Check if there is an empty slot
+                    if (!booking.brand_option_1 || !booking.brand_option_2 || !booking.brand_option_3 || !booking.brand_option_4) {
+                        if (isIdSelected) selectedAvailable.push({ item, booking });
+                        else partiallyAvailable.push({ item, booking });
+                    }
+                }
             });
 
-            for (const loc of modifiedLocs) {
-                // Check if this is a real Supabase inventory item (UUID)
-                if (loc.id.length > 20) {
+            // Priority:
+            // 1. Specifically selected items that are still available
+            // 2. Completely empty items (BOŞ)
+            // 3. Partially filled items (OPSİYON with slots)
+            const candidates = [...selectedAvailable, ...autoAvailable, ...partiallyAvailable];
+            const toAssign = candidates.slice(0, Math.max(request.quantity, targetIds.length));
+
+            if (toAssign.length === 0) {
+                toastInfo('Maalesef bu kriterlere uygun müsait lokasyon bulunamadı.');
+                return;
+            }
+
+            const brandUpper = request.brandName.toUpperCase();
+
+            // 2. Perform assignments in the database
+            for (const { item, booking } of toAssign) {
+                if (booking) {
+                    // Update existing booking with next available slot
+                    const updateData = { ...booking };
+                    if (!updateData.brand_option_1) updateData.brand_option_1 = brandUpper;
+                    else if (!updateData.brand_option_2) updateData.brand_option_2 = brandUpper;
+                    else if (!updateData.brand_option_3) updateData.brand_option_3 = brandUpper;
+                    else if (!updateData.brand_option_4) updateData.brand_option_4 = brandUpper;
+
+                    await bookingsService.update(booking.id, {
+                        ...updateData,
+                        status: 'OPSİYON'
+                    });
+                } else {
+                    // Create new booking
                     await bookingsService.create({
-                        inventory_item_id: loc.id,
+                        inventory_item_id: item.id,
                         brand_name: request.brandName,
                         network: String(request.network),
-                        start_date: request.week,
-                        end_date: request.week,
-                        status: loc.durum,
-                        brand_option_1: loc.marka1Opsiyon,
-                        brand_option_2: loc.marka2Opsiyon,
-                        brand_option_3: loc.marka3Opsiyon,
-                        brand_option_4: loc.marka4Opsiyon
+                        start_date: targetWeek,
+                        end_date: targetWeek,
+                        status: 'OPSİYON',
+                        brand_option_1: brandUpper
                     });
                 }
             }
 
+            // 3. Mark request as completed
             await customerRequestsService.update(request.id, { status: 'completed' });
-            fetchData(); // Refresh list from backend
+
+            // 4. Update UI: Switch to the processed week/network to show results
+            setSelectedYear(request.year);
+            setSelectedMonth(request.month);
+            setSelectedWeek(request.week);
+            setSelectedNetwork(request.network);
+            setActiveTab('list');
+
+            // Refresh all data
+            await fetchData();
+
+            toastSuccess(`${request.customerName} talebi için ${toAssign.length} lokasyon başarıyla atandı.`);
+            if (toAssign.length < request.quantity) {
+                toastInfo(`Not: Talep edilen ${request.quantity} adetten sadece ${toAssign.length} müsait yer bulunabildi.`);
+            }
+
         } catch (error) {
-            console.error('Error updating request status:', error);
-            const updatedRequests = reservationRequests.map(r =>
-                r.id === request.id ? { ...r, status: 'completed' } : r
-            );
-            setReservationRequests(updatedRequests);
+            console.error('Process request error:', error);
+            toastInfo('Talebi işlerken bir hata oluştu.');
+        } finally {
+            setIsLoadingRequests(false);
+            setIsLoadingLocations(false);
         }
-
-        // Save inventory to localStorage for persistence (until inventory is fully moved to backend)
-        try {
-            localStorage.setItem('inventoryLocations', JSON.stringify(updatedLocations));
-        } catch (e) {
-            console.warn('Storage limit reached, changes will only be in memory.');
-        }
-
-        setSelectedYear(request.year);
-        // Map month name if needed, assuming they match
-        setSelectedMonth(request.month);
-        setSelectedWeek(request.week);
-        setSelectedNetwork(Number(request.network) || request.network);
-        setActiveTab('list');
-
-        const totalAssigned = targetIds.length || updatedCount;
-        let message = `${request.customerName} - ${request.brandName} talebi işlendi.\n\n`;
-        if (seededCount > 0) message += `✅ ${seededCount} yeni lokasyon envantere eklendi.\n`;
-        message += `📍 ${totalAssigned} lokasyona marka ataması yapıldı.\n`;
-        message += `📅 Dönem: ${request.year} - ${request.week}`;
-
-        toastSuccess(message);
     }
 
     const handleResetData = async () => {
