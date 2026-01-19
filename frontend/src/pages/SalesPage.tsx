@@ -262,7 +262,7 @@ export default function SalesPage() {
     })
 
     const [proposalItems, setProposalItems] = useState<ProposalItem[]>([
-        { type: 'BB', code: 'Billboard', quantity: 0, unitPrice: 3500, operationCost: 400 }
+        { type: 'BB', code: 'Billboard', quantity: 0, unitPrice: 3500, operationCost: 400, network: '' }
     ])
     const [isBlockList, setIsBlockList] = useState(false)
     const [kdvRate, setKdvRate] = useState<20 | 14>(20)
@@ -1452,16 +1452,23 @@ export default function SalesPage() {
                                                 </select>
 
                                                 {(item.type === 'BB' || item.type === 'GB') && (
-                                                    <select
-                                                        value={item.network || ''}
-                                                        onChange={(e) => updateProposalItem(index, 'network', e.target.value)}
-                                                        className="w-1/2 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-blue-50 font-medium"
-                                                    >
-                                                        <option value="">Network Seçin</option>
-                                                        {Object.keys(networkCounts[item.type] || {}).sort().map(net => (
-                                                            <option key={net} value={net}>Network {net} ({networkCounts[item.type][net]} {item.type})</option>
-                                                        ))}
-                                                    </select>
+                                                    <div className="w-1/2">
+                                                        <select
+                                                            value={item.network || ''}
+                                                            onChange={(e) => updateProposalItem(index, 'network', e.target.value)}
+                                                            className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-blue-50 font-medium text-blue-700"
+                                                        >
+                                                            <option value="">-- Network Seçin --</option>
+                                                            {Object.keys(networkCounts[item.type] || {}).sort().map(net => (
+                                                                <option key={net} value={net}>
+                                                                    Network {net} ({networkCounts[item.type][net]} adet)
+                                                                </option>
+                                                            ))}
+                                                            {(!networkCounts[item.type] || Object.keys(networkCounts[item.type]).length === 0) && (
+                                                                <option disabled>Network Bulunamadı</option>
+                                                            )}
+                                                        </select>
+                                                    </div>
                                                 )}
                                             </div>
                                             <input
