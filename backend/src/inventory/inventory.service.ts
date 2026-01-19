@@ -28,9 +28,16 @@ export class InventoryService {
     }
 
     async create(createInventoryItemDto: CreateInventoryItemDto): Promise<InventoryItem> {
+        // Convert camelCase routeNo to snake_case route_no for database
+        const dbData: any = { ...createInventoryItemDto, is_active: true };
+        if ('routeNo' in dbData) {
+            dbData.route_no = dbData.routeNo;
+            delete dbData.routeNo;
+        }
+
         const { data, error } = await supabase
             .from('inventory_items')
-            .insert([{ ...createInventoryItemDto, is_active: true }])
+            .insert([dbData])
             .select()
             .single();
 
@@ -39,9 +46,16 @@ export class InventoryService {
     }
 
     async update(id: string, updateInventoryItemDto: UpdateInventoryItemDto): Promise<InventoryItem> {
+        // Convert camelCase routeNo to snake_case route_no for database
+        const dbData: any = { ...updateInventoryItemDto };
+        if ('routeNo' in dbData) {
+            dbData.route_no = dbData.routeNo;
+            delete dbData.routeNo;
+        }
+
         const { data, error } = await supabase
             .from('inventory_items')
-            .update(updateInventoryItemDto)
+            .update(dbData)
             .eq('id', id)
             .select()
             .single();
