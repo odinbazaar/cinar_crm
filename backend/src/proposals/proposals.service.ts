@@ -75,6 +75,9 @@ export class ProposalsService {
 
             console.log(`Totals: Sub(${subtotal}), Tax(${taxAmount}), Total(${total})`);
 
+            // Fallback user if not provided or valid
+            const validUserId = createProposalDto.created_by_id || '95959c2d-c5e1-454c-834f-3746d0a401c5';
+
             // Create proposal
             const { data: proposal, error: proposalError } = await supabase
                 .from('proposals')
@@ -84,7 +87,7 @@ export class ProposalsService {
                         title: createProposalDto.title,
                         client_id: createProposalDto.client_id,
                         project_id: createProposalDto.project_id,
-                        created_by_id: createProposalDto.created_by_id,
+                        created_by_id: validUserId,
                         description: createProposalDto.description,
                         terms: createProposalDto.terms,
                         valid_until: createProposalDto.valid_until,
@@ -121,7 +124,7 @@ export class ProposalsService {
                     total: (item as any).total || (qty * unitPrice),
                     estimated_hours: (item as any).estimated_hours || 0,
                     hourly_rate: (item as any).hourly_rate || 0,
-                    metadata: item.metadata || {},
+                    // metadata: item.metadata || {}, // REMARK: Removed due to missing DB column
                     order: index,
                 };
             });
@@ -224,7 +227,7 @@ export class ProposalsService {
                     total: (Number(item.quantity) || 0) * (Number(item.unit_price) || 0),
                     estimated_hours: item.estimated_hours || 0,
                     hourly_rate: item.hourly_rate || 0,
-                    metadata: item.metadata || {},
+                    // metadata: item.metadata || {},
                     order: index
                 }));
 
