@@ -1615,13 +1615,21 @@ export default function SalesPage() {
                                 </button>
                                 <button
                                     onClick={() => {
-                                        setShowProposalModal(false)
-                                        setShowEmailModal(true)
+                                        const confirmed = window.confirm(
+                                            `${selectedCustomer?.companyName} için hazırlanan bütçe teklifi:\n\n` +
+                                            `Toplam: ₺${calculateGrandTotal().toLocaleString()}\n` +
+                                            `Süre: ${durationWeeks} Hafta\n\n` +
+                                            `Bu teklifi onaylayıp müşteriye e-posta ile göndermek istiyor musunuz?`
+                                        );
+                                        if (confirmed) {
+                                            setShowProposalModal(false)
+                                            setShowEmailModal(true)
+                                        }
                                     }}
                                     className="px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-green-600 to-green-700 rounded-lg hover:from-green-700 hover:to-green-800 transition-all flex items-center gap-2"
                                 >
                                     <Send className="w-4 h-4" />
-                                    Müşteriye Gönder
+                                    Onaya Gönder
                                 </button>
                             </div>
                         </div>
