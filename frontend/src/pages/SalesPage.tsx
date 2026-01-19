@@ -680,7 +680,7 @@ export default function SalesPage() {
         if (!selectedCustomer) return
 
         try {
-            const userId = localStorage.getItem('userId') || ''
+            const userId = localStorage.getItem('userId') || '95959c2d-c5e1-454c-834f-3746d0a401c5' // Fallback to Ali's ID if not found
 
             await proposalsService.create({
                 title: `${selectedCustomer.companyName} - Bütçe Teklifi`,
@@ -1031,7 +1031,7 @@ export default function SalesPage() {
                                                 </div>
                                                 <div>
                                                     <div className="flex items-center gap-2">
-                                                        <h4 className="font-medium text-gray-900">{proposal.id} - {proposal.customerName}</h4>
+                                                        <h4 className="font-medium text-gray-900">{proposal.proposalNumber || proposal.id} - {proposal.customerName}</h4>
                                                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${proposal.status === 'approved' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
                                                             {proposal.status === 'approved' ? 'ONAYLANDI' : 'GÖNDERİLDİ'}
                                                         </span>
