@@ -110,6 +110,12 @@ export default function ReservationsPage() {
     const [isLoadingRequests, setIsLoadingRequests] = useState(false)
     const [isLoadingLocations, setIsLoadingLocations] = useState(false)
 
+    // Onay modalı için state'ler
+    const [showProcessModal, setShowProcessModal] = useState(false)
+    const [selectedRequest, setSelectedRequest] = useState<any>(null)
+    const [processAvailability, setProcessAvailability] = useState<{ available: any[], options: any[], occupied: any[] }>({ available: [], options: [], occupied: [] })
+    const [isCheckingAvailability, setIsCheckingAvailability] = useState(false)
+
     const { success: toastSuccess, info: toastInfo } = useToast()
 
     // Helper function to normalize date formats for comparison
@@ -272,35 +278,100 @@ export default function ReservationsPage() {
         return () => window.removeEventListener('storage', handleStorageChange)
     }, []);
 
-    const handleProcessRequest = async (request: any) => {
-        setIsLoadingRequests(true);
-        setIsLoadingLocations(true);
+    // Müsaitlik kontrolü yap ve modalı aç
+    const handleOpenProcessModal = async (request: any) => {
+        setSelectedRequest(request);
+        setShowProcessModal(true);
+        setIsCheckingAvailability(true);
+
         try {
-            // 1. Fetch fresh data to ensure we are looking at real availability
             const [inventory, allBookings] = await Promise.all([
                 inventoryService.getAll(),
                 bookingsService.getAll()
             ]);
 
-            // IDs selected by the salesperson
             const targetIds = (request.selectedLocations || []).map((sl: any) => sl.id);
 
-            // Filter matching inventory for the requested period/network/type
+            // Filter matching inventory
             const matchingInventory = inventory.filter(item => {
                 const itemNet = String(item.network).toUpperCase();
                 const reqNet = String(request.network).toUpperCase();
                 const isNetMatch = itemNet === reqNet ||
                     (itemNet === 'BELEDİYE' && reqNet === 'BLD') ||
                     (itemNet === 'BLD' && reqNet === 'BELEDİYE');
-
                 return isNetMatch && item.type === request.productType;
             });
 
-            // Get bookings for the requested week
-            const targetWeek = request.week;
+            const targetWeek = normalizeDate(request.week);
             const periodBookings = allBookings.filter(b => normalizeDate(b.start_date) === targetWeek);
 
-            // Separate items into categories
+            const available: any[] = [];
+            const options: any[] = [];
+            const occupied: any[] = [];
+
+            matchingInventory.forEach(item => {
+                const booking = periodBookings.find(b => b.inventory_item_id === item.id);
+                const isSelected = targetIds.includes(item.id);
+
+                const uiItem = {
+                    id: item.id,
+                    kod: item.code,
+                    ilce: item.district,
+                    semt: item.neighborhood,
+                    isSelected,
+                    booking
+                };
+
+                if (!booking || booking.status === 'BOŞ') {
+                    if (isSelected || available.length < (request.availableCount + request.optionsCount)) {
+                        available.push(uiItem);
+                    }
+                } else if (booking.status === 'OPSİYON') {
+                    if (!booking.brand_option_4) {
+                        options.push(uiItem);
+                    }
+                } else {
+                    occupied.push(uiItem);
+                }
+            });
+
+            setProcessAvailability({ available, options, occupied });
+        } catch (error) {
+            console.error('Availability check error:', error);
+            toastInfo('Müsaitlik kontrolü yapılırken hata oluştu.');
+        } finally {
+            setIsCheckingAvailability(false);
+        }
+    };
+
+    // Onaydan sonra talebi işle
+    const handleConfirmProcessRequest = async () => {
+        if (!selectedRequest) return;
+
+        setIsLoadingRequests(true);
+        setIsLoadingLocations(true);
+        try {
+            const [inventory, allBookings] = await Promise.all([
+                inventoryService.getAll(),
+                bookingsService.getAll()
+            ]);
+
+            const targetIds = (selectedRequest.selectedLocations || []).map((sl: any) => sl.id);
+            const requestedCount = selectedRequest.availableCount + selectedRequest.optionsCount || targetIds.length || 20;
+
+            // Filter matching inventory
+            const matchingInventory = inventory.filter(item => {
+                const itemNet = String(item.network).toUpperCase();
+                const reqNet = String(selectedRequest.network).toUpperCase();
+                const isNetMatch = itemNet === reqNet ||
+                    (itemNet === 'BELEDİYE' && reqNet === 'BLD') ||
+                    (itemNet === 'BLD' && reqNet === 'BELEDİYE');
+                return isNetMatch && item.type === selectedRequest.productType;
+            });
+
+            const targetWeek = normalizeDate(selectedRequest.week);
+            const periodBookings = allBookings.filter(b => normalizeDate(b.start_date) === targetWeek);
+
             const selectedAvailable: any[] = [];
             const autoAvailable: any[] = [];
             const partiallyAvailable: any[] = [];
@@ -313,7 +384,6 @@ export default function ReservationsPage() {
                     if (isIdSelected) selectedAvailable.push({ item, booking: null });
                     else autoAvailable.push({ item, booking: null });
                 } else if (booking.status === 'OPSİYON') {
-                    // Check if there is an empty slot
                     if (!booking.brand_option_1 || !booking.brand_option_2 || !booking.brand_option_3 || !booking.brand_option_4) {
                         if (isIdSelected) selectedAvailable.push({ item, booking });
                         else partiallyAvailable.push({ item, booking });
@@ -321,24 +391,20 @@ export default function ReservationsPage() {
                 }
             });
 
-            // Priority:
-            // 1. Specifically selected items that are still available
-            // 2. Completely empty items (BOŞ)
-            // 3. Partially filled items (OPSİYON with slots)
             const candidates = [...selectedAvailable, ...autoAvailable, ...partiallyAvailable];
-            const toAssign = candidates.slice(0, Math.max(request.quantity, targetIds.length));
+            const toAssign = candidates.slice(0, requestedCount);
 
             if (toAssign.length === 0) {
                 toastInfo('Maalesef bu kriterlere uygun müsait lokasyon bulunamadı.');
+                setShowProcessModal(false);
                 return;
             }
 
-            const brandUpper = request.brandName.toUpperCase();
+            const brandUpper = selectedRequest.brandName.toUpperCase();
 
-            // 2. Perform assignments in the database
+            // Perform assignments
             for (const { item, booking } of toAssign) {
                 if (booking) {
-                    // Update existing booking with next available slot
                     const updateData = { ...booking };
                     if (!updateData.brand_option_1) updateData.brand_option_1 = brandUpper;
                     else if (!updateData.brand_option_2) updateData.brand_option_2 = brandUpper;
@@ -350,11 +416,10 @@ export default function ReservationsPage() {
                         status: 'OPSİYON'
                     });
                 } else {
-                    // Create new booking
                     await bookingsService.create({
                         inventory_item_id: item.id,
-                        brand_name: request.brandName,
-                        network: String(request.network),
+                        brand_name: selectedRequest.brandName,
+                        network: String(selectedRequest.network),
                         start_date: targetWeek,
                         end_date: targetWeek,
                         status: 'OPSİYON',
@@ -363,22 +428,23 @@ export default function ReservationsPage() {
                 }
             }
 
-            // 3. Mark request as completed
-            await customerRequestsService.update(request.id, { status: 'completed' });
+            // Mark request as completed
+            await customerRequestsService.update(selectedRequest.id, { status: 'completed' });
 
-            // 4. Update UI: Switch to the processed week/network to show results
-            setSelectedYear(request.year);
-            setSelectedMonth(request.month);
-            setSelectedWeek(request.week);
-            setSelectedNetwork(request.network);
+            // Update UI
+            setSelectedYear(selectedRequest.year);
+            setSelectedMonth(selectedRequest.month);
+            setSelectedWeek(normalizeDate(selectedRequest.week));
+            setSelectedNetwork(selectedRequest.network);
             setActiveTab('list');
+            setShowProcessModal(false);
+            setSelectedRequest(null);
 
-            // Refresh all data
             await fetchData();
 
-            toastSuccess(`${request.customerName} talebi için ${toAssign.length} lokasyon başarıyla atandı.`);
-            if (toAssign.length < request.quantity) {
-                toastInfo(`Not: Talep edilen ${request.quantity} adetten sadece ${toAssign.length} müsait yer bulunabildi.`);
+            toastSuccess(`${selectedRequest.customerName} talebi için ${toAssign.length} lokasyon başarıyla opsiyon olarak atandı.`);
+            if (toAssign.length < requestedCount) {
+                toastInfo(`Not: Talep edilen ${requestedCount} adetten sadece ${toAssign.length} müsait yer bulunabildi.`);
             }
 
         } catch (error) {
@@ -1415,11 +1481,28 @@ export default function ReservationsPage() {
                                             </div>
                                         </div>
 
+                                        {/* Seçilen Yerler Listesi */}
+                                        {req.selectedLocations && req.selectedLocations.length > 0 && (
+                                            <div className="mt-3 p-2 bg-indigo-50/50 rounded-lg border border-indigo-100">
+                                                <p className="text-[10px] text-indigo-600 font-bold uppercase mb-1">Talep Edilen Yerler ({req.selectedLocations.length} adet)</p>
+                                                <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
+                                                    {req.selectedLocations.slice(0, 8).map((loc: any, idx: number) => (
+                                                        <span key={idx} className="text-[9px] bg-white px-1.5 py-0.5 rounded border border-indigo-100 text-indigo-700 font-mono">
+                                                            {loc.kod}
+                                                        </span>
+                                                    ))}
+                                                    {req.selectedLocations.length > 8 && (
+                                                        <span className="text-[9px] text-indigo-500">+{req.selectedLocations.length - 8} daha...</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div className="pt-4 flex items-center justify-between border-t border-gray-100">
                                             <span className="text-[10px] text-gray-400 italic">Talep: {new Date(req.createdAt).toLocaleDateString()}</span>
                                             {req.status === 'pending' ? (
                                                 <button
-                                                    onClick={() => handleProcessRequest(req)}
+                                                    onClick={() => handleOpenProcessModal(req)}
                                                     className="px-4 py-2 bg-primary-600 text-white text-xs font-bold rounded-lg hover:bg-primary-700 transition-all flex items-center gap-2 shadow-md shadow-primary-200"
                                                 >
                                                     <Check className="w-3.5 h-3.5" />
@@ -1448,6 +1531,170 @@ export default function ReservationsPage() {
                 </div>
             )
             }
+
+            {/* Talep İşleme Onay Modalı */}
+            {showProcessModal && selectedRequest && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-primary-50 to-indigo-50">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900">Yer Listesi Talebi Onayı</h2>
+                                <p className="text-sm text-gray-500">
+                                    {selectedRequest.customerName} - {selectedRequest.brandName}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setShowProcessModal(false);
+                                    setSelectedRequest(null);
+                                }}
+                                className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                            >
+                                <X className="w-6 h-6 text-gray-500" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                            {/* Talep Bilgileri */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                    <p className="text-[10px] text-gray-500 font-bold uppercase">Dönem</p>
+                                    <p className="text-sm font-bold text-gray-900">{selectedRequest.year} / {selectedRequest.month}</p>
+                                </div>
+                                <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                    <p className="text-[10px] text-gray-500 font-bold uppercase">Hafta</p>
+                                    <p className="text-sm font-bold text-gray-900">{normalizeDate(selectedRequest.week)}</p>
+                                </div>
+                                <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                    <p className="text-[10px] text-gray-500 font-bold uppercase">Ürün Tipi</p>
+                                    <p className="text-sm font-bold text-gray-900">{selectedRequest.productType}</p>
+                                </div>
+                                <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                    <p className="text-[10px] text-gray-500 font-bold uppercase">Network</p>
+                                    <p className="text-sm font-bold text-gray-900">Net {selectedRequest.network}</p>
+                                </div>
+                            </div>
+
+                            {/* Müsaitlik Kontrolü */}
+                            <div className="space-y-4">
+                                <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                                    <Search className="w-4 h-4 text-primary-600" />
+                                    Müsaitlik Kontrol Sonucu
+                                </h3>
+
+                                {isCheckingAvailability ? (
+                                    <div className="flex items-center justify-center py-8">
+                                        <RefreshCw className="w-8 h-8 text-primary-600 animate-spin" />
+                                        <span className="ml-3 text-gray-600">Müsaitlik kontrol ediliyor...</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="grid grid-cols-3 gap-4">
+                                            <div className="p-4 bg-green-50 rounded-xl border border-green-200 text-center">
+                                                <p className="text-xs text-green-600 font-bold uppercase">Boş Yerler</p>
+                                                <p className="text-3xl font-black text-green-700">{processAvailability.available.length}</p>
+                                                <p className="text-[10px] text-green-500 mt-1">Hemen rezervasyon yapılabilir</p>
+                                            </div>
+                                            <div className="p-4 bg-orange-50 rounded-xl border border-orange-200 text-center">
+                                                <p className="text-xs text-orange-600 font-bold uppercase">Opsiyonlu</p>
+                                                <p className="text-3xl font-black text-orange-700">{processAvailability.options.length}</p>
+                                                <p className="text-[10px] text-orange-500 mt-1">Alt sıra opsiyon olarak atanabilir</p>
+                                            </div>
+                                            <div className="p-4 bg-red-50 rounded-xl border border-red-200 text-center">
+                                                <p className="text-xs text-red-600 font-bold uppercase">Dolu</p>
+                                                <p className="text-3xl font-black text-red-700">{processAvailability.occupied.length}</p>
+                                                <p className="text-[10px] text-red-500 mt-1">Bu dönemde kesin kayıtlı</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Talep Edilen Yer Listesi */}
+                                        {selectedRequest.selectedLocations && selectedRequest.selectedLocations.length > 0 && (
+                                            <div className="space-y-2">
+                                                <h4 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                                    <MapPin className="w-4 h-4 text-indigo-600" />
+                                                    Talep Edilen Yerler ({selectedRequest.selectedLocations.length} adet)
+                                                </h4>
+                                                <div className="max-h-48 overflow-y-auto border border-gray-100 rounded-lg">
+                                                    <table className="w-full text-xs">
+                                                        <thead className="bg-gray-50 sticky top-0">
+                                                            <tr>
+                                                                <th className="p-2 text-left border-b">Kod</th>
+                                                                <th className="p-2 text-left border-b">Durum</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {selectedRequest.selectedLocations.map((loc: any, idx: number) => {
+                                                                const availItem = processAvailability.available.find(a => a.id === loc.id);
+                                                                const optItem = processAvailability.options.find(o => o.id === loc.id);
+                                                                const status = availItem ? 'BOŞ' : optItem ? 'OPSİYON' : 'KESİN';
+                                                                const statusColor = status === 'BOŞ' ? 'text-green-600 bg-green-50' : status === 'OPSİYON' ? 'text-orange-600 bg-orange-50' : 'text-red-600 bg-red-50';
+                                                                return (
+                                                                    <tr key={idx} className="border-b">
+                                                                        <td className="p-2 font-mono font-bold">{loc.kod}</td>
+                                                                        <td className="p-2">
+                                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${statusColor}`}>
+                                                                                {status}
+                                                                            </span>
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Uyarı Mesajı */}
+                                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+                                            <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                                            <div>
+                                                <h4 className="text-sm font-bold text-blue-900">İşlem Onayı</h4>
+                                                <p className="text-xs text-blue-700 mt-1">
+                                                    Bu talebi onayladığınızda, <strong>{processAvailability.available.length}</strong> boş yer ve
+                                                    <strong> {Math.min(processAvailability.options.length, Math.max(0, (selectedRequest.availableCount + selectedRequest.optionsCount) - processAvailability.available.length))}</strong> opsiyonlu yer
+                                                    <strong> "{selectedRequest.brandName}"</strong> markası için OPSİYON olarak kaydedilecektir.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-6 border-t border-gray-100 bg-gray-50 flex gap-3 justify-end">
+                            <button
+                                onClick={() => {
+                                    setShowProcessModal(false);
+                                    setSelectedRequest(null);
+                                }}
+                                className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                            >
+                                İptal
+                            </button>
+                            <button
+                                onClick={handleConfirmProcessRequest}
+                                disabled={isCheckingAvailability || isLoadingRequests || processAvailability.available.length === 0}
+                                className="px-8 py-2.5 text-sm font-bold text-white bg-primary-600 rounded-xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-500/30 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isLoadingRequests ? (
+                                    <>
+                                        <RefreshCw className="w-5 h-5 animate-spin" />
+                                        İşleniyor...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Check className="w-5 h-5" />
+                                        Talebi Onayla ve İşle
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     )
 }
