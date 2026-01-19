@@ -1,0 +1,1 @@
+src/components/proposals/LocationRequestModal.tsx(116,42): error TS2339: Property 'type' does not exist on type 'ProposalItem'.

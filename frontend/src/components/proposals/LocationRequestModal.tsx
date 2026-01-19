@@ -113,7 +113,7 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                 month: initialMonth,
                 week: initialWeek,
                 network: 1,
-                productType: (firstItem?.type || 'BB') as any, // backend items use BB, GB etc
+                productType: (firstItem?.description || 'BB') as any, // backend items use BB, GB etc
                 quantity: totalQty
             })
             setStep(1)
