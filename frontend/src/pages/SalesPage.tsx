@@ -1557,12 +1557,6 @@ export default function SalesPage() {
                                     İptal
                                 </button>
                                 <button
-                                    onClick={handleSaveProposal}
-                                    className="px-4 py-2.5 text-sm font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 transition-colors"
-                                >
-                                    Taslak Kaydet
-                                </button>
-                                <button
                                     onClick={() => {
                                         setShowProposalModal(false)
                                         setShowEmailModal(true)
