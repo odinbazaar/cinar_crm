@@ -33,6 +33,7 @@ import { useToast } from '../hooks/useToast'
 import { clientsService } from '../services/clientsService'
 import { proposalsService } from '../services/proposalsService'
 import { customerRequestsService } from '../services/customerRequestsService'
+import { inventoryService, type InventoryItem } from '../services/inventoryService'
 
 // Müşteri tipi
 interface Customer {
@@ -63,6 +64,7 @@ interface ProposalItem {
     quantity: number
     unitPrice: number
     operationCost: number
+    network?: string
 }
 
 // Teklif tipi
@@ -108,8 +110,8 @@ const getProductTypes = () => {
     return [
         { code: 'BB', name: 'Billboard', duration: '1 Hafta', unitPrice: 3500, operationCost: 400 },
         { code: 'CLP', name: 'CLP Raket', duration: '1 Hafta', unitPrice: 1200, operationCost: 150 },
-        { code: 'ML', name: 'Megalight', duration: '1 Hafta', unitPrice: 5000, operationCost: 500 },
-        { code: 'LED', name: 'LED Ekran', duration: '1 Hafta', unitPrice: 8000, operationCost: 0 },
+        { code: 'MGL', name: 'Megalight', duration: '1 Hafta', unitPrice: 5000, operationCost: 500 },
+        { code: 'LB', name: 'LED', duration: '1 Hafta', unitPrice: 8000, operationCost: 0 },
         { code: 'GB', name: 'Giantboard', duration: '10 Gün', unitPrice: 7500, operationCost: 600 },
         { code: 'MB', name: 'Megaboard', duration: '1 Ay', unitPrice: 15000, operationCost: 1000 },
         { code: 'KB', name: 'Kuleboard', duration: '1 Ay', unitPrice: 12000, operationCost: 800 },
@@ -129,6 +131,7 @@ export default function SalesPage() {
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
     const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [networkCounts, setNetworkCounts] = useState<Record<string, Record<string, number>>>({})
 
     // Fetch data on mount
     useEffect(() => {
@@ -208,6 +211,17 @@ export default function SalesPage() {
                 createdAt: (r as any).created_at?.split('T')[0] || new Date().toISOString().split('T')[0]
             }))
             setCustomerRequests(mappedRequests)
+
+            // Fetch inventory and calculate network counts by type
+            const inventory = await inventoryService.getAll()
+            const counts: Record<string, Record<string, number>> = {}
+            inventory.forEach(item => {
+                if (item.network) {
+                    if (!counts[item.type]) counts[item.type] = {}
+                    counts[item.type][item.network] = (counts[item.type][item.network] || 0) + 1
+                }
+            })
+            setNetworkCounts(counts)
 
         } catch (error) {
             console.error('Data fetch error:', error)
@@ -397,7 +411,7 @@ export default function SalesPage() {
         setProposalItems(proposalItems.filter((_, i) => i !== index))
     }
 
-    const updateProposalItem = (index: number, field: keyof ProposalItem, value: string | number) => {
+    const updateProposalItem = (index: number, field: keyof ProposalItem, value: any) => {
         const updated = [...proposalItems]
         const productTypes = getProductTypes()
         if (field === 'type') {
@@ -408,8 +422,17 @@ export default function SalesPage() {
                     type: product.code,
                     code: product.name,
                     unitPrice: product.unitPrice,
-                    operationCost: product.operationCost
+                    operationCost: product.operationCost,
+                    network: undefined,
+                    quantity: (product.code === 'BB' || product.code === 'GB') ? 0 : updated[index].quantity
                 }
+            }
+        } else if (field === 'network') {
+            const count = (networkCounts[updated[index].type] || {})[value as string] || 0
+            updated[index] = {
+                ...updated[index],
+                network: value as string,
+                quantity: count
             }
         } else {
             updated[index] = { ...updated[index], [field]: value }
@@ -664,7 +687,7 @@ export default function SalesPage() {
                 client_id: selectedCustomer.id,
                 created_by_id: userId,
                 items: proposalItems.map(item => ({
-                    description: item.code,
+                    description: item.network ? `${item.code} - Network ${item.network}` : item.code,
                     quantity: item.quantity,
                     unit_price: item.unitPrice,
                 }))
@@ -683,7 +706,10 @@ export default function SalesPage() {
     const handleSendToReservation = () => {
         // Rezervasyona talep gönderme simülasyonu
         const reservationEmail = 'rezervasyon@izmiracikhavareklam.com'
-        const itemsSummary = proposalItems.map(item => `${item.quantity} ${item.code}`).join(', ')
+        const itemsSummary = proposalItems.map(item => {
+            const label = item.network ? `${item.code} (Network ${item.network})` : item.code
+            return `${item.quantity} ${label}`
+        }).join(', ')
         const dateRange = getWeekRangeText()
         const totalWeeks = calculateTotalWeeks()
         alert(`Yer Listesi Talebi Gönderildi!\n\nAlıcı: ${reservationEmail}\nMüşteri: ${selectedCustomer?.companyName}\nÜrünler: ${itemsSummary}\nToplam Hafta: ${totalWeeks}\nKullanım Süresi: ${dateRange}\n\nTeklif onaylanmıştır.`)
@@ -1414,21 +1440,37 @@ export default function SalesPage() {
 
                                     {proposalItems.map((item, index) => (
                                         <div key={index} className="flex gap-3 items-center">
-                                            <select
-                                                value={item.type}
-                                                onChange={(e) => updateProposalItem(index, 'type', e.target.value)}
-                                                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                            >
-                                                {getProductTypes().map((pt: any) => (
-                                                    <option key={pt.code} value={pt.code}>{pt.code} - {pt.name}</option>
-                                                ))}
-                                            </select>
+                                            <div className="flex-1 flex gap-2">
+                                                <select
+                                                    value={item.type}
+                                                    onChange={(e) => updateProposalItem(index, 'type', e.target.value)}
+                                                    className={`${(item.type === 'BB' || item.type === 'GB') ? 'w-1/2' : 'w-full'} px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500`}
+                                                >
+                                                    {getProductTypes().map((pt: any) => (
+                                                        <option key={pt.code} value={pt.code}>{pt.code} - {pt.name}</option>
+                                                    ))}
+                                                </select>
+
+                                                {(item.type === 'BB' || item.type === 'GB') && (
+                                                    <select
+                                                        value={item.network || ''}
+                                                        onChange={(e) => updateProposalItem(index, 'network', e.target.value)}
+                                                        className="w-1/2 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-blue-50 font-medium"
+                                                    >
+                                                        <option value="">Network Seçin</option>
+                                                        {Object.keys(networkCounts[item.type] || {}).sort().map(net => (
+                                                            <option key={net} value={net}>Network {net} ({networkCounts[item.type][net]} {item.type})</option>
+                                                        ))}
+                                                    </select>
+                                                )}
+                                            </div>
                                             <input
                                                 type="number"
                                                 value={item.quantity}
                                                 onChange={(e) => updateProposalItem(index, 'quantity', parseInt(e.target.value) || 0)}
                                                 className="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
                                                 placeholder="Adet"
+                                                readOnly={(item.type === 'BB' || item.type === 'GB') && !!item.network}
                                                 min="0"
                                             />
                                             <input

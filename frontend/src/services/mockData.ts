@@ -1,7 +1,7 @@
 import { addDays, format } from 'date-fns'
 
 // Types
-export type InventoryType = 'BB' | 'CLP' | 'GB' | 'MGL' | 'LED' | 'XGB' | 'LB' | 'MB' | 'DB'
+export type InventoryType = 'BB' | 'CLP' | 'GB' | 'MGL' | 'LED' | 'XGB' | 'LB' | 'MB' | 'DB' | 'KB'
 
 export interface InventoryItem {
     id: string

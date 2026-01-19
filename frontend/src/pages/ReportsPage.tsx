@@ -17,6 +17,9 @@ export default function ReportsPage() {
         CLP: mockInventory.filter(i => i.type === 'CLP').length,
         MGL: mockInventory.filter(i => i.type === 'MGL').length,
         GB: mockInventory.filter(i => i.type === 'GB').length,
+        LB: mockInventory.filter(i => i.type === 'LB').length,
+        MB: mockInventory.filter(i => i.type === 'MB').length,
+        KB: mockInventory.filter(i => i.type === 'KB').length,
     }
 
     // Mock monthly data for the chart
@@ -205,6 +208,45 @@ export default function ReportsPage() {
                                 <div
                                     className="h-full bg-orange-500 rounded-full"
                                     style={{ width: `${(typeDistribution.GB / totalInventory) * 100}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-600 font-medium">LED (LB)</span>
+                                <span className="text-gray-900 font-bold">{typeDistribution.LB}</span>
+                            </div>
+                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-green-500 rounded-full"
+                                    style={{ width: `${(typeDistribution.LB / totalInventory) * 100}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-600 font-medium">Megaboard (MB)</span>
+                                <span className="text-gray-900 font-bold">{typeDistribution.MB}</span>
+                            </div>
+                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-indigo-500 rounded-full"
+                                    style={{ width: `${(typeDistribution.MB / totalInventory) * 100}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-600 font-medium">Kuleboard (KB)</span>
+                                <span className="text-gray-900 font-bold">{typeDistribution.KB}</span>
+                            </div>
+                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-teal-500 rounded-full"
+                                    style={{ width: `${(typeDistribution.KB / totalInventory) * 100}%` }}
                                 />
                             </div>
                         </div>

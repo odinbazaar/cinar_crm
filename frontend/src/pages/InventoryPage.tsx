@@ -191,6 +191,27 @@ export default function InventoryPage() {
                         >
                             Megalight (MGL)
                         </button>
+                        <button
+                            onClick={() => setFilterType('LB')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'LB' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700 hover:bg-green-100'
+                                }`}
+                        >
+                            LED (LB)
+                        </button>
+                        <button
+                            onClick={() => setFilterType('MB')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'MB' ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                                }`}
+                        >
+                            Megaboard (MB)
+                        </button>
+                        <button
+                            onClick={() => setFilterType('KB')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${filterType === 'KB' ? 'bg-teal-600 text-white' : 'bg-teal-50 text-teal-700 hover:bg-teal-100'
+                                }`}
+                        >
+                            Kuleboard (KB)
+                        </button>
                     </div>
                 </div>
             </div>

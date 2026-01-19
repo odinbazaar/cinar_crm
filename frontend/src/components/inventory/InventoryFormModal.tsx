@@ -90,6 +90,9 @@ export default function InventoryFormModal({ isOpen, onClose, onSave, initialDat
                                 <option value="CLP">Raket (CLP)</option>
                                 <option value="GB">Giant Board (GB)</option>
                                 <option value="MGL">Megalight (MGL)</option>
+                                <option value="LB">LED (LB)</option>
+                                <option value="MB">Megaboard (MB)</option>
+                                <option value="KB">Kuleboard (KB)</option>
                             </select>
                         </div>
 
