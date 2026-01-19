@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Supabase configuration
-// Get these from: https://supabase.com/dashboard/project/slanoowprgrcksfqrgak
+// Get these from: https://supabase.com/dashboard/project/laltmysfkyppkqykggmh
 // Project Settings > API
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://slanoowprgrcksfqrgak.supabase.co'
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://laltmysfkyppkqykggmh.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhbHRteXNma3lwcGtxeWtnZ21oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNjg1NzksImV4cCI6MjA4Mzk0NDU3OX0.RDluoe9zAPvf-2o4S0ubRlZK_yhV7ZVMDJv3XFopjyo'
 
 if (!supabaseAnonKey) {
     console.warn('⚠️ VITE_SUPABASE_ANON_KEY is not set. Please add it to your .env file.')

@@ -1,0 +1,6 @@
+﻿--- Checking Public Schema ---
+public.bookings count: 0
+public.inventory_items count: 162
+--- Checking Halk Schema ---
+halk.rezervasyonlar count: 
+halk.envanter_├╝r├╝nleri count: 

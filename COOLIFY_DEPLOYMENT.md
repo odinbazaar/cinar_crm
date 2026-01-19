@@ -7,8 +7,8 @@ This guide covers deploying the Çınar CRM application using Coolify, a self-ho
 - Coolify instance running
 - Supabase project created: `cinar-crm` (ID: lalnmyfkrveepkagnhh)
 - Domain names configured:
-  - Frontend: `c�nar.online` or your Coolify domain
-  - Backend: `backend.c�nar.online` or your Coolify domain
+  - Frontend: `cınarcrm.online` or your Coolify domain
+  - Backend: `backend.cınarcrm.online` or your Coolify domain
 
 ## 🔑 Environment Variables
 
@@ -16,11 +16,11 @@ This guide covers deploying the Çınar CRM application using Coolify, a self-ho
 
 ```bash
 # API Configuration
-VITE_API_URL=https://backend.c�nar.online/api
+VITE_API_URL=https://backend.cınarcrm.online/api
 
 # Supabase Configuration
-VITE_SUPABASE_URL=https://slanoowprgrcksfqrgak.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsYW5vb3dwcmdyY2tzZnFyZ2FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3ODU2NzYsImV4cCI6MjA4MDM2MTY3Nn0.mbm0PFKd-dkIJmMlu9-DLlIvghDzKsLudwtOR6vT28U
+VITE_SUPABASE_URL=https://laltmysfkyppkqykggmh.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhbHRteXNma3lwcGtxeWtnZ21oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNjg1NzksImV4cCI6MjA4Mzk0NDU3OX0.RDluoe9zAPvf-2o4S0ubRlZK_yhV7ZVMDJv3XFopjyo
 
 # Company Information
 VITE_COMPANY_NAME=İZMİR AÇIK HAVA REKLAM SAN. VE TİC. LTD. ŞTİ.
@@ -35,9 +35,9 @@ VITE_COMPANY_TAX_NO=6490546546
 
 ```bash
 # Supabase Configuration
-SUPABASE_URL=https://slanoowprgrcksfqrgak.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsYW5vb3dwcmdyY2tzZnFyZ2FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3ODU2NzYsImV4cCI6MjA4MDM2MTY3Nn0.mbm0PFKd-dkIJmMlu9-DLlIvghDzKsLudwtOR6vT28U
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsYW5vb3dwcmdyY2tzZnFyZ2FrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NDc4NTY3NiwiZXhwIjoyMDgwMzYxNjc2fQ.bawYE2ig0yEmje8bAEvD9qcrngcmI0r2qV61OeLGu-M
+SUPABASE_URL=https://laltmysfkyppkqykggmh.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhbHRteXNma3lwcGtxeWtnZ21oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNjg1NzksImV4cCI6MjA4Mzk0NDU3OX0.RDluoe9zAPvf-2o4S0ubRlZK_yhV7ZVMDJv3XFopjyo
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhbHRteXNma3lwcGtxeWtnZ21oIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODM2ODU3OSwiZXhwIjoyMDgzOTQ0NTc5fQ.i0UQYvKhgTUhrpIoPo-gvRjqRQl7tel57sklFPyhVIU
 
 # JWT Configuration
 JWT_SECRET=cinar-crm-super-secret-jwt-key-2024
@@ -48,7 +48,7 @@ PORT=3000
 NODE_ENV=production
 
 # CORS (Frontend URL)
-FRONTEND_URL=https://c�nar.online
+FRONTEND_URL=https://cınarcrm.online
 
 # Mail Configuration (Reservations)
 MAIL_HOST=smtp.yandex.com.tr
@@ -89,13 +89,13 @@ ALI_MAIL_PASS=Reziar.075
 #### Frontend Configuration
 - **Port**: Auto (static files)
 - **SSL**: Enable automatic SSL
-- **Domain**: `c�nar.online`
+- **Domain**: `cınarcrm.online`
 - **Build Pack**: Static/Node.js
 
 #### Backend Configuration
 - **Port**: `3000`
 - **SSL**: Enable automatic SSL
-- **Domain**: `backend.c�nar.online`
+- **Domain**: `backend.cınarcrm.online`
 - **Health Check**: `/api/health` or `/api`
 - **Restart Policy**: Always
 
@@ -117,8 +117,8 @@ For each project:
 
 ### 5. Verify Deployment
 
-- Frontend: Visit `https://c�nar.online`
-- Backend API: Visit `https://backend.c�nar.online/api`
+- Frontend: Visit `https://cınarcrm.online`
+- Backend API: Visit `https://backend.cınarcrm.online/api`
 - Test login with credentials from DEPLOYMENT.md
 
 ## 🔄 Updates

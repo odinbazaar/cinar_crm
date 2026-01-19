@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-const url = process.env.SUPABASE_URL || 'https://slanoowprgrcksfqrgak.supabase.co';
+const url = process.env.SUPABASE_URL || 'https://laltmysfkyppkqykggmh.supabase.co';
 const key = process.env.SUPABASE_KEY || ''; // Use service role if possible
 
 const supabase = createClient(url, key);

@@ -68,7 +68,7 @@ console.log(import.meta.env.VITE_SUPABASE_URL)
 console.log(import.meta.env.VITE_API_URL)
 ```
 4. Doğru URL'leri görmeli:
-   - `https://slanoowprgrcksfqrgak.supabase.co`
+   - `https://laltmysfkyppkqykggmh.supabase.co`
    - `https://backend.cinarcrm.online/api`
 
 #### Backend Kontrolü
@@ -84,12 +84,12 @@ curl https://backend.cinarcrm.online/api
 
 #### Frontend (.env.production)
 - [ ] VITE_API_URL=https://backend.cinarcrm.online/api
-- [ ] VITE_SUPABASE_URL=https://slanoowprgrcksfqrgak.supabase.co
+- [ ] VITE_SUPABASE_URL=https://laltmysfkyppkqykggmh.supabase.co
 - [ ] VITE_SUPABASE_ANON_KEY=(anon key)
 - [ ] Tüm VITE_COMPANY_* değerleri doğru
 
 #### Backend (.env.production)
-- [ ] SUPABASE_URL=https://slanoowprgrcksfqrgak.supabase.co
+- [ ] SUPABASE_URL=https://laltmysfkyppkqykggmh.supabase.co
 - [ ] SUPABASE_ANON_KEY=(anon key)
 - [ ] SUPABASE_SERVICE_ROLE_KEY=(service role key)
 - [ ] FRONTEND_URL=https://cinarcrm.online
@@ -195,7 +195,7 @@ npm run start:prod  # Production mode'da başlat
 
 # 2. Supabase bağlantı testi
 # Browser console:
-fetch('https://slanoowprgrcksfqrgak.supabase.co/rest/v1/users?select=*', {
+fetch('https://laltmysfkyppkqykggmh.supabase.co/rest/v1/users?select=*', {
   headers: {
     'apikey': 'YOUR_ANON_KEY',
     'Authorization': 'Bearer YOUR_ANON_KEY'

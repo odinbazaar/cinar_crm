@@ -21,7 +21,7 @@ console.table(envVars);
 // Expected values for production
 const expected = {
     'VITE_API_URL': 'https://backend.cinarcrm.online/api',
-    'VITE_SUPABASE_URL': 'https://slanoowprgrcksfqrgak.supabase.co',
+    'VITE_SUPABASE_URL': 'https://laltmysfkyppkqykggmh.supabase.co',
     'VITE_COMPANY_NAME': 'İZMİR AÇIK HAVA REKLAM SAN. VE TİC. LTD. ŞTİ.',
     'MODE': 'production',
     'PROD': true,

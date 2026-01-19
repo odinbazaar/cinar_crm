@@ -40,11 +40,11 @@ sudo apt-get install -y certbot python3-certbot-nginx
 
 ```bash
 # Klasör oluştur
-sudo mkdir -p /var/www/c�nar.online
+sudo mkdir -p /var/www/cınarcrm.online
 
 # Yerel bilgisayardan dosyaları yükle (SCP ile)
 # Yerel bilgisayarda çalıştır:
-scp -r frontend/dist/* root@YOUR_VPS_IP:/var/www/c�nar.online/
+scp -r frontend/dist/* root@YOUR_VPS_IP:/var/www/cınarcrm.online/
 
 # Veya FileZilla/WinSCP ile yükle
 ```
@@ -53,15 +53,15 @@ scp -r frontend/dist/* root@YOUR_VPS_IP:/var/www/c�nar.online/
 
 ```bash
 # Klasör oluştur
-sudo mkdir -p /var/www/backend.c�nar.online
+sudo mkdir -p /var/www/backend.cınarcrm.online
 
 # Yerel bilgisayardan dosyaları yükle
-scp -r backend/dist root@YOUR_VPS_IP:/var/www/backend.c�nar.online/
-scp backend/package.json root@YOUR_VPS_IP:/var/www/backend.c�nar.online/
-scp backend/.env.production root@YOUR_VPS_IP:/var/www/backend.c�nar.online/.env
+scp -r backend/dist root@YOUR_VPS_IP:/var/www/backend.cınarcrm.online/
+scp backend/package.json root@YOUR_VPS_IP:/var/www/backend.cınarcrm.online/
+scp backend/.env.production root@YOUR_VPS_IP:/var/www/backend.cınarcrm.online/.env
 
 # Sunucuda dependencies kur
-cd /var/www/backend.c�nar.online
+cd /var/www/backend.cınarcrm.online
 npm install --production
 
 # PM2 ile başlat
@@ -72,16 +72,16 @@ pm2 startup
 
 ## 🌐 5. Nginx Konfigürasyonu
 
-### Frontend (c�nar.online)
+### Frontend (cınarcrm.online)
 ```bash
-sudo nano /etc/nginx/sites-available/c�nar.online
+sudo nano /etc/nginx/sites-available/cınarcrm.online
 ```
 
 ```nginx
 server {
     listen 80;
-    server_name c�nar.online www.c�nar.online;
-    root /var/www/c�nar.online;
+    server_name cınarcrm.online www.cınarcrm.online;
+    root /var/www/cınarcrm.online;
     index index.html;
 
     location / {
@@ -95,15 +95,15 @@ server {
 }
 ```
 
-### Backend (backend.c�nar.online)
+### Backend (backend.cınarcrm.online)
 ```bash
-sudo nano /etc/nginx/sites-available/backend.c�nar.online
+sudo nano /etc/nginx/sites-available/backend.cınarcrm.online
 ```
 
 ```nginx
 server {
     listen 80;
-    server_name backend.c�nar.online;
+    server_name backend.cınarcrm.online;
 
     location / {
         proxy_pass http://127.0.0.1:3000;
@@ -121,8 +121,8 @@ server {
 
 ### Konfigürasyonları Aktif Et
 ```bash
-sudo ln -s /etc/nginx/sites-available/c�nar.online /etc/nginx/sites-enabled/
-sudo ln -s /etc/nginx/sites-available/backend.c�nar.online /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/cınarcrm.online /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/backend.cınarcrm.online /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -130,24 +130,24 @@ sudo systemctl reload nginx
 ## 🔒 6. SSL Sertifikası (HTTPS)
 
 ```bash
-sudo certbot --nginx -d c�nar.online -d www.c�nar.online
-sudo certbot --nginx -d backend.c�nar.online
+sudo certbot --nginx -d cınarcrm.online -d www.cınarcrm.online
+sudo certbot --nginx -d backend.cınarcrm.online
 ```
 
 ## ✅ 7. Test
 
-- Frontend: https://c�nar.online
-- Backend API: https://backend.c�nar.online/api
+- Frontend: https://cınarcrm.online
+- Backend API: https://backend.cınarcrm.online/api
 
 ## 🔄 8. Güncellemeler İçin
 
 ```bash
 # Frontend güncelleme
-scp -r frontend/dist/* root@YOUR_VPS_IP:/var/www/c�nar.online/
+scp -r frontend/dist/* root@YOUR_VPS_IP:/var/www/cınarcrm.online/
 
 # Backend güncelleme
-scp -r backend/dist root@YOUR_VPS_IP:/var/www/backend.c�nar.online/
-ssh root@YOUR_VPS_IP "cd /var/www/backend.c�nar.online && pm2 restart cinar-backend"
+scp -r backend/dist root@YOUR_VPS_IP:/var/www/backend.cınarcrm.online/
+ssh root@YOUR_VPS_IP "cd /var/www/backend.cınarcrm.online && pm2 restart cinar-backend"
 ```
 
 ## 📝 Notlar

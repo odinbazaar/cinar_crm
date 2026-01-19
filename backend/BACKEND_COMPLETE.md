@@ -146,7 +146,7 @@ backend/
 ## 📝 Environment Configuration
 
 The `.env` file has been created with your Supabase credentials:
-- Supabase URL: https://slanoowprgrcksfqrgak.supabase.co
+- Supabase URL: https://laltmysfkyppkqykggmh.supabase.co
 - JWT Secret: Configured
 - Port: 3000
 - CORS: Enabled for localhost:5173

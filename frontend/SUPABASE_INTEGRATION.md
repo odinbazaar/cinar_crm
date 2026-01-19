@@ -16,7 +16,7 @@
 
 3. `.env` dosyasını güncelleyin:
    ```env
-   VITE_SUPABASE_URL=https://slanoowprgrcksfqrgak.supabase.co
+   VITE_SUPABASE_URL=https://laltmysfkyppkqykggmh.supabase.co
    VITE_SUPABASE_ANON_KEY=your-actual-anon-key-here
    VITE_API_URL=http://localhost:3000
    ```

@@ -31,7 +31,7 @@ CTRL + SHIFT + R (Hard Reload)
 
 ### Adım 4: Test Et
 ```
-1. https://c�nar.online adresine git
+1. https://cınarcrm.online adresine git
 2. F12 bas (Developer Tools)
 3. Console tab'ına git
 4. Şunu yapıştır:
@@ -40,8 +40,8 @@ console.log('API:', import.meta.env.VITE_API_URL);
 console.log('Supabase:', import.meta.env.VITE_SUPABASE_URL);
 
 5. Şunu görmeli:
-   API: https://backend.c�nar.online/api
-   Supabase: https://slanoowprgrcksfqrgak.supabase.co
+   API: https://backend.cınarcrm.online/api
+   Supabase: https://laltmysfkyppkqykggmh.supabase.co
 ```
 
 ---
@@ -52,9 +52,9 @@ console.log('Supabase:', import.meta.env.VITE_SUPABASE_URL);
 
 #### Coolify Frontend Environment:
 ```bash
-VITE_API_URL=https://backend.c�nar.online/api
-VITE_SUPABASE_URL=https://slanoowprgrcksfqrgak.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsYW5vb3dwcmdyY2tzZnFyZ2FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3ODU2NzYsImV4cCI6MjA4MDM2MTY3Nn0.mbm0PFKd-dkIJmMlu9-DLlIvghDzKsLudwtOR6vT28U
+VITE_API_URL=https://backend.cınarcrm.online/api
+VITE_SUPABASE_URL=https://laltmysfkyppkqykggmh.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhbHRteXNma3lwcGtxeWtnZ21oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNjg1NzksImV4cCI6MjA4Mzk0NDU3OX0.RDluoe9zAPvf-2o4S0ubRlZK_yhV7ZVMDJv3XFopjyo
 VITE_COMPANY_NAME=İZMİR AÇIK HAVA REKLAM SAN. VE TİC. LTD. ŞTİ.
 VITE_COMPANY_ADDRESS=MANAS BULVARI ADALET MAHALLESİ NO:47 KAT:28 FOLKART TOWERS BAYRAKLI İZMİR
 VITE_COMPANY_PHONE=0232 431 0 75
@@ -70,14 +70,14 @@ VITE_COMPANY_TAX_NO=6490546546
 
 #### Coolify Backend Environment:
 ```bash
-SUPABASE_URL=https://slanoowprgrcksfqrgak.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsYW5vb3dwcmdyY2tzZnFyZ2FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3ODU2NzYsImV4cCI6MjA4MDM2MTY3Nn0.mbm0PFKd-dkIJmMlu9-DLlIvghDzKsLudwtOR6vT28U
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsYW5vb3dwcmdyY2tzZnFyZ2FrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NDc4NTY3NiwiZXhwIjoyMDgwMzYxNjc2fQ.bawYE2ig0yEmje8bAEvD9qcrngcmI0r2qV61OeLGu-M
+SUPABASE_URL=https://laltmysfkyppkqykggmh.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhbHRteXNma3lwcGtxeWtnZ21oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNjg1NzksImV4cCI6MjA4Mzk0NDU3OX0.RDluoe9zAPvf-2o4S0ubRlZK_yhV7ZVMDJv3XFopjyo
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhbHRteXNma3lwcGtxeWtnZ21oIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODM2ODU3OSwiZXhwIjoyMDgzOTQ0NTc5fQ.i0UQYvKhgTUhrpIoPo-gvRjqRQl7tel57sklFPyhVIU
 JWT_SECRET=cinar-crm-super-secret-jwt-key-2024
 JWT_EXPIRES_IN=7d
 PORT=3000
 NODE_ENV=production
-FRONTEND_URL=https://c�nar.online
+FRONTEND_URL=https://cınarcrm.online
 MAIL_HOST=smtp.yandex.com.tr
 MAIL_PORT=465
 MAIL_USER=Rezervasyon@izmiracikhavareklam.com
@@ -124,7 +124,7 @@ ALI_MAIL_PASS=Reziar.075
 
 Mobilde de test et:
 1. Telefon ile aynı network'e bağlan
-2. https://c�nar.online aç
+2. https://cınarcrm.online aç
 3. Değişiklikleri kontrol et
 
 ---
@@ -138,7 +138,7 @@ Mobilde de test et:
 3. "Danger Zone" altında environment variables'ı gör
 4. Her variable için:
    - Name: VITE_SUPABASE_URL
-   - Value: https://slanoowprgrcksfqrgak.supabase.co
+   - Value: https://laltmysfkyppkqykggmh.supabase.co
    - ✅ Is Literal? (checkbox işaretle)
    - ✅ Available at Runtime (checkbox işaretle)
    - Update butonuna tıkla

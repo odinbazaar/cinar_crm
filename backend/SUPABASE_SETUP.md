@@ -16,7 +16,7 @@
 
 3. **API Keys için**:
    - Sol menüden **Project Settings** (⚙️) → **API** seçin
-   - **Project URL** kopyalayın (örn: `https://slanoowprgrcksfqrgak.supabase.co`)
+   - **Project URL** kopyalayın (örn: `https://laltmysfkyppkqykggmh.supabase.co`)
    - **Project API keys** altında **anon public** key'i kopyalayın
 
 ## 🔧 Backend Yapılandırması
@@ -30,7 +30,7 @@ Backend klasöründeki `.env` dosyasını aşağıdaki gibi güncelleyin:
 DATABASE_URL="postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-eu-central-1.pooler.supabase.com:6543/postgres"
 
 # Supabase API (Frontend için)
-SUPABASE_URL="https://slanoowprgrcksfqrgak.supabase.co"
+SUPABASE_URL="https://laltmysfkyppkqykggmh.supabase.co"
 SUPABASE_ANON_KEY="your-anon-key-here"
 
 # JWT

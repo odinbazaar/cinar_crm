@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, Plus, Edit2, Map, Upload } from 'lucide-react'
+import { Search, Plus, Edit2, Map, Upload, Trash2 } from 'lucide-react'
 // Remove mock data import and use service
 import { inventoryService } from '../services/inventoryService'
 import { inventoryData } from '../data/inventoryData'
@@ -34,20 +34,13 @@ export default function InventoryPage() {
     const fetchInventory = async () => {
         try {
             setLoading(true)
-            // Try to fetch from API, if fails fallback to local data
-            try {
-                const data = await inventoryService.getAll()
-                if (data && data.length > 0) {
-                    setInventory(data)
-                } else {
-                    setInventory(inventoryData as any)
-                }
-            } catch (apiError) {
-                console.warn('API fetch failed, using local inventory data:', apiError)
-                setInventory(inventoryData as any)
-            }
+            const data = await inventoryService.getAll()
+            // Always use data from API. Even if empty, it's our source of truth.
+            setInventory(data || [])
         } catch (error) {
             console.error('Failed to fetch inventory:', error)
+            // On hard error, we can use local data as a temporary emergency fallback, 
+            // but ideally we should show an error state
             setInventory(inventoryData as any)
         } finally {
             setLoading(false)
@@ -109,6 +102,18 @@ export default function InventoryPage() {
         } catch (error) {
             console.error('Failed to save inventory item:', error)
             alert('Kaydetme başarısız oldu.')
+        }
+    }
+
+    const handleDelete = async (id: string) => {
+        if (window.confirm('Bu lokasyonu tamamen silmek istediğinize emin misiniz?')) {
+            try {
+                await inventoryService.delete(id)
+                fetchInventory()
+            } catch (error) {
+                console.error('Failed to delete inventory item:', error)
+                alert('Silme işlemi başarısız oldu.')
+            }
         }
     }
 
@@ -261,6 +266,13 @@ export default function InventoryPage() {
                                             >
                                                 <Map className="w-3 h-3" />
                                                 Harita
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(item.id)}
+                                                className="text-red-500 hover:text-red-700 font-medium text-xs flex items-center gap-1"
+                                            >
+                                                <Trash2 className="w-3 h-3" />
+                                                Sil
                                             </button>
                                         </div>
                                     </td>

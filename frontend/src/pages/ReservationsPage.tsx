@@ -159,43 +159,46 @@ export default function ReservationsPage() {
                 return dateStr; // Already in DD.MM.YYYY format
             };
 
-            if (inventory && inventory.length > 0) {
-                // Combine inventory with bookings to create UI locations
-                const currentLocations = inventory.map((item: any) => {
-                    // Compare normalized dates
-                    const itemBookings = bookings.filter(b =>
-                        b.inventory_item_id === item.id &&
-                        normalizeDate(b.start_date) === selectedWeek
-                    );
-                    const booking = itemBookings[0];
+            // Combine inventory with bookings to create UI locations
+            const currentLocations = inventory.map((item: any) => {
+                // Compare normalized dates
+                const itemBookings = bookings.filter(b =>
+                    b.inventory_item_id === item.id &&
+                    normalizeDate(b.start_date) === selectedWeek
+                );
+                const booking = itemBookings[0];
 
-                    return {
-                        id: item.id,
-                        yil: selectedYear,
-                        ay: selectedMonth,
-                        hafta: selectedWeek,
-                        koordinat: item.coordinates || '',
-                        ilce: item.district,
-                        semt: item.neighborhood || '',
-                        adres: item.address,
-                        kod: item.code,
-                        routeNo: item.routeNo,
-                        network: Number(item.network) || 1,
-                        marka1Opsiyon: booking?.brand_option_1 || '',
-                        marka2Opsiyon: booking?.brand_option_2 || '',
-                        marka3Opsiyon: booking?.brand_option_3 || '',
-                        marka4Opsiyon: booking?.brand_option_4 || '',
-                        durum: (booking?.status as any) || 'BOŞ',
-                        productType: (item.type === 'Billboard' ? 'BB' : item.type) as any
-                    };
-                });
+                return {
+                    id: item.id,
+                    yil: selectedYear,
+                    ay: selectedMonth,
+                    hafta: selectedWeek,
+                    koordinat: item.coordinates || '',
+                    ilce: item.district,
+                    semt: item.neighborhood || '',
+                    adres: item.address,
+                    kod: item.code,
+                    routeNo: item.routeNo,
+                    network: Number(item.network) || 1,
+                    marka1Opsiyon: booking?.brand_option_1 || '',
+                    marka2Opsiyon: booking?.brand_option_2 || '',
+                    marka3Opsiyon: booking?.brand_option_3 || '',
+                    marka4Opsiyon: booking?.brand_option_4 || '',
+                    durum: (booking?.status as any) || 'BOŞ',
+                    productType: (item.type === 'Billboard' ? 'BB' : item.type) as any
+                };
+            });
 
-                // Only override if we have real data from backend
-                setLocations(currentLocations);
-            }
+            // Always update state with fresh backend data
+            setLocations(currentLocations);
+
+            // Update localStorage only on success to keep it somewhat in sync for offline, 
+            // but we primary believe the backend
+            localStorage.setItem('inventoryLocations', JSON.stringify(currentLocations));
+
         } catch (error) {
             console.error('Error fetching data:', error);
-            // Fallback to local storage if API fails
+            // On error, we can try to use localStorage as a fallback
             const savedReq = localStorage.getItem('reservationRequests');
             if (savedReq) setReservationRequests(JSON.parse(savedReq));
 
