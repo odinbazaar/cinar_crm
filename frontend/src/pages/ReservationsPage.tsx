@@ -286,10 +286,15 @@ export default function ReservationsPage() {
             const targetIds = (request.selectedLocations || []).map((sl: any) => sl.id);
 
             // Filter matching inventory for the requested period/network/type
-            const matchingInventory = inventory.filter(item =>
-                String(item.network) === String(request.network) &&
-                item.type === request.productType
-            );
+            const matchingInventory = inventory.filter(item => {
+                const itemNet = String(item.network).toUpperCase();
+                const reqNet = String(request.network).toUpperCase();
+                const isNetMatch = itemNet === reqNet ||
+                    (itemNet === 'BELEDİYE' && reqNet === 'BLD') ||
+                    (itemNet === 'BLD' && reqNet === 'BELEDİYE');
+
+                return isNetMatch && item.type === request.productType;
+            });
 
             // Get bookings for the requested week
             const targetWeek = request.week;
@@ -410,7 +415,13 @@ export default function ReservationsPage() {
         loc.yil === selectedYear &&
         loc.ay === selectedMonth &&
         loc.hafta === selectedWeek &&
-        String(loc.network) === String(selectedNetwork) &&
+        (() => {
+            const itemNet = String(loc.network).toUpperCase();
+            const filterNet = String(selectedNetwork).toUpperCase();
+            return itemNet === filterNet ||
+                (itemNet === 'BELEDİYE' && filterNet === 'BLD') ||
+                (itemNet === 'BLD' && filterNet === 'BELEDİYE');
+        })() &&
         (selectedDistrict === 'Tümü' || loc.ilce === selectedDistrict) &&
         (selectedNeighborhood === 'Tümü' || loc.semt === selectedNeighborhood) &&
         (selectedProductType === 'Tümü' || loc.productType === selectedProductType) &&

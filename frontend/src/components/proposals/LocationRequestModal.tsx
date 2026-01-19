@@ -35,6 +35,16 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
     const [step, setStep] = useState<1 | 2>(1)
     const [isLoading, setIsLoading] = useState(false)
 
+    // Helper function to normalize date formats for comparison
+    const normalizeDate = (dateStr: string): string => {
+        if (!dateStr) return '';
+        if (dateStr.includes('-')) {
+            const parts = dateStr.split('T')[0].split('-');
+            return `${parts[2]}.${parts[1]}.${parts[0]}`; // Convert to DD.MM.YYYY
+        }
+        return dateStr;
+    };
+
     // Form states
     const [requestData, setRequestData] = useState({
         brandName: '',
@@ -186,17 +196,22 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
 
             if (inventory && inventory.length > 0) {
                 // Filter inventory by static attributes if needed, but results come from JOINING with bookings
-                const matchingItems = inventory.filter(item =>
-                    String(item.network) === String(requestData.network) &&
-                    (item.type === requestData.productType)
-                );
+                const matchingItems = inventory.filter(item => {
+                    const itemNet = String(item.network).toUpperCase();
+                    const reqNet = String(requestData.network).toUpperCase();
+                    const isNetMatch = itemNet === reqNet ||
+                        (itemNet === 'BELEDİYE' && reqNet === 'BLD') ||
+                        (itemNet === 'BLD' && reqNet === 'BELEDİYE');
+
+                    return isNetMatch && (item.type === requestData.productType);
+                });
 
                 const available: any[] = [];
                 const options: any[] = [];
                 const occupied: any[] = [];
 
                 matchingItems.forEach(item => {
-                    const itemBookings = bookings.filter(b => b.inventory_item_id === item.id && b.start_date === requestData.week);
+                    const itemBookings = bookings.filter(b => b.inventory_item_id === item.id && normalizeDate(b.start_date) === requestData.week);
                     const booking = itemBookings[0];
 
                     const uiItem = {
@@ -309,10 +324,9 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
             };
 
             await customerRequestsService.create({
+                request_number: proposal.proposal_number,
                 client_id: proposal.client_id,
-                product_type: requestData.productType === 'BB' ? 'billboard' :
-                    requestData.productType === 'ML' ? 'megalight' :
-                        requestData.productType === 'LED' ? 'digital_screen' : 'other',
+                product_type: requestData.productType as any,
                 product_details: JSON.stringify(details),
                 quantity: requestData.quantity,
                 start_date: requestData.week.split('.').reverse().join('-'), // Convert DD.MM.YYYY to YYYY-MM-DD

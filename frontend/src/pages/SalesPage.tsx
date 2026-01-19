@@ -1835,7 +1835,7 @@ export default function SalesPage() {
                 onClose={() => setIsLocationModalOpen(false)}
                 proposal={selectedProposal ? {
                     id: selectedProposal.id,
-                    proposal_number: selectedProposal.id,
+                    proposal_number: selectedProposal.proposalNumber || selectedProposal.id,
                     title: `Teklif - ${selectedProposal.customerName}`,
                     client_id: selectedProposal.customerId,
                     created_by_id: 'admin',

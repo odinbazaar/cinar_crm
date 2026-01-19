@@ -13,7 +13,7 @@ export interface CustomerRequest {
         email?: string;
         city?: string;
     };
-    product_type: 'billboard' | 'megalight' | 'digital_screen' | 'bus_shelter' | 'bridge_banner' | 'raket' | 'giant_board' | 'other';
+    product_type: 'billboard' | 'megalight' | 'digital_screen' | 'bus_shelter' | 'bridge_banner' | 'raket' | 'giant_board' | 'BB' | 'LB' | 'MGL' | 'GB' | 'CLP' | 'MB' | 'KB' | 'other';
     product_details?: string;
     quantity: number;
     preferred_districts?: string[];
@@ -32,7 +32,7 @@ export interface CustomerRequest {
 
 export interface CreateCustomerRequestDto {
     client_id: string;
-    product_type: 'billboard' | 'megalight' | 'digital_screen' | 'bus_shelter' | 'bridge_banner' | 'raket' | 'giant_board' | 'other';
+    product_type: 'billboard' | 'megalight' | 'digital_screen' | 'bus_shelter' | 'bridge_banner' | 'raket' | 'giant_board' | 'BB' | 'LB' | 'MGL' | 'GB' | 'CLP' | 'MB' | 'KB' | 'other';
     product_details?: string;
     quantity?: number;
     preferred_districts?: string[];
@@ -42,6 +42,7 @@ export interface CreateCustomerRequestDto {
     budget_max?: number;
     priority?: 'low' | 'medium' | 'high' | 'urgent';
     notes?: string;
+    request_number?: string;
 }
 
 export interface UpdateCustomerRequestDto extends Partial<CreateCustomerRequestDto> {
