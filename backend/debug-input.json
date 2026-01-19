@@ -1,12 +1,12 @@
 {
-  "title": "abc - Bütçe Teklifi",
+  "title": "Folkart Yapı Sanayi A.Ş. - Bütçe Teklifi",
   "client_id": "c3b9fc89-55cd-492f-b753-cff8a9b5d89b",
-  "created_by_id": "4772ee3b-e513-435a-b52e-2c28c1a9b567",
+  "created_by_id": "89b8aaf7-cbd8-47ee-90bd-1ad0188dde87",
   "items": [
     {
-      "description": "Billboard",
-      "quantity": 3,
-      "unit_price": 3500
+      "description": "CLP Raket",
+      "quantity": 10,
+      "unit_price": 1200
     }
   ]
 }
