@@ -117,13 +117,42 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                 });
             }
 
+            // Extract product type from first item
+            let productType = 'BB';
+            if (firstItem) {
+                // Check if type is directly available (from our fixed SalesPage mapping)
+                if ((firstItem as any).type && ['BB', 'CLP', 'MGL', 'GB', 'LB', 'MB', 'KB'].includes((firstItem as any).type)) {
+                    productType = (firstItem as any).type;
+                } else {
+                    // Parse from description
+                    const desc = firstItem?.description || '';
+                    if (desc.includes('Billboard') || desc.includes('BB')) productType = 'BB';
+                    else if (desc.includes('CLP') || desc.includes('City Light')) productType = 'CLP';
+                    else if (desc.includes('MGL') || desc.includes('Megalight')) productType = 'MGL';
+                    else if (desc.includes('GB') || desc.includes('Giant')) productType = 'GB';
+                    else if (desc.includes('LB') || desc.includes('Led')) productType = 'LB';
+                    else if (desc.includes('MB') || desc.includes('Mini')) productType = 'MB';
+                    else if (desc.includes('KB') || desc.includes('Digital')) productType = 'KB';
+                }
+            }
+
+            // Extract network from first item
+            let network: any = 1;
+            if ((firstItem as any)?.network) {
+                network = (firstItem as any).network;
+            } else {
+                const desc = firstItem?.description || '';
+                const netMatch = desc.match(/Network\s*(\d+|BLD)/i);
+                if (netMatch) network = netMatch[1];
+            }
+
             setRequestData({
                 brandName: proposal.client?.company_name || proposal.client?.name || '',
                 year: initialYear,
                 month: initialMonth,
                 week: initialWeek,
-                network: 1,
-                productType: (firstItem?.description || 'BB') as any, // backend items use BB, GB etc
+                network: network,
+                productType: productType as any,
                 quantity: totalQty
             })
             setStep(1)

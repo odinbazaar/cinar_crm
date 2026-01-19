@@ -176,13 +176,32 @@ export default function SalesPage() {
                 proposalNumber: p.proposal_number, // Keep proposal_number for display
                 customerId: p.client_id,
                 customerName: p.client?.company_name || 'Bilinmeyen Müşteri',
-                items: (p as any).items?.map((item: any) => ({
-                    type: 'BB',
-                    code: item.description,
-                    quantity: item.quantity,
-                    unitPrice: item.unit_price,
-                    operationCost: 0
-                })) || [],
+                items: (p as any).items?.map((item: any) => {
+                    // Extract product type from description (e.g., "20 Billboard - Network 1" -> "BB")
+                    const desc = item.description || '';
+                    let itemType = 'BB';
+                    if (desc.includes('Billboard') || desc.includes('BB')) itemType = 'BB';
+                    else if (desc.includes('CLP') || desc.includes('City Light')) itemType = 'CLP';
+                    else if (desc.includes('MGL') || desc.includes('Megalight')) itemType = 'MGL';
+                    else if (desc.includes('GB') || desc.includes('Giant')) itemType = 'GB';
+                    else if (desc.includes('LB') || desc.includes('Led')) itemType = 'LB';
+                    else if (desc.includes('MB') || desc.includes('Mini')) itemType = 'MB';
+                    else if (desc.includes('KB') || desc.includes('Digital')) itemType = 'KB';
+
+                    // Also check for network in description
+                    let network = '1';
+                    const netMatch = desc.match(/Network\s*(\d+|BLD)/i);
+                    if (netMatch) network = netMatch[1];
+
+                    return {
+                        type: itemType,
+                        code: desc,
+                        quantity: item.quantity,
+                        unitPrice: item.unit_price,
+                        operationCost: 0,
+                        network: network
+                    };
+                }) || [],
                 totalAmount: p.subtotal,
                 operationTotal: 0,
                 kdvAmount: p.tax_amount,
