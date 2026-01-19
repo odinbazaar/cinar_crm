@@ -631,27 +631,56 @@ export default function SalesPage() {
     }
 
     const handleSendEmail = async () => {
-        if (!selectedProposal) return;
-
         try {
             setIsLoading(true);
             const emailInput = document.getElementById('recipientEmail') as HTMLInputElement;
             const messageInput = document.getElementById('emailMessage') as HTMLTextAreaElement;
-            const email = emailInput?.value || selectedCustomer?.email;
+            const recipientEmail = emailInput?.value || selectedCustomer?.email;
             const message = messageInput?.value || `Sayın ${selectedCustomer?.contactPerson || 'Yetkili'},\n\nEkte reklam alanları için hazırladığımız bütçe teklifimizi bulabilirsiniz.\n\nSaygılarımızla,\nÇınar Reklam Ajansı`;
 
-            if (!email) {
+            if (!recipientEmail) {
                 alert('Lütfen geçerli bir e-posta adresi girin.');
                 return;
             }
 
-            const response = await proposalsService.sendEmail(selectedProposal.id, email, message);
+            // Eğer selectedProposal yoksa (yeni teklif ise), önce teklifi kaydet
+            let proposalId = selectedProposal?.id;
+
+            if (!proposalId && selectedCustomer) {
+                const userId = localStorage.getItem('userId') || '95959c2d-c5e1-454c-834f-3746d0a401c5';
+
+                const newProposal = await proposalsService.create({
+                    title: `${selectedCustomer.companyName} - Bütçe Teklifi`,
+                    client_id: selectedCustomer.id,
+                    created_by_id: userId,
+                    items: proposalItems.map(item => ({
+                        description: item.network ? `${item.code} - Network ${item.network}` : item.code,
+                        quantity: item.quantity,
+                        unit_price: item.unitPrice,
+                    }))
+                });
+                proposalId = newProposal.id;
+            }
+
+            if (!proposalId) {
+                alert('Teklif oluşturulamadı.');
+                return;
+            }
+
+            // E-postayı rezervasyon@izmiracikhavareklam.com adresinden gönder
+            const senderEmail = 'rezervasyon@izmiracikhavareklam.com';
+
+            const response = await proposalsService.sendEmail(proposalId, recipientEmail, message);
 
             if (response.success) {
-                success(response.message);
+                // Teklifi 'sent' durumuna güncelle
+                await proposalsService.updateStatus(proposalId, 'sent');
+
+                success(`Teklif ${recipientEmail} adresine ${senderEmail} üzerinden gönderildi.`);
                 setShowEmailModal(false);
-                fetchData(); // Refresh list
-                setActiveTab('sent');
+                setShowProposalModal(false);
+                fetchData(); // Listeyi yenile
+                setActiveTab('sent'); // Gönderilen Teklifler sekmesine geç
             } else {
                 alert('E-posta gönderilirken bir hata oluştu: ' + response.message);
             }
@@ -767,6 +796,18 @@ export default function SalesPage() {
                     </div>
                 </button>
                 <button
+                    onClick={() => setActiveTab('proposals')}
+                    className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === 'proposals'
+                        ? 'border-primary-600 text-primary-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                        }`}
+                >
+                    <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Bütçe Teklifleri
+                    </div>
+                </button>
+                <button
                     onClick={() => setActiveTab('sent')}
                     className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === 'sent'
                         ? 'border-primary-600 text-primary-600'
@@ -782,7 +823,7 @@ export default function SalesPage() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                     <div className="flex items-center justify-between">
                         <div>
@@ -792,6 +833,22 @@ export default function SalesPage() {
                         </div>
                         <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                             <Users className="w-6 h-6 text-blue-600" />
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    onClick={() => setActiveTab('proposals')}
+                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-all hover:bg-yellow-50/30 group"
+                >
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-500">Hazırlanan Teklif</p>
+                            <p className="text-2xl font-bold text-gray-900 mt-1">{proposals.filter(p => p.status === 'draft').length}</p>
+                            <p className="text-sm text-yellow-600 mt-1">{proposals.filter(p => p.status === 'draft').length} taslak</p>
+                        </div>
+                        <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <FileText className="w-6 h-6 text-yellow-600" />
                         </div>
                     </div>
                 </div>
