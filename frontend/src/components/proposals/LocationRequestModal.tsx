@@ -43,8 +43,10 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
         week: '05.01.2026',
         network: 1,
         productType: 'BB' as any,
-        quantity: 10
+        quantity: 0
     })
+
+    const [networkCounts, setNetworkCounts] = useState<Record<string, Record<string, number>>>({})
 
     // Get all product types for the dropdown
     const productTypes = (() => {
@@ -59,8 +61,8 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
         return [
             { code: 'BB', name: 'Billboard' },
             { code: 'CLP', name: 'CLP Raket' },
-            { code: 'ML', name: 'Megalight' },
-            { code: 'LED', name: 'LED Ekran' },
+            { code: 'MGL', name: 'Megalight' },
+            { code: 'LB', name: 'LED Ekran' },
             { code: 'GB', name: 'Giantboard' },
             { code: 'MB', name: 'Megaboard' },
             { code: 'KB', name: 'Kuleboard' },
@@ -111,12 +113,45 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                 month: initialMonth,
                 week: initialWeek,
                 network: 1,
-                productType: (firstItem?.description || 'BB') as any,
+                productType: (firstItem?.type || 'BB') as any, // backend items use BB, GB etc
                 quantity: totalQty
             })
             setStep(1)
         }
     }, [proposal, isOpen])
+
+    // Fetch network counts
+    useEffect(() => {
+        const fetchCounts = async () => {
+            try {
+                const { inventoryService } = await import('../../services/inventoryService')
+                const inventory = await inventoryService.getAll()
+                const counts: Record<string, Record<string, number>> = {}
+                inventory.forEach(item => {
+                    if (item.network) {
+                        if (!counts[item.type]) counts[item.type] = {}
+                        counts[item.type][item.network] = (counts[item.type][item.network] || 0) + 1
+                    }
+                })
+                setNetworkCounts(counts)
+            } catch (err) {
+                console.error('Error fetching inventory counts:', err)
+            }
+        }
+        if (isOpen) fetchCounts()
+    }, [isOpen])
+
+    // Update quantity based on network and productType
+    useEffect(() => {
+        const type = requestData.productType
+        const net = String(requestData.network)
+        if (networkCounts[type] && networkCounts[type][net]) {
+            setRequestData(prev => ({ ...prev, quantity: networkCounts[type][net] }))
+        } else {
+            // If no count found, default to 0 to avoid confusion
+            setRequestData(prev => ({ ...prev, quantity: 0 }))
+        }
+    }, [requestData.network, requestData.productType, networkCounts])
 
     // Update week when year changes
     useEffect(() => {
@@ -153,7 +188,7 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                 // Filter inventory by static attributes if needed, but results come from JOINING with bookings
                 const matchingItems = inventory.filter(item =>
                     String(item.network) === String(requestData.network) &&
-                    (item.type === (requestData.productType === 'BB' ? 'Billboard' : requestData.productType))
+                    (item.type === requestData.productType)
                 );
 
                 const available: any[] = [];
@@ -387,9 +422,9 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                                     <select
                                         className="input"
                                         value={requestData.network}
-                                        onChange={e => setRequestData({ ...requestData, network: parseInt(e.target.value) })}
+                                        onChange={e => setRequestData({ ...requestData, network: e.target.value as any })}
                                     >
-                                        {[1, 2, 3, 4, 5, 6, 7, 8].map(n => <option key={n} value={n}>Network {n}</option>)}
+                                        {[1, 2, 3, 4, 'BLD'].map(n => <option key={n} value={n}>Network {n}</option>)}
                                     </select>
                                 </div>
                                 <div>

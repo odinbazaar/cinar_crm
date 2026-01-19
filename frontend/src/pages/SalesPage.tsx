@@ -188,9 +188,9 @@ export default function SalesPage() {
                 kdvAmount: p.tax_amount,
                 grandTotal: p.total,
                 isBlockList: false,
-                status: (p.status.toLowerCase() === 'sent' ? 'sent' :
-                    p.status.toLowerCase() === 'approved' ? 'approved' :
-                        p.status.toLowerCase() === 'rejected' ? 'rejected' : 'draft') as any,
+                status: (p.status?.toLowerCase() === 'sent' ? 'sent' :
+                    p.status?.toLowerCase() === 'approved' ? 'approved' :
+                        p.status?.toLowerCase() === 'rejected' ? 'rejected' : 'draft') as any,
                 createdAt: p.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
                 sentAt: p.sent_at?.split('T')[0]
             }))
@@ -789,27 +789,33 @@ export default function SalesPage() {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                <div
+                    onClick={() => setActiveTab('proposals')}
+                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-all hover:bg-yellow-50/30 group"
+                >
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-gray-500">Hazırlanan Teklif</p>
                             <p className="text-2xl font-bold text-gray-900 mt-1">{proposals.filter(p => p.status === 'draft').length}</p>
                             <p className="text-sm text-yellow-600 mt-1">{proposals.filter(p => p.status === 'draft').length} taslak</p>
                         </div>
-                        <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                        <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                             <FileText className="w-6 h-6 text-yellow-600" />
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                <div
+                    onClick={() => setActiveTab('sent')}
+                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-all hover:bg-green-50/30 group"
+                >
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-gray-500">Gönderilen</p>
                             <p className="text-2xl font-bold text-gray-900 mt-1">{proposals.filter(p => p.status === 'sent' || p.status === 'approved').length}</p>
                             <p className="text-sm text-green-600 mt-1">Müşteriye iletildi</p>
                         </div>
-                        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                             <Send className="w-6 h-6 text-green-600" />
                         </div>
                     </div>
@@ -1110,11 +1116,16 @@ export default function SalesPage() {
                                                         </button>
                                                     )}
                                                     <button
-                                                        onClick={() => handleDeleteProposal(proposal.id)}
+                                                        onClick={() => {
+                                                            if (window.confirm('Bu teklifi silmek istediğinize emin misiniz?')) {
+                                                                handleDeleteProposal(proposal.id)
+                                                            }
+                                                        }}
                                                         className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
                                                         title="Sil"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
+                                                        Sil
                                                     </button>
                                                 </div>
                                             </div>

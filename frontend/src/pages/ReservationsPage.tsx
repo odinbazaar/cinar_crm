@@ -64,8 +64,8 @@ export default function ReservationsPage() {
     // Sabit Seçenekler
     const allMonths = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık']
     const yearOptions = [2026, 2027, 2028, 2029, 2030]
-    const networkOptions = [1, 2, 3, 4, 5, 6, 7, 8]
-    const productTypes = ['Tümü', 'BB', 'CLP', 'ML', 'LED', 'GB', 'MB', 'KB']
+    const networkOptions = [1, 2, 3, 4, 'BLD']
+    const productTypes = ['Tümü', 'BB', 'CLP', 'MGL', 'LB', 'GB', 'MB', 'KB']
 
     // Dinamik Filtre Seçenekleri
     const monthOptions = allMonths
@@ -179,13 +179,13 @@ export default function ReservationsPage() {
                     adres: item.address,
                     kod: item.code,
                     routeNo: item.routeNo,
-                    network: Number(item.network) || 1,
+                    network: item.network || '1',
                     marka1Opsiyon: booking?.brand_option_1 || '',
                     marka2Opsiyon: booking?.brand_option_2 || '',
                     marka3Opsiyon: booking?.brand_option_3 || '',
                     marka4Opsiyon: booking?.brand_option_4 || '',
                     durum: (booking?.status as any) || 'BOŞ',
-                    productType: (item.type === 'Billboard' ? 'BB' : item.type) as any
+                    productType: item.type as any
                 };
             });
 
@@ -251,14 +251,14 @@ export default function ReservationsPage() {
     };
 
     useEffect(() => {
-        // Clear localStorage to force fresh data from backend
-        localStorage.removeItem('inventoryLocations');
-        localStorage.removeItem('reservationRequests');
         fetchData();
+    }, [selectedYear, selectedMonth, selectedWeek, selectedNetwork]);
+
+    useEffect(() => {
         // Set up periodic refresh every 30 seconds
         const interval = setInterval(fetchData, 30000);
         return () => clearInterval(interval);
-    }, []);
+    }, [selectedYear, selectedMonth, selectedWeek, selectedNetwork]);
 
     // Also keep the storage sync for legacy compatibility
     useEffect(() => {
@@ -423,7 +423,7 @@ export default function ReservationsPage() {
         loc.yil === selectedYear &&
         loc.ay === selectedMonth &&
         loc.hafta === selectedWeek &&
-        loc.network === selectedNetwork &&
+        String(loc.network) === String(selectedNetwork) &&
         (selectedDistrict === 'Tümü' || loc.ilce === selectedDistrict) &&
         (selectedNeighborhood === 'Tümü' || loc.semt === selectedNeighborhood) &&
         (selectedProductType === 'Tümü' || loc.productType === selectedProductType) &&
@@ -848,7 +848,7 @@ export default function ReservationsPage() {
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Network</label>
                                 <select
                                     value={selectedNetwork}
-                                    onChange={(e) => setSelectedNetwork(parseInt(e.target.value))}
+                                    onChange={(e) => setSelectedNetwork(e.target.value)}
                                     className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
                                 >
                                     {networkOptions.map(net => (
