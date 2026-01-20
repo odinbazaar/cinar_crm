@@ -32,6 +32,8 @@ export interface Client {
     target_audience?: string;
     account_manager_id?: string;
     notes?: string;
+    request_detail?: string;
+    called_phone?: string;
     // Status
     status: 'active' | 'inactive' | 'potential';
     is_active: boolean;
@@ -78,6 +80,8 @@ export interface CreateClientDto {
     target_audience?: string;
     account_manager_id?: string;
     notes?: string;
+    request_detail?: string;
+    called_phone?: string;
     status?: 'active' | 'inactive' | 'potential';
 }
 
@@ -114,6 +118,8 @@ export interface UpdateClientDto {
     target_audience?: string;
     account_manager_id?: string;
     notes?: string;
+    request_detail?: string;
+    called_phone?: string;
     status?: 'active' | 'inactive' | 'potential';
     is_active?: boolean;
     lost_reason?: string;

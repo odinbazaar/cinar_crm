@@ -283,6 +283,20 @@ export class ProposalsService {
             const doc = new PDFDocument({ margin: 50, size: 'A4' });
             const buffers: Buffer[] = [];
 
+            // Font Yolları
+            const regularFontPath = path.join(process.cwd(), 'src', 'assets', 'fonts', 'Roboto-Regular.ttf');
+            const boldFontPath = path.join(process.cwd(), 'src', 'assets', 'fonts', 'Roboto-Bold.ttf');
+
+            // Fontları kaydet (Eğer dosyalar yoksa hata vermemesi için kontrol et)
+            const hasFonts = fs.existsSync(regularFontPath) && fs.existsSync(boldFontPath);
+            if (hasFonts) {
+                doc.registerFont('CustomRegular', regularFontPath);
+                doc.registerFont('CustomBold', boldFontPath);
+            }
+
+            const fontRegular = hasFonts ? 'CustomRegular' : 'Helvetica';
+            const fontBold = hasFonts ? 'CustomBold' : 'Helvetica-Bold';
+
             doc.on('data', buffers.push.bind(buffers));
             doc.on('end', () => resolve(Buffer.concat(buffers)));
             doc.on('error', reject);
@@ -292,15 +306,15 @@ export class ProposalsService {
 
             // Header - Logo
             doc.rect(50, 45, 60, 60).fill(primaryColor);
-            doc.fillColor('white').fontSize(24).font('Helvetica-Bold').text('İAR', 50, 62, { width: 60, align: 'center' });
+            doc.fillColor('white').fontSize(24).font(fontBold).text('İAR', 50, 62, { width: 60, align: 'center' });
 
             // Brand
-            doc.fillColor(primaryColor).fontSize(20).font('Helvetica-Bold').text('İZMİR AÇIK HAVA', 125, 55);
-            doc.fillColor('#6b7280').fontSize(10).font('Helvetica').text('REKLAM AJANSI', 125, 80, { characterSpacing: 2 });
+            doc.fillColor(primaryColor).fontSize(20).font(fontBold).text('İZMİR AÇIK HAVA', 125, 55);
+            doc.fillColor('#6b7280').fontSize(10).font(fontRegular).text('REKLAM AJANSI', 125, 80, { characterSpacing: 2 });
 
             // Company Info
             const companyName = process.env.COMPANY_NAME || 'İzmir Açıkhava Reklam Ajansı';
-            doc.fillColor(secondaryColor).fontSize(8).font('Helvetica').text(companyName, 350, 50, { align: 'right' });
+            doc.fillColor(secondaryColor).fontSize(8).font(fontRegular).text(companyName, 350, 50, { align: 'right' });
             doc.text('MANAS BULVARI ADALET MAHALLESİ NO:47 KAT:28 FOLKART TOWERS BAYRAKLI İZMİR', 350, 62, { align: 'right', width: 200 });
             doc.text('TEL: 0232 431 0 75 | FAKS: 0232 431 00 73', 350, 85, { align: 'right' });
             doc.text('KARŞIYAKA V.D. - 6490546546', 350, 97, { align: 'right' });
@@ -308,25 +322,25 @@ export class ProposalsService {
             doc.moveTo(50, 115).lineTo(550, 115).stroke('#e5e7eb');
 
             // Proposal Header
-            doc.fillColor('#111827').fontSize(14).font('Helvetica-Bold').text('BÜTÇE TEKLİF MEKTUBU', 50, 140, { align: 'center' });
+            doc.fillColor('#111827').fontSize(14).font(fontBold).text('BÜTÇE TEKLİF MEKTUBU', 50, 140, { align: 'center' });
 
             // Info Grid
-            doc.fontSize(10).font('Helvetica-Bold').text('TEKLİF NO:', 50, 180);
-            doc.font('Helvetica').text(proposal.proposal_number, 150, 180);
+            doc.fontSize(10).font(fontBold).text('TEKLİF NO:', 50, 180);
+            doc.font(fontRegular).text(proposal.proposal_number, 150, 180);
 
-            doc.font('Helvetica-Bold').text('MÜŞTERİ:', 50, 200);
-            doc.font('Helvetica').text((proposal as any).client?.company_name || '—', 150, 200);
+            doc.font(fontBold).text('MÜŞTERİ:', 50, 200);
+            doc.font(fontRegular).text((proposal as any).client?.company_name || '—', 150, 200);
 
-            doc.font('Helvetica-Bold').text('TARİH:', 350, 180);
-            doc.font('Helvetica').text(new Date(proposal.created_at).toLocaleDateString('tr-TR'), 450, 180);
+            doc.font(fontBold).text('TARİH:', 350, 180);
+            doc.font(fontRegular).text(new Date(proposal.created_at).toLocaleDateString('tr-TR'), 450, 180);
 
-            doc.font('Helvetica-Bold').text('GEÇERLİLİK:', 350, 200);
-            doc.font('Helvetica').text(proposal.valid_until ? new Date(proposal.valid_until).toLocaleDateString('tr-TR') : '30 Gün', 450, 200);
+            doc.font(fontBold).text('GEÇERLİLİK:', 350, 200);
+            doc.font(fontRegular).text(proposal.valid_until ? new Date(proposal.valid_until).toLocaleDateString('tr-TR') : '30 Gün', 450, 200);
 
             // Table Header
             const tableTop = 240;
             doc.rect(50, tableTop, 500, 25).fill(primaryColor);
-            doc.fillColor('white').fontSize(10).font('Helvetica-Bold');
+            doc.fillColor('white').fontSize(10).font(fontBold);
             doc.text('ÜRÜN / HİZMET', 60, tableTop + 8);
             doc.text('ADET', 300, tableTop + 8, { width: 50, align: 'center' });
             doc.text('BİRİM FİYAT', 360, tableTop + 8, { width: 80, align: 'right' });
@@ -335,7 +349,7 @@ export class ProposalsService {
             // Table Rows
             let rowY = tableTop + 25;
             const items = (proposal as any).items || [];
-            doc.fillColor('#374151').font('Helvetica');
+            doc.fillColor('#374151').font(fontRegular);
 
             items.forEach((item: any) => {
                 doc.text(item.description, 60, rowY + 10, { width: 230 });
@@ -351,26 +365,26 @@ export class ProposalsService {
             const totalsY = rowY + 20;
             doc.fillColor('#4b5563').fontSize(10);
             doc.text('Ara Toplam:', 350, totalsY);
-            doc.fillColor('#111827').font('Helvetica-Bold').text(`₺${proposal.subtotal.toLocaleString('tr-TR')}`, 450, totalsY, { width: 90, align: 'right' });
+            doc.fillColor('#111827').font(fontBold).text(`₺${proposal.subtotal.toLocaleString('tr-TR')}`, 450, totalsY, { width: 90, align: 'right' });
 
-            doc.fillColor('#4b5563').font('Helvetica').text(`KDV (%${proposal.tax_rate}):`, 350, totalsY + 20);
-            doc.fillColor('#111827').font('Helvetica-Bold').text(`₺${proposal.tax_amount.toLocaleString('tr-TR')}`, 450, totalsY + 20, { width: 90, align: 'right' });
+            doc.fillColor('#4b5563').font(fontRegular).text(`KDV (%${proposal.tax_rate}):`, 350, totalsY + 20);
+            doc.fillColor('#111827').font(fontBold).text(`₺${proposal.tax_amount.toLocaleString('tr-TR')}`, 450, totalsY + 20, { width: 90, align: 'right' });
 
             doc.rect(340, totalsY + 40, 210, 40).fill('#fef2f2');
-            doc.fillColor(primaryColor).fontSize(12).font('Helvetica-Bold').text('GENEL TOPLAM:', 350, totalsY + 55);
+            doc.fillColor(primaryColor).fontSize(12).font(fontBold).text('GENEL TOPLAM:', 350, totalsY + 55);
             doc.fontSize(14).text(`₺${proposal.total.toLocaleString('tr-TR')}`, 450, totalsY + 55, { width: 90, align: 'right' });
 
             // Terms
             const termsY = totalsY + 110;
-            doc.fillColor('#111827').fontSize(10).font('Helvetica-Bold').text('Teklif Koşulları:', 50, termsY);
-            doc.fillColor(secondaryColor).fontSize(9).font('Helvetica').text(proposal.terms || 'Teklifimize ilan reklam vergileri dahil, KDV hariçtir. Her türlü iptal talebi, en geç kampanya başlangıç tarihine 20 gün kala bildirilmelidir.', 50, termsY + 15, { width: 500, lineGap: 3 });
+            doc.fillColor('#111827').fontSize(10).font(fontBold).text('Teklif Koşulları:', 50, termsY);
+            doc.fillColor(secondaryColor).fontSize(9).font(fontRegular).text(proposal.terms || 'Teklifimize ilan reklam vergileri dahil, KDV hariçtir. Her türlü iptal talebi, en geç kampanya başlangıç tarihine 20 gün kala bildirilmelidir.', 50, termsY + 15, { width: 500, lineGap: 3 });
 
             // Signatures
             const sigY = 700;
             doc.moveTo(50, sigY).lineTo(250, sigY).stroke('#000');
             doc.moveTo(350, sigY).lineTo(550, sigY).stroke('#000');
 
-            doc.fillColor('#111827').fontSize(10).font('Helvetica-Bold');
+            doc.fillColor('#111827').fontSize(10).font(fontBold);
             doc.text('İZMİR AÇIK HAVA (ONAY)', 50, sigY + 10, { width: 200, align: 'center' });
             doc.text('KİRACI (ONAY)', 350, sigY + 10, { width: 200, align: 'center' });
 

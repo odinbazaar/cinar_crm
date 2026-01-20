@@ -243,11 +243,31 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                     const itemBookings = bookings.filter(b => b.inventory_item_id === item.id && normalizeDate(b.start_date) === requestData.week);
                     const booking = itemBookings[0];
 
+                    // Find next available option slot
+                    let nextOptionSlot = 1;
+                    if (booking) {
+                        if (booking.status === 'KESİN') {
+                            // If status is KESİN, slot 1 is taken by the fixed booking provider
+                            if (!booking.brand_option_2) nextOptionSlot = 2;
+                            else if (!booking.brand_option_3) nextOptionSlot = 3;
+                            else if (!booking.brand_option_4) nextOptionSlot = 4;
+                            else nextOptionSlot = 5; // All full
+                        } else {
+                            // If status is OPSİYON, check which slot is next
+                            if (!booking.brand_option_1) nextOptionSlot = 1;
+                            else if (!booking.brand_option_2) nextOptionSlot = 2;
+                            else if (!booking.brand_option_3) nextOptionSlot = 3;
+                            else if (!booking.brand_option_4) nextOptionSlot = 4;
+                            else nextOptionSlot = 5; // All full
+                        }
+                    }
+
                     const uiItem = {
                         id: item.id,
                         kod: item.code,
                         routeNo: item.routeNo,
                         durum: booking?.status || 'BOŞ',
+                        nextOptionSlot,
                         marka1Opsiyon: booking?.brand_option_1 || '',
                         marka2Opsiyon: booking?.brand_option_2 || '',
                         marka3Opsiyon: booking?.brand_option_3 || '',
@@ -257,13 +277,13 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                         adres: item.address
                     };
 
-                    if (!booking || booking.status === 'BOŞ') {
+                    if (nextOptionSlot === 1 && (!booking || booking.status === 'BOŞ')) {
                         if (available.length < requestData.quantity) available.push(uiItem);
-                    } else if (booking.status === 'OPSİYON') {
-                        if ((available.length + options.length) < requestData.quantity && (!booking.brand_option_4)) {
+                    } else if (nextOptionSlot <= 4) {
+                        if ((available.length + options.length) < requestData.quantity) {
                             options.push(uiItem);
                         }
-                    } else if (booking.status === 'KESİN') {
+                    } else {
                         occupied.push(uiItem);
                     }
                 });
@@ -523,9 +543,9 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                                     <div className="text-[10px] text-yellow-500 mt-1">Alt sıra opsiyon olarak atanacak</div>
                                 </div>
                                 <div className="card p-3 border-red-200 bg-red-50">
-                                    <div className="text-xs text-red-600 font-bold uppercase">Dolu</div>
+                                    <div className="text-xs text-red-600 font-bold uppercase">Tüm Opsiyonlar Dolu</div>
                                     <div className="text-2xl font-black text-red-700">{results.occupied.length}</div>
-                                    <div className="text-[10px] text-red-500 mt-1">Bu dönemde kesin kayıtlı</div>
+                                    <div className="text-[10px] text-red-500 mt-1">Bu dönemde yer kalmadı</div>
                                 </div>
                             </div>
 
@@ -560,8 +580,12 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                                                     <td className="p-2 font-mono font-bold">{loc.kod}</td>
                                                     <td className="p-2 font-bold text-primary-600">{loc.routeNo || '-'}</td>
                                                     <td className="p-2">{loc.ilce} / {loc.semt}</td>
-                                                    <td className="p-2"><span className="badge badge-warning px-1 py-0 text-[10px]">OPSİYON</span></td>
-                                                    <td className="p-2 font-bold text-yellow-600">OPSİYON {loc.marka2Opsiyon ? '3' : '2'}</td>
+                                                    <td className="p-2">
+                                                        <span className={`badge ${loc.durum === 'KESİN' ? 'badge-error' : 'badge-warning'} px-1 py-0 text-[10px]`}>
+                                                            {loc.durum}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-2 font-bold text-yellow-600">OPSİYON {loc.nextOptionSlot}</td>
                                                 </tr>
                                             ))}
                                         </tbody>

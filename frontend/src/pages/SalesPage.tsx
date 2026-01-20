@@ -1,4 +1,5 @@
-﻿import { useState, useEffect } from 'react'
+﻿import { useState, useEffect, useMemo } from 'react'
+import { useLocation } from 'react-router-dom'
 import {
     ShoppingBag,
     TrendingUp,
@@ -33,6 +34,7 @@ import { useToast } from '../hooks/useToast'
 import { clientsService } from '../services/clientsService'
 import { proposalsService } from '../services/proposalsService'
 import { customerRequestsService } from '../services/customerRequestsService'
+import { incomingCallsService } from '../services/incomingCallsService'
 import { inventoryService, type InventoryItem } from '../services/inventoryService'
 
 // Müşteri tipi
@@ -55,6 +57,8 @@ interface Customer {
     mobile?: string
     website?: string
     notes?: string
+    requestDetail?: string
+    calledPhone?: string
 }
 
 // Teklif ürün tipi
@@ -132,11 +136,45 @@ export default function SalesPage() {
     const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [networkCounts, setNetworkCounts] = useState<Record<string, Record<string, number>>>({})
+    const [pendingIncomingCallId, setPendingIncomingCallId] = useState<string | null>(null)
+    const location = useLocation()
 
     // Fetch data on mount
     useEffect(() => {
         fetchData()
-    }, [])
+
+        // Handle prefill from IncomingCallsPage
+        const state = location.state as any
+        if (state?.prefill) {
+            const { prefill } = state
+            setCustomerForm({
+                companyName: prefill.companyName || '',
+                tradeName: '',
+                sector: '',
+                taxOffice: '',
+                taxNumber: '',
+                status: 'Potansiyel',
+                address: '',
+                city: '',
+                district: '',
+                postalCode: '',
+                contactPerson: prefill.contactPerson || '',
+                email: prefill.email || '',
+                phone: prefill.phone || '',
+                mobile: '',
+                website: '',
+                notes: prefill.notes || '',
+                requestDetail: prefill.requestDetail || '',
+                calledPhone: prefill.calledPhone || ''
+            })
+            setPendingIncomingCallId(prefill.incomingCallId)
+            setShowCustomerModal(true)
+            setCustomerModalTab('company')
+
+            // Clear state so it doesn't reopen on refresh
+            window.history.replaceState({}, document.title)
+        }
+    }, [location])
 
     const fetchData = async () => {
         setIsLoading(true)
@@ -166,6 +204,8 @@ export default function SalesPage() {
                 mobile: (c as any).mobile || '',
                 website: (c as any).website || '',
                 notes: (c as any).notes || '',
+                requestDetail: (c as any).request_detail || '',
+                calledPhone: (c as any).called_phone || '',
                 createdAt: c.created_at?.split('T')[0] || new Date().toISOString().split('T')[0]
             }))
             setCustomers(mappedCustomers)
@@ -255,6 +295,7 @@ export default function SalesPage() {
             })
             setNetworkCounts(counts)
 
+            // Fetch incoming calls (Arayan Firmalar) - Removed from here
         } catch (error) {
             console.error('Data fetch error:', error)
             info('Veriler sunucudan alınırken bir hata oluştu.')
@@ -281,7 +322,9 @@ export default function SalesPage() {
         phone: '',
         mobile: '',
         website: '',
-        notes: ''
+        notes: '',
+        requestDetail: '',
+        calledPhone: ''
     })
     const [requestForm, setRequestForm] = useState({
         customerId: '',
@@ -535,6 +578,8 @@ export default function SalesPage() {
                 email: customerForm.email,
                 phone: customerForm.phone,
                 notes: customerForm.notes,
+                request_detail: customerForm.requestDetail,
+                called_phone: customerForm.calledPhone,
                 account_manager_id: userId
             }
 
@@ -543,6 +588,13 @@ export default function SalesPage() {
                 success('Müşteri başarıyla güncellendi.')
             } else {
                 await (clientsService as any).create(customerData)
+
+                // Eğer bu müşteri bir 'Arayan Firma' kaydından geliyorsa durumu güncelle
+                if (pendingIncomingCallId) {
+                    await incomingCallsService.updateStatus(pendingIncomingCallId, 'converted')
+                    setPendingIncomingCallId(null)
+                }
+
                 success('Müşteri başarıyla kaydedildi.')
             }
 
@@ -566,7 +618,9 @@ export default function SalesPage() {
                 phone: '',
                 mobile: '',
                 website: '',
-                notes: ''
+                notes: '',
+                requestDetail: '',
+                calledPhone: ''
             })
             setCustomerModalTab('company')
         } catch (error) {
@@ -628,7 +682,7 @@ export default function SalesPage() {
 
     // Hafta aralığı formatı
     const getWeekRangeText = (): string => {
-        const startText = `${monthNames[startMonth - 1]} ${startWeek}. Hafta`
+        const startText = `${monthNames[startMonth - 1]} ${startWeek}.Hafta`
         return `${startText} - ${durationWeeks} Hafta`
     }
 
@@ -649,7 +703,7 @@ export default function SalesPage() {
             const emailInput = document.getElementById('recipientEmail') as HTMLInputElement;
             const messageInput = document.getElementById('emailMessage') as HTMLTextAreaElement;
             const recipientEmail = emailInput?.value || selectedCustomer?.email;
-            const message = messageInput?.value || `Sayın ${selectedCustomer?.contactPerson || 'Yetkili'},\n\nEkte reklam alanları için hazırladığımız bütçe teklifimizi bulabilirsiniz.\n\nSaygılarımızla,\nİzmir Açıkhava Reklam Ajansı`;
+            const message = messageInput?.value || `Sayın ${selectedCustomer?.contactPerson || 'Yetkili'}, \n\nEkte reklam alanları için hazırladığımız bütçe teklifimizi bulabilirsiniz.\n\nSaygılarımızla, \nİzmir Açıkhava Reklam Ajansı`;
 
             if (!recipientEmail) {
                 alert('Lütfen geçerli bir e-posta adresi girin.');
@@ -833,11 +887,11 @@ export default function SalesPage() {
         const reservationEmail = 'rezervasyon@izmiracikhavareklam.com'
         const itemsSummary = proposalItems.map(item => {
             const label = item.network ? `${item.code} (Network ${item.network})` : item.code
-            return `${item.quantity} ${label}`
+            return `${item.quantity} ${label} `
         }).join(', ')
         const dateRange = getWeekRangeText()
         const totalWeeks = calculateTotalWeeks()
-        alert(`Yer Listesi Talebi Gönderildi!\n\nAlıcı: ${reservationEmail}\nMüşteri: ${selectedCustomer?.companyName}\nÜrünler: ${itemsSummary}\nToplam Hafta: ${totalWeeks}\nKullanım Süresi: ${dateRange}\n\nTeklif onaylanmıştır.`)
+        alert(`Yer Listesi Talebi Gönderildi!\n\nAlıcı: ${reservationEmail} \nMüşteri: ${selectedCustomer?.companyName} \nÜrünler: ${itemsSummary} \nToplam Hafta: ${totalWeeks} \nKullanım Süresi: ${dateRange} \n\nTeklif onaylanmıştır.`)
         setShowReservationModal(false)
         setShowProposalModal(false)
     }
@@ -896,7 +950,6 @@ export default function SalesPage() {
                         Gönderilen Teklifler
                     </div>
                 </button>
-
             </div>
 
             {/* Stats Cards */}
@@ -932,7 +985,7 @@ export default function SalesPage() {
 
                 <div
                     onClick={() => setActiveTab('sent')}
-                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-all hover:bg-green-50/30 group"
+                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-all hover:bg-green-50/30 group bg-gradient-to-br from-white to-green-50/30"
                 >
                     <div className="flex items-center justify-between">
                         <div>
@@ -940,20 +993,20 @@ export default function SalesPage() {
                             <p className="text-2xl font-bold text-gray-900 mt-1">{proposals.filter(p => p.status === 'sent' || p.status === 'approved').length}</p>
                             <p className="text-sm text-green-600 mt-1">Müşteriye iletildi</p>
                         </div>
-                        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner shadow-green-200">
                             <Send className="w-6 h-6 text-green-600" />
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 bg-gradient-to-br from-white to-purple-50/30">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-gray-500">Toplam Değer</p>
                             <p className="text-2xl font-bold text-gray-900 mt-1">₺{proposals.reduce((sum, p) => sum + p.totalAmount, 0).toLocaleString()}</p>
                             <p className="text-sm text-purple-600 mt-1">Tüm teklifler</p>
                         </div>
-                        <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                        <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center shadow-inner shadow-purple-200">
                             <DollarSign className="w-6 h-6 text-purple-600" />
                         </div>
                     </div>
@@ -974,7 +1027,7 @@ export default function SalesPage() {
                         </div>
                         <button
                             onClick={() => setShowCustomerModal(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-lg hover:from-primary-700 hover:to-secondary-700 transition-all shadow-lg shadow-primary-500/25"
+                            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-bold rounded-xl hover:shadow-xl hover:shadow-primary-500/20 active:scale-95 transition-all"
                         >
                             <UserPlus className="w-5 h-5" />
                             Yeni Müşteri Kartı
@@ -993,18 +1046,24 @@ export default function SalesPage() {
                                 </div>
                                 <h3 className="font-semibold text-gray-900 mb-1">{customer.companyName}</h3>
                                 <p className="text-sm text-gray-600 mb-3">{customer.contactPerson}</p>
-                                <div className="space-y-2 text-sm">
-                                    <div className="flex items-center gap-2 text-gray-500">
-                                        <Mail className="w-4 h-4" />
-                                        <span>{customer.email}</span>
+                                <div className="space-y-3 text-sm">
+                                    <div className="flex items-center gap-3 text-gray-600 hover:text-primary-600 transition-colors">
+                                        <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
+                                            <Mail className="w-4 h-4" />
+                                        </div>
+                                        <span className="font-medium">{customer.email}</span>
                                     </div>
-                                    <div className="flex items-center gap-2 text-gray-500">
-                                        <Phone className="w-4 h-4" />
-                                        <span>{customer.phone}</span>
+                                    <div className="flex items-center gap-3 text-gray-600 hover:text-primary-600 transition-colors">
+                                        <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
+                                            <Phone className="w-4 h-4" />
+                                        </div>
+                                        <span className="font-medium">{customer.phone}</span>
                                     </div>
-                                    <div className="flex items-center gap-2 text-gray-500">
-                                        <MapPin className="w-4 h-4" />
-                                        <span>{customer.address}</span>
+                                    <div className="flex items-center gap-3 text-gray-600 hover:text-primary-600 transition-colors">
+                                        <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
+                                            <MapPin className="w-4 h-4" />
+                                        </div>
+                                        <span className="font-medium">{customer.address}</span>
                                     </div>
                                 </div>
                                 <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
@@ -1038,7 +1097,9 @@ export default function SalesPage() {
                                                 phone: customer.phone,
                                                 mobile: (customer as any).mobile || '',
                                                 website: (customer as any).website || '',
-                                                notes: (customer as any).notes || ''
+                                                notes: (customer as any).notes || '',
+                                                requestDetail: customer.requestDetail || '',
+                                                calledPhone: customer.calledPhone || ''
                                             })
                                             setShowCustomerModal(true)
                                         }}
@@ -1075,80 +1136,80 @@ export default function SalesPage() {
                                 proposals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((proposal) => (
                                     <div key={proposal.id} className="p-6 hover:bg-gray-50 transition-colors">
                                         <div className="flex items-center justify-between mb-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 ${proposal.status === 'draft' ? 'bg-yellow-100' :
-                                                    proposal.status === 'sent' ? 'bg-green-100' :
-                                                        proposal.status === 'approved' ? 'bg-blue-100' : 'bg-gray-100'} rounded-lg flex items-center justify-center`}>
-                                                    <FileText className={`w-5 h-5 ${proposal.status === 'draft' ? 'text-yellow-600' :
-                                                        proposal.status === 'sent' ? 'text-green-600' :
-                                                            proposal.status === 'approved' ? 'text-blue-600' : 'text-gray-600'}`} />
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <h4 className="font-medium text-gray-900">{proposal.proposalNumber ? `${proposal.proposalNumber} - ` : ''}{proposal.customerName}</h4>
-                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${proposal.status === 'draft' ? 'bg-yellow-100 text-yellow-700' :
-                                                            proposal.status === 'sent' ? 'bg-green-100 text-green-700' :
-                                                                proposal.status === 'approved' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
-                                                            }`}>
-                                                            {proposal.status === 'draft' ? 'TASLAK' :
-                                                                proposal.status === 'sent' ? 'GÖNDERİLDİ' :
-                                                                    proposal.status === 'approved' ? 'ONAYLANDI' : proposal.status}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-sm text-gray-500">Oluşturma: {proposal.createdAt}</p>
-                                                </div>
+                                            <div className={`w-10 h-10 ${proposal.status === 'draft' ? 'bg-yellow-100' :
+                                                proposal.status === 'sent' ? 'bg-green-100' :
+                                                    proposal.status === 'approved' ? 'bg-blue-100' : 'bg-gray-100'
+                                                } rounded-lg flex items-center justify-center`}>
+                                                <FileText className={`w-5 h-5 ${proposal.status === 'draft' ? 'text-yellow-600' :
+                                                    proposal.status === 'sent' ? 'text-green-600' :
+                                                        proposal.status === 'approved' ? 'text-blue-600' : 'text-gray-600'
+                                                    } `} />
                                             </div>
-                                            <div className="flex items-center gap-4">
-                                                <div className="text-right">
-                                                    <p className="text-lg font-bold text-gray-900">₺{proposal.totalAmount.toLocaleString()}</p>
-                                                    <p className="text-[10px] text-gray-400">KDV Dahil</p>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <h4 className="font-medium text-gray-900">{proposal.proposalNumber ? `${proposal.proposalNumber} - ` : ''}{proposal.customerName}</h4>
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${proposal.status === 'draft' ? 'bg-yellow-100 text-yellow-700' :
+                                                        proposal.status === 'sent' ? 'bg-green-100 text-green-700' :
+                                                            proposal.status === 'approved' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                                                        } `}>
+                                                        {proposal.status === 'draft' ? 'TASLAK' :
+                                                            proposal.status === 'sent' ? 'GÖNDERİLDİ' :
+                                                                proposal.status === 'approved' ? 'ONAYLANDI' : proposal.status}
+                                                    </span>
                                                 </div>
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={() => {
-                                                            const customer = customers.find(c => c.id === proposal.customerId)
-                                                            if (customer) {
-                                                                setSelectedCustomer(customer)
-                                                            }
-                                                            setSelectedProposal(proposal)
-                                                            setProposalItems([...proposal.items])
-                                                            setIsBlockList(proposal.isBlockList)
+                                                <p className="text-sm text-gray-500">Oluşturma: {proposal.createdAt}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <div className="text-right">
+                                                <p className="text-lg font-bold text-gray-900">₺{proposal.totalAmount.toLocaleString()}</p>
+                                                <p className="text-[10px] text-gray-400">KDV Dahil</p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        const customer = customers.find(c => c.id === proposal.customerId)
+                                                        if (customer) {
+                                                            setSelectedCustomer(customer)
+                                                        }
+                                                        setSelectedProposal(proposal)
+                                                        setProposalItems([...proposal.items])
+                                                        setIsBlockList(proposal.isBlockList)
 
-                                                            // Süreyi ayıkla (Örn: "2 Hafta" -> 2)
-                                                            const duration = parseInt(proposal.usagePeriod || '1')
-                                                            setDurationWeeks(isNaN(duration) ? 1 : duration)
+                                                        // Süreyi ayıkla (Örn: "2 Hafta" -> 2)
+                                                        const duration = parseInt(proposal.usagePeriod || '1')
+                                                        setDurationWeeks(isNaN(duration) ? 1 : duration)
 
-                                                            // Dönemi ayıkla
-                                                            if (proposal.weekInfo) {
-                                                                const parts = proposal.weekInfo.split(' ')
-                                                                if (parts.length >= 2) {
-                                                                    const mIdx = monthNames.indexOf(parts[0])
-                                                                    if (mIdx !== -1) setStartMonth(mIdx + 1)
-                                                                    const weekNum = parseInt(parts[1])
-                                                                    if (!isNaN(weekNum)) setStartWeek(weekNum)
-                                                                }
+                                                        // Dönemi ayıkla
+                                                        if (proposal.weekInfo) {
+                                                            const parts = proposal.weekInfo.split(' ')
+                                                            if (parts.length >= 2) {
+                                                                const mIdx = monthNames.indexOf(parts[0])
+                                                                if (mIdx !== -1) setStartMonth(mIdx + 1)
+                                                                const weekNum = parseInt(parts[1])
+                                                                if (!isNaN(weekNum)) setStartWeek(weekNum)
                                                             }
+                                                        }
 
-                                                            setShowProposalModal(true)
-                                                        }}
-                                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors shadow-sm"
-                                                    >
-                                                        <RefreshCw className="w-4 h-4" />
-                                                        Revize Et
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            if (window.confirm('Bu teklifi silmek istediğinize emin misiniz?')) {
-                                                                handleDeleteProposal(proposal.id)
-                                                            }
-                                                        }}
-                                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                                                        title="Sil"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                        Sil
-                                                    </button>
-                                                </div>
+                                                        setShowProposalModal(true)
+                                                    }}
+                                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors shadow-sm"
+                                                >
+                                                    <RefreshCw className="w-4 h-4" />
+                                                    Revize Et
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        if (window.confirm('Bu teklifi silmek istediğinize emin misiniz?')) {
+                                                            handleDeleteProposal(proposal.id)
+                                                        }
+                                                    }}
+                                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                                                    title="Sil"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                    Sil
+                                                </button>
                                             </div>
                                         </div>
                                         <div className="flex flex-wrap gap-2 ml-13">
@@ -1173,119 +1234,45 @@ export default function SalesPage() {
 
             {activeTab === 'sent' && (
                 <div className="space-y-4">
+                    {/* Sent proposals table/list would go here */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100">
-                            <h3 className="text-lg font-semibold text-gray-900">Gönderilen Teklifler</h3>
-                            <p className="text-sm text-gray-500">Müşteriye mail ile iletilen teklifler</p>
-                        </div>
-                        <div className="divide-y divide-gray-100">
-                            {proposals.filter(p => p.status === 'sent' || p.status === 'approved').map((proposal) => (
-                                <div key={proposal.id} className="p-6 hover:bg-gray-50 transition-colors">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-10 h-10 ${proposal.status === 'approved' ? 'bg-blue-100' : 'bg-green-100'} rounded-lg flex items-center justify-center`}>
-                                                {proposal.status === 'approved' ? <CheckCircle className="w-5 h-5 text-blue-600" /> : <Check className="w-5 h-5 text-green-600" />}
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <h4 className="font-medium text-gray-900">{proposal.proposalNumber || proposal.id} - {proposal.customerName}</h4>
-                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${proposal.status === 'approved' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
-                                                        {proposal.status === 'approved' ? 'ONAYLANDI' : 'GÖNDERİLDİ'}
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm text-gray-500">Gönderim: {proposal.sentAt}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <span className="text-lg font-semibold text-gray-900">₺{proposal.totalAmount.toLocaleString()}</span>
-                                            <div className="flex gap-2">
-                                                {proposal.status === 'sent' && (
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            onClick={() => {
-                                                                setProposals(prev => prev.map(p =>
-                                                                    p.id === proposal.id ? { ...p, status: 'approved' } : p
-                                                                ))
-                                                                success('Teklif onaylandı olarak işaretlendi.')
-                                                            }}
-                                                            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                                                        >
-                                                            <CheckCircle className="w-4 h-4" />
-                                                            Onayla
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                // Müşteriyi bul ve seç
-                                                                const customer = customers.find(c => c.id === proposal.customerId)
-                                                                if (customer) {
-                                                                    setSelectedCustomer(customer)
-                                                                }
-                                                                setSelectedProposal(proposal)
-
-                                                                // Ürünleri ve diğer ayarları yükle
-                                                                setProposalItems([...proposal.items])
-                                                                setIsBlockList(proposal.isBlockList)
-
-                                                                // Süreyi ayıkla (Örn: "2 Hafta" -> 2)
-                                                                const duration = parseInt(proposal.usagePeriod || '1')
-                                                                setDurationWeeks(isNaN(duration) ? 1 : duration)
-
-                                                                // Dönemi ayıkla (Örn: "Ocak 1. Hafta - 2 Hafta")
-                                                                if (proposal.weekInfo) {
-                                                                    const parts = proposal.weekInfo.split(' ')
-                                                                    if (parts.length >= 2) {
-                                                                        const monthName = parts[0]
-                                                                        const weekNum = parseInt(parts[1])
-                                                                        const mIdx = monthNames.indexOf(monthName)
-                                                                        if (mIdx !== -1) setStartMonth(mIdx + 1)
-                                                                        if (!isNaN(weekNum)) setStartWeek(weekNum)
-                                                                    }
-                                                                }
-
-                                                                // Bütçe sekmesine dön ve modalı aç
-                                                                setActiveTab('proposals')
-                                                                setShowProposalModal(true)
-
-                                                                info('Teklif bilgileri yeni bütçe teklifi için kopyalandı.')
-                                                            }}
-                                                            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors"
-                                                        >
-                                                            <RefreshCw className="w-4 h-4" />
-                                                            Revize Et
-                                                        </button>
-                                                    </div>
-                                                )}
-                                                <button
-                                                    onClick={() => {
-                                                        if (window.confirm('Bu teklifi silmek istediğinize emin misiniz?')) {
-                                                            handleDeleteProposal(proposal.id)
-                                                        }
-                                                    }}
-                                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                                                    title="Sil"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                    Sil
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2 ml-13">
-                                        {proposal.items.map((item, idx) => (
-                                            <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-primary-50 text-primary-700">
-                                                {item.quantity} {item.code}
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50 border-b border-gray-100">
+                                <tr>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Teklif No</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Müşteri</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Tarih</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Durum</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {proposals.filter(p => p.status === 'sent' || p.status === 'approved' || p.status === 'rejected').map((p) => (
+                                    <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4 font-bold text-primary-600">{p.proposalNumber}</td>
+                                        <td className="px-6 py-4 font-medium text-gray-900">{p.customerName}</td>
+                                        <td className="px-6 py-4 text-gray-600">{p.sentAt || p.createdAt}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${p.status === 'sent' ? 'bg-blue-100 text-blue-700' :
+                                                p.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                                    'bg-red-100 text-red-700'
+                                                }`}>
+                                                {p.status === 'sent' ? 'Gönderildi' :
+                                                    p.status === 'approved' ? 'Onaylandı' : 'Reddedildi'}
                                             </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <button className="text-gray-400 hover:text-primary-600 transition-colors">
+                                                <FileText className="w-5 h-5" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-            )
-            }
-
-            {/* Müşteri Kartı Modal */}
+            )}
             {
                 showCustomerModal && (
                     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -1299,12 +1286,12 @@ export default function SalesPage() {
                             </div>
 
                             {/* Tabs */}
-                            <div className="flex border-b border-gray-200">
+                            <div className="flex border-b border-gray-100 bg-gray-50/50 p-1 gap-1">
                                 <button
                                     onClick={() => setCustomerModalTab('company')}
-                                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${customerModalTab === 'company'
-                                        ? 'border-primary-600 text-primary-600 bg-primary-50'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                    className={`flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-xl transition-all ${customerModalTab === 'company'
+                                        ? 'bg-white text-primary-600 shadow-sm border border-gray-100'
+                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                                         }`}
                                 >
                                     <Building className="w-4 h-4" />
@@ -1312,9 +1299,9 @@ export default function SalesPage() {
                                 </button>
                                 <button
                                     onClick={() => setCustomerModalTab('address')}
-                                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${customerModalTab === 'address'
-                                        ? 'border-primary-600 text-primary-600 bg-primary-50'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                    className={`flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-xl transition-all ${customerModalTab === 'address'
+                                        ? 'bg-white text-primary-600 shadow-sm border border-gray-100'
+                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                                         }`}
                                 >
                                     <MapPin className="w-4 h-4" />
@@ -1322,9 +1309,9 @@ export default function SalesPage() {
                                 </button>
                                 <button
                                     onClick={() => setCustomerModalTab('contact')}
-                                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${customerModalTab === 'contact'
-                                        ? 'border-primary-600 text-primary-600 bg-primary-50'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                    className={`flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-xl transition-all ${customerModalTab === 'contact'
+                                        ? 'bg-white text-primary-600 shadow-sm border border-gray-100'
+                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                                         }`}
                                 >
                                     <Phone className="w-4 h-4" />
@@ -1332,9 +1319,9 @@ export default function SalesPage() {
                                 </button>
                                 <button
                                     onClick={() => setCustomerModalTab('notes')}
-                                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${customerModalTab === 'notes'
-                                        ? 'border-primary-600 text-primary-600 bg-primary-50'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                    className={`flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-xl transition-all ${customerModalTab === 'notes'
+                                        ? 'bg-white text-primary-600 shadow-sm border border-gray-100'
+                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                                         }`}
                                 >
                                     <StickyNote className="w-4 h-4" />
@@ -1547,7 +1534,7 @@ export default function SalesPage() {
                                     className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-primary-600 to-secondary-600 rounded-lg hover:from-primary-700 hover:to-secondary-700 transition-all flex items-center gap-2"
                                 >
                                     <Save className="w-4 h-4" />
-                                    Kaydet
+                                    Kaydı Tamamla
                                 </button>
                             </div>
                         </div>
@@ -1595,7 +1582,7 @@ export default function SalesPage() {
                                                 <select
                                                     value={item.type}
                                                     onChange={(e) => updateProposalItem(index, 'type', e.target.value)}
-                                                    className={`${(item.type === 'BB' || item.type === 'GB') ? 'w-1/2' : 'w-full'} px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500`}
+                                                    className={`${(item.type === 'BB' || item.type === 'GB') ? 'w-1/2' : 'w-full'} px - 3 py - 2 border border - gray - 200 rounded - lg focus: ring - 2 focus: ring - primary - 500`}
                                                 >
                                                     {getProductTypes().map((pt: any) => (
                                                         <option key={pt.code} value={pt.code}>{pt.code} - {pt.name}</option>
@@ -1792,10 +1779,10 @@ export default function SalesPage() {
                                 <button
                                     onClick={() => {
                                         const confirmed = window.confirm(
-                                            `${selectedCustomer?.companyName} için hazırlanan bütçe teklifi:\n\n` +
-                                            `Toplam: ₺${calculateGrandTotal().toLocaleString()}\n` +
+                                            `${selectedCustomer?.companyName} için hazırlanan bütçe teklifi: \n\n` +
+                                            `Toplam: ₺${calculateGrandTotal().toLocaleString()} \n` +
                                             `Süre: ${durationWeeks} Hafta\n\n` +
-                                            `Bu teklifi onaylayıp müşteriye e-posta ile göndermek istiyor musunuz?`
+                                            `Bu teklifi onaylayıp müşteriye e - posta ile göndermek istiyor musunuz ? `
                                         );
                                         if (confirmed) {
                                             setShowProposalModal(false)
@@ -1978,7 +1965,7 @@ export default function SalesPage() {
                 proposal={selectedProposal ? {
                     id: selectedProposal.id,
                     proposal_number: selectedProposal.proposalNumber || selectedProposal.id,
-                    title: `Teklif - ${selectedProposal.customerName}`,
+                    title: `Teklif - ${selectedProposal.customerName} `,
                     client_id: selectedProposal.customerId,
                     created_by_id: 'admin',
                     client: { name: selectedProposal.customerName } as any,
@@ -2009,92 +1996,93 @@ export default function SalesPage() {
             />
 
             {/* Email Modal */}
-            {showEmailModal && (selectedProposal || selectedCustomer) && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 animate-in fade-in zoom-in duration-200">
-                        <div className="p-6 border-b border-gray-100">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
-                                        <Send className="w-5 h-5 text-white" />
+            {
+                showEmailModal && (selectedProposal || selectedCustomer) && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 animate-in fade-in zoom-in duration-200">
+                            <div className="p-6 border-b border-gray-100">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                                            <Send className="w-5 h-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-gray-900">Teklifi E-posta ile Gönder</h3>
+                                            <p className="text-sm text-gray-500">Rezervasyon@izmiracikhavareklam.com üzerinden</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="text-lg font-bold text-gray-900">Teklifi E-posta ile Gönder</h3>
-                                        <p className="text-sm text-gray-500">Rezervasyon@izmiracikhavareklam.com üzerinden</p>
-                                    </div>
+                                    <button
+                                        onClick={() => setShowEmailModal(false)}
+                                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                    >
+                                        <X className="w-5 h-5 text-gray-500" />
+                                    </button>
                                 </div>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div className="bg-gray-50 rounded-xl p-4">
+                                    <p className="text-sm text-gray-600 mb-1">Teklif No</p>
+                                    <p className="font-semibold text-gray-900">
+                                        {selectedProposal?.proposalNumber || selectedProposal?.id || 'Yeni Teklif'}
+                                    </p>
+                                </div>
+                                <div className="bg-gray-50 rounded-xl p-4">
+                                    <p className="text-sm text-gray-600 mb-1">Müşteri</p>
+                                    <p className="font-semibold text-gray-900">
+                                        {selectedProposal?.customerName || selectedCustomer?.companyName}
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                        {selectedCustomer?.email || 'E-posta bulunamadı'}
+                                    </p>
+                                </div>
+                                {!selectedProposal && (
+                                    <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+                                        <p className="text-sm text-green-700 font-medium">
+                                            💡 Yeni teklif oluşturulacak ve e-posta ile gönderilecek.
+                                        </p>
+                                        <p className="text-sm text-green-600 mt-1">
+                                            Toplam: ₺{calculateGrandTotal().toLocaleString()} | Süre: {durationWeeks} Hafta
+                                        </p>
+                                    </div>
+                                )}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Alıcı E-posta</label>
+                                    <input
+                                        type="email"
+                                        id="recipientEmail"
+                                        defaultValue={selectedCustomer?.email || ''}
+                                        placeholder="ornek@firma.com"
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Ek Mesaj (Opsiyonel)</label>
+                                    <textarea
+                                        id="emailMessage"
+                                        rows={3}
+                                        placeholder="Müşteriye iletmek istediğiniz ek bir mesaj..."
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                                    />
+                                </div>
+                            </div>
+                            <div className="p-6 border-t border-gray-100 flex justify-end gap-3">
                                 <button
                                     onClick={() => setShowEmailModal(false)}
-                                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                    className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
                                 >
-                                    <X className="w-5 h-5 text-gray-500" />
+                                    İptal
+                                </button>
+                                <button
+                                    onClick={handleSendEmail}
+                                    className="px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-500/25 flex items-center gap-2"
+                                >
+                                    <Send className="w-4 h-4" />
+                                    Gönder
                                 </button>
                             </div>
                         </div>
-                        <div className="p-6 space-y-4">
-                            <div className="bg-gray-50 rounded-xl p-4">
-                                <p className="text-sm text-gray-600 mb-1">Teklif No</p>
-                                <p className="font-semibold text-gray-900">
-                                    {selectedProposal?.proposalNumber || selectedProposal?.id || 'Yeni Teklif'}
-                                </p>
-                            </div>
-                            <div className="bg-gray-50 rounded-xl p-4">
-                                <p className="text-sm text-gray-600 mb-1">Müşteri</p>
-                                <p className="font-semibold text-gray-900">
-                                    {selectedProposal?.customerName || selectedCustomer?.companyName}
-                                </p>
-                                <p className="text-sm text-gray-500">
-                                    {selectedCustomer?.email || 'E-posta bulunamadı'}
-                                </p>
-                            </div>
-                            {!selectedProposal && (
-                                <div className="bg-green-50 rounded-xl p-4 border border-green-200">
-                                    <p className="text-sm text-green-700 font-medium">
-                                        💡 Yeni teklif oluşturulacak ve e-posta ile gönderilecek.
-                                    </p>
-                                    <p className="text-sm text-green-600 mt-1">
-                                        Toplam: ₺{calculateGrandTotal().toLocaleString()} | Süre: {durationWeeks} Hafta
-                                    </p>
-                                </div>
-                            )}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Alıcı E-posta</label>
-                                <input
-                                    type="email"
-                                    id="recipientEmail"
-                                    defaultValue={selectedCustomer?.email || ''}
-                                    placeholder="ornek@firma.com"
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Ek Mesaj (Opsiyonel)</label>
-                                <textarea
-                                    id="emailMessage"
-                                    rows={3}
-                                    placeholder="Müşteriye iletmek istediğiniz ek bir mesaj..."
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
-                                />
-                            </div>
-                        </div>
-                        <div className="p-6 border-t border-gray-100 flex justify-end gap-3">
-                            <button
-                                onClick={() => setShowEmailModal(false)}
-                                className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
-                            >
-                                İptal
-                            </button>
-                            <button
-                                onClick={handleSendEmail}
-                                className="px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-500/25 flex items-center gap-2"
-                            >
-                                <Send className="w-4 h-4" />
-                                Gönder
-                            </button>
-                        </div>
                     </div>
-                </div>
-            )
+                )
             }
         </div >
     )

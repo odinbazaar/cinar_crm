@@ -330,23 +330,39 @@ export default function ReservationsPage() {
                 const booking = periodBookings.find(b => b.inventory_item_id === item.id);
                 const isSelected = targetIds.includes(item.id);
 
+                // Check next available slot
+                let nextSlot = 1;
+                if (booking) {
+                    if (booking.status === 'KESİN') {
+                        if (!booking.brand_option_2) nextSlot = 2;
+                        else if (!booking.brand_option_3) nextSlot = 3;
+                        else if (!booking.brand_option_4) nextSlot = 4;
+                        else nextSlot = 5;
+                    } else if (booking.status === 'OPSİYON') {
+                        if (!booking.brand_option_1) nextSlot = 1;
+                        else if (!booking.brand_option_2) nextSlot = 2;
+                        else if (!booking.brand_option_3) nextSlot = 3;
+                        else if (!booking.brand_option_4) nextSlot = 4;
+                        else nextSlot = 5;
+                    }
+                }
+
                 const uiItem = {
                     id: item.id,
                     kod: item.code,
                     ilce: item.district,
                     semt: item.neighborhood,
                     isSelected,
-                    booking
+                    booking,
+                    nextSlot
                 };
 
-                if (!booking || booking.status === 'BOŞ') {
+                if (!booking || (booking.status === 'BOŞ' && nextSlot === 1)) {
                     if (isSelected || available.length < (request.availableCount + request.optionsCount)) {
                         available.push(uiItem);
                     }
-                } else if (booking.status === 'OPSİYON') {
-                    if (!booking.brand_option_4) {
-                        options.push(uiItem);
-                    }
+                } else if (nextSlot <= 4) {
+                    options.push(uiItem);
                 } else {
                     occupied.push(uiItem);
                 }
@@ -397,14 +413,28 @@ export default function ReservationsPage() {
                 const booking = periodBookings.find(b => b.inventory_item_id === item.id);
                 const isIdSelected = targetIds.includes(item.id);
 
-                if (!booking || booking.status === 'BOŞ') {
+                let nextSlot = 1;
+                if (booking) {
+                    if (booking.status === 'KESİN') {
+                        if (!booking.brand_option_2) nextSlot = 2;
+                        else if (!booking.brand_option_3) nextSlot = 3;
+                        else if (!booking.brand_option_4) nextSlot = 4;
+                        else nextSlot = 5;
+                    } else {
+                        if (!booking.brand_option_1) nextSlot = 1;
+                        else if (!booking.brand_option_2) nextSlot = 2;
+                        else if (!booking.brand_option_3) nextSlot = 3;
+                        else if (!booking.brand_option_4) nextSlot = 4;
+                        else nextSlot = 5;
+                    }
+                }
+
+                if (nextSlot === 1 && (!booking || booking.status === 'BOŞ')) {
                     if (isIdSelected) selectedAvailable.push({ item, booking: null });
                     else autoAvailable.push({ item, booking: null });
-                } else if (booking.status === 'OPSİYON') {
-                    if (!booking.brand_option_1 || !booking.brand_option_2 || !booking.brand_option_3 || !booking.brand_option_4) {
-                        if (isIdSelected) selectedAvailable.push({ item, booking });
-                        else partiallyAvailable.push({ item, booking });
-                    }
+                } else if (nextSlot <= 4) {
+                    if (isIdSelected) selectedAvailable.push({ item, booking });
+                    else partiallyAvailable.push({ item, booking });
                 }
             });
 
@@ -430,7 +460,7 @@ export default function ReservationsPage() {
 
                     await bookingsService.update(booking.id, {
                         ...updateData,
-                        status: 'OPSİYON'
+                        status: booking.status === 'KESİN' ? 'KESİN' : 'OPSİYON'
                     });
                 } else {
                     await bookingsService.create({
@@ -1754,9 +1784,9 @@ export default function ReservationsPage() {
                                                 <p className="text-[10px] text-orange-500 mt-1">Alt sıra opsiyon olarak atanabilir</p>
                                             </div>
                                             <div className="p-4 bg-red-50 rounded-xl border border-red-200 text-center">
-                                                <p className="text-xs text-red-600 font-bold uppercase">Dolu</p>
+                                                <p className="text-xs text-red-600 font-bold uppercase">Tüm Opsiyonlar Dolu</p>
                                                 <p className="text-3xl font-black text-red-700">{processAvailability.occupied.length}</p>
-                                                <p className="text-[10px] text-red-500 mt-1">Bu dönemde kesin kayıtlı</p>
+                                                <p className="text-[10px] text-red-500 mt-1">Bu dönemde yer kalmadı</p>
                                             </div>
                                         </div>
 

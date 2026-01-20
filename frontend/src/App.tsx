@@ -16,6 +16,7 @@ import SalesPage from './pages/SalesPage'
 import ReservationsPage from './pages/ReservationsPage'
 import CostSettingsPage from './pages/CostSettingsPage'
 import ContractsPage from './pages/ContractsPage'
+import IncomingCallsPage from './pages/IncomingCallsPage'
 
 // Layout
 import MainLayout from './components/layout/MainLayout'
@@ -76,6 +77,7 @@ function App() {
                         <Route path="proposals" element={<ProposalsPage />} />
                         <Route path="asim-listesi" element={<AsimListesiPage />} />
                         <Route path="contracts" element={<ContractsPage />} />
+                        <Route path="incoming-calls" element={<IncomingCallsPage />} />
                         <Route path="settings" element={<SettingsPage />} />
                         <Route path="cost-settings" element={<CostSettingsPage />} />
 

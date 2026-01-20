@@ -15,7 +15,7 @@ async function resetAliSimple() {
         }
     ];
 
-    const newPassword = '12345678';
+    const newPassword = 'Cinarcrm123!';
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     for (const conf of configs) {

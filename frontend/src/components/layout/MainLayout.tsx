@@ -33,6 +33,7 @@ const navigation = [
     { name: 'Asım Listesi', href: '/asim-listesi', icon: Calendar },
     { name: 'Teklifler', href: '/proposals', icon: FileText },
     { name: 'Sözleşmeler', href: '/contracts', icon: FileSignature },
+    { name: 'Arayan Firmalar', href: '/incoming-calls', icon: ClipboardList },
 ]
 
 
