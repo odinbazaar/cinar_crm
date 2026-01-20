@@ -42,7 +42,7 @@ export default function DashboardPage() {
             {/* Page Header */}
             <div>
                 <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-                <p className="text-gray-600 mt-1">Çınar Reklam Ajansı genel performans özeti</p>
+                <p className="text-gray-600 mt-1">İzmir Açıkhava Reklam Ajansı genel performans özeti</p>
             </div>
 
             {/* Stats Grid */}

@@ -49,18 +49,18 @@ export class MailService {
 
     // Example: Welcome email
     async sendWelcomeEmail(to: string, name: string) {
-        const subject = 'Çınar CRM Sistemine Hoş Geldiniz';
+        const subject = 'İzmir Açıkhava CRM Sistemine Hoş Geldiniz';
         const html = `
       <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
         <h2 style="color: #4f46e5;">Merhaba ${name},</h2>
-        <p>Çınar CRM sistemine kaydınız başarıyla tamamlandı.</p>
+        <p>İzmir Açıkhava CRM sistemine kaydınız başarıyla tamamlandı.</p>
         <p>Aşağıdaki bağlantıyı kullanarak sisteme giriş yapabilirsiniz:</p>
         <div style="text-align: center; margin: 30px 0;">
           <a href="${this.configService.get('FRONTEND_URL')}" style="background-color: #4f46e5; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Sisteme Giriş Yap</a>
         </div>
         <p style="color: #666; font-size: 14px;">Eğer bu e-postayı yanlışlıkla aldıysanız, lütfen dikkate almayınız.</p>
         <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-        <p style="font-size: 12px; color: #999;">© 2024 Çınar Reklam Ajansı</p>
+        <p style="font-size: 12px; color: #999;">© 2026 İzmir Açıkhava Reklam Ajansı</p>
       </div>
     `;
         return this.sendMail(to, subject, html);

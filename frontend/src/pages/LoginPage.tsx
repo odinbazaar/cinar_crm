@@ -44,9 +44,9 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 {/* Logo and Title */}
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-lg mb-4">
-                        <span className="text-3xl font-bold text-primary-600">Ç</span>
+                        <span className="text-3xl font-bold text-primary-600">İ</span>
                     </div>
-                    <h1 className="text-4xl font-bold text-white mb-2">Çınar CRM</h1>
+                    <h1 className="text-4xl font-bold text-white mb-2">İzmir Açıkhava CRM</h1>
                     <p className="text-primary-100">Reklam Ajansı Yönetim Sistemi</p>
                 </div>
 
@@ -135,7 +135,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
                 {/* Footer */}
                 <p className="text-center text-primary-100 text-sm mt-6">
-                    © 2026 Çınar Reklam Ajansı. Tüm hakları saklıdır.
+                    © 2026 İzmir Açıkhava Reklam Ajansı. Tüm hakları saklıdır.
                 </p>
             </div>
         </div>

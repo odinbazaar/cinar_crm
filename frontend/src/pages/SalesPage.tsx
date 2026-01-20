@@ -171,48 +171,61 @@ export default function SalesPage() {
             setCustomers(mappedCustomers)
 
             // Map backend proposals to local Proposal type
-            const mappedProposals: Proposal[] = proposalsData.map(p => ({
-                id: p.id, // Use actual UUID for API calls
-                proposalNumber: p.proposal_number, // Keep proposal_number for display
-                customerId: p.client_id,
-                customerName: p.client?.company_name || 'Bilinmeyen Müşteri',
-                items: (p as any).items?.map((item: any) => {
-                    // Extract product type from description (e.g., "20 Billboard - Network 1" -> "BB")
+            const mappedProposals: Proposal[] = proposalsData.map(p => {
+                let usagePeriod = '1 Hafta';
+                let weekInfo = '';
+                let isBlockList = false;
+
+                const items = (p as any).items?.map((item: any) => {
                     const desc = item.description || '';
+
+                    // Extract duration (Örn: "(2 Hafta)")
+                    const durMatch = desc.match(/\((\d+)\s*Hafta\)/);
+                    if (durMatch) usagePeriod = `${durMatch[1]} Hafta`;
+
+                    // Detect block list
+                    if (desc.includes('Blok Liste')) isBlockList = true;
+
                     let itemType = 'BB';
                     if (desc.includes('Billboard') || desc.includes('BB')) itemType = 'BB';
                     else if (desc.includes('CLP') || desc.includes('City Light')) itemType = 'CLP';
-                    else if (desc.includes('MGL') || desc.includes('Megalight')) itemType = 'MGL';
-                    else if (desc.includes('GB') || desc.includes('Giant')) itemType = 'GB';
-                    else if (desc.includes('LB') || desc.includes('Led')) itemType = 'LB';
-                    else if (desc.includes('MB') || desc.includes('Mini')) itemType = 'MB';
-                    else if (desc.includes('KB') || desc.includes('Digital')) itemType = 'KB';
+                    else if (desc.includes('Megalight') || desc.includes('MGL')) itemType = 'MGL';
+                    else if (desc.includes('Giantboard') || desc.includes('GB')) itemType = 'GB';
 
-                    // Also check for network in description
-                    let network = '1';
+                    let network = '';
                     const netMatch = desc.match(/Network\s*(\d+|BLD)/i);
                     if (netMatch) network = netMatch[1];
 
                     return {
                         type: itemType,
-                        code: desc,
+                        code: desc.split(' (')[0], // Clean description for the select box
                         quantity: item.quantity,
                         unitPrice: item.unit_price,
                         operationCost: 0,
                         network: network
                     };
-                }) || [],
-                totalAmount: p.subtotal,
-                operationTotal: 0,
-                kdvAmount: p.tax_amount,
-                grandTotal: p.total,
-                isBlockList: false,
-                status: (p.status?.toLowerCase() === 'sent' ? 'sent' :
-                    p.status?.toLowerCase() === 'approved' ? 'approved' :
-                        p.status?.toLowerCase() === 'rejected' ? 'rejected' : 'draft') as any,
-                createdAt: p.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
-                sentAt: p.sent_at?.split('T')[0]
-            }))
+                }).filter((item: any) => !item.code.includes('Operasyon Maliyeti')) || [];
+
+                return {
+                    id: p.id,
+                    proposalNumber: p.proposal_number,
+                    customerId: p.client_id,
+                    customerName: p.client?.company_name || 'Bilinmeyen Müşteri',
+                    items: items,
+                    totalAmount: p.subtotal || 0,
+                    operationTotal: 0,
+                    kdvAmount: p.tax_amount || 0,
+                    grandTotal: p.total || 0,
+                    isBlockList: isBlockList,
+                    usagePeriod: usagePeriod,
+                    weekInfo: p.description || '', // We'll start storing weekRangeText in description
+                    status: (p.status?.toLowerCase() === 'sent' ? 'sent' :
+                        p.status?.toLowerCase() === 'approved' ? 'approved' :
+                            p.status?.toLowerCase() === 'rejected' ? 'rejected' : 'draft') as any,
+                    createdAt: p.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+                    sentAt: p.sent_at?.split('T')[0]
+                };
+            })
             setProposals(mappedProposals)
 
             // Map backend requests to local CustomerRequest type
@@ -636,7 +649,7 @@ export default function SalesPage() {
             const emailInput = document.getElementById('recipientEmail') as HTMLInputElement;
             const messageInput = document.getElementById('emailMessage') as HTMLTextAreaElement;
             const recipientEmail = emailInput?.value || selectedCustomer?.email;
-            const message = messageInput?.value || `Sayın ${selectedCustomer?.contactPerson || 'Yetkili'},\n\nEkte reklam alanları için hazırladığımız bütçe teklifimizi bulabilirsiniz.\n\nSaygılarımızla,\nÇınar Reklam Ajansı`;
+            const message = messageInput?.value || `Sayın ${selectedCustomer?.contactPerson || 'Yetkili'},\n\nEkte reklam alanları için hazırladığımız bütçe teklifimizi bulabilirsiniz.\n\nSaygılarımızla,\nİzmir Açıkhava Reklam Ajansı`;
 
             if (!recipientEmail) {
                 alert('Lütfen geçerli bir e-posta adresi girin.');
@@ -646,20 +659,52 @@ export default function SalesPage() {
             // Eğer selectedProposal yoksa (yeni teklif ise), önce teklifi kaydet
             let proposalId = selectedProposal?.id;
 
-            if (!proposalId && selectedCustomer) {
+            if (selectedCustomer) {
                 const userId = localStorage.getItem('userId') || '95959c2d-c5e1-454c-834f-3746d0a401c5';
 
-                const newProposal = await proposalsService.create({
-                    title: `${selectedCustomer.companyName} - Bütçe Teklifi`,
-                    client_id: selectedCustomer.id,
-                    created_by_id: userId,
-                    items: proposalItems.map(item => ({
-                        description: item.network ? `${item.code} - Network ${item.network}` : item.code,
-                        quantity: item.quantity,
-                        unit_price: item.unitPrice,
-                    }))
-                });
-                proposalId = newProposal.id;
+                const finalItems = proposalItems.map(item => ({
+                    description: `${item.network ? `${item.code} - Network ${item.network}` : item.code} (${durationWeeks} Hafta)`,
+                    quantity: item.quantity,
+                    unit_price: item.unitPrice * durationWeeks + (!isBlockList ? item.operationCost : 0),
+                }));
+
+                if (isBlockList) {
+                    const totalOpCost = proposalItems.reduce((sum, item) => sum + item.operationCost, 0);
+                    if (totalOpCost > 0) {
+                        finalItems.push({
+                            description: 'Operasyon Maliyeti (Blok Liste)',
+                            quantity: 1,
+                            unit_price: totalOpCost
+                        });
+                    }
+                }
+
+                if (proposalId) {
+                    // Mevcut teklifi güncelle
+                    await proposalsService.update(proposalId, {
+                        title: `${selectedCustomer.companyName} - Bütçe Teklifi`,
+                        description: getWeekRangeText(),
+                        subtotal: calculateSubtotal(),
+                        tax_rate: kdvRate,
+                        tax_amount: calculateKDV(),
+                        total: calculateGrandTotal(),
+                        items: finalItems
+                    });
+                } else {
+                    // Yeni teklif oluştur
+                    const newProposal = await proposalsService.create({
+                        title: `${selectedCustomer.companyName} - Bütçe Teklifi`,
+                        description: getWeekRangeText(),
+                        client_id: selectedCustomer.id,
+                        created_by_id: userId,
+                        subtotal: calculateSubtotal(),
+                        tax_rate: kdvRate,
+                        tax_amount: calculateKDV(),
+                        total: calculateGrandTotal(),
+                        items: finalItems
+                    });
+                    proposalId = newProposal.id;
+                }
             }
 
             if (!proposalId) {
@@ -730,18 +775,50 @@ export default function SalesPage() {
         try {
             const userId = localStorage.getItem('userId') || '95959c2d-c5e1-454c-834f-3746d0a401c5' // Fallback to Ali's ID if not found
 
-            await proposalsService.create({
-                title: `${selectedCustomer.companyName} - Bütçe Teklifi`,
-                client_id: selectedCustomer.id,
-                created_by_id: userId,
-                items: proposalItems.map(item => ({
-                    description: item.network ? `${item.code} - Network ${item.network}` : item.code,
-                    quantity: item.quantity,
-                    unit_price: item.unitPrice,
-                }))
-            })
+            const finalItems = proposalItems.map(item => ({
+                description: `${item.network ? `${item.code} - Network ${item.network}` : item.code} (${durationWeeks} Hafta)`,
+                quantity: item.quantity,
+                unit_price: item.unitPrice * durationWeeks + (!isBlockList ? item.operationCost : 0),
+            }));
 
-            success('Teklif taslağı başarıyla kaydedildi.')
+            if (isBlockList) {
+                const totalOpCost = proposalItems.reduce((sum, item) => sum + item.operationCost, 0);
+                if (totalOpCost > 0) {
+                    finalItems.push({
+                        description: 'Operasyon Maliyeti (Blok Liste)',
+                        quantity: 1,
+                        unit_price: totalOpCost
+                    });
+                }
+            }
+
+            if (selectedProposal) {
+                // Mevcut teklifi güncelle
+                await proposalsService.update(selectedProposal.id, {
+                    title: `${selectedCustomer.companyName} - Bütçe Teklifi`,
+                    description: getWeekRangeText(),
+                    subtotal: calculateSubtotal(),
+                    tax_rate: kdvRate,
+                    tax_amount: calculateKDV(),
+                    total: calculateGrandTotal(),
+                    items: finalItems
+                })
+                success('Teklif başarıyla güncellendi.')
+            } else {
+                // Yeni teklif oluştur
+                await proposalsService.create({
+                    title: `${selectedCustomer.companyName} - Bütçe Teklifi`,
+                    description: getWeekRangeText(),
+                    client_id: selectedCustomer.id,
+                    created_by_id: userId,
+                    subtotal: calculateSubtotal(),
+                    tax_rate: kdvRate,
+                    tax_amount: calculateKDV(),
+                    total: calculateGrandTotal(),
+                    items: finalItems
+                })
+                success('Teklif taslağı başarıyla kaydedildi.')
+            }
             setShowProposalModal(false)
             fetchData() // Refresh data
             setActiveTab('sent') // Gönderilen Teklifler sekmesine geç
@@ -934,6 +1011,8 @@ export default function SalesPage() {
                                     <button
                                         onClick={() => {
                                             setSelectedCustomer(customer)
+                                            setSelectedProposal(null)
+                                            setProposalItems([{ type: 'BB', code: 'Billboard', quantity: 0, unitPrice: 3500, operationCost: 400, network: '' }])
                                             setShowProposalModal(true)
                                         }}
                                         className="flex-1 px-3 py-2 text-sm font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
@@ -980,105 +1059,83 @@ export default function SalesPage() {
                         ))}
                     </div>
                 </div>
-            )
-            }
+            )}
 
-            {
-                activeTab === 'sent' && (
-                    <div className="space-y-4">
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                            <div className="p-6 border-b border-gray-100">
-                                <h3 className="text-lg font-semibold text-gray-900">Gönderilen Teklifler</h3>
-                                <p className="text-sm text-gray-500">Müşteriye mail ile iletilen teklifler</p>
+            {activeTab === 'proposals' && (
+                <div className="space-y-4">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900">Bütçe Teklifleri</h3>
+                                <p className="text-sm text-gray-500">Hazırlanan ve revize bekleyen tüm teklifler</p>
                             </div>
-                            <div className="divide-y divide-gray-100">
-                                {proposals.filter(p => p.status === 'sent' || p.status === 'approved').map((proposal) => (
+                        </div>
+                        <div className="divide-y divide-gray-100">
+                            {proposals.length > 0 ? (
+                                proposals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((proposal) => (
                                     <div key={proposal.id} className="p-6 hover:bg-gray-50 transition-colors">
                                         <div className="flex items-center justify-between mb-3">
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 ${proposal.status === 'approved' ? 'bg-blue-100' : 'bg-green-100'} rounded-lg flex items-center justify-center`}>
-                                                    {proposal.status === 'approved' ? <CheckCircle className="w-5 h-5 text-blue-600" /> : <Check className="w-5 h-5 text-green-600" />}
+                                                <div className={`w-10 h-10 ${proposal.status === 'draft' ? 'bg-yellow-100' :
+                                                    proposal.status === 'sent' ? 'bg-green-100' :
+                                                        proposal.status === 'approved' ? 'bg-blue-100' : 'bg-gray-100'} rounded-lg flex items-center justify-center`}>
+                                                    <FileText className={`w-5 h-5 ${proposal.status === 'draft' ? 'text-yellow-600' :
+                                                        proposal.status === 'sent' ? 'text-green-600' :
+                                                            proposal.status === 'approved' ? 'text-blue-600' : 'text-gray-600'}`} />
                                                 </div>
                                                 <div>
                                                     <div className="flex items-center gap-2">
-                                                        <h4 className="font-medium text-gray-900">{proposal.proposalNumber || proposal.id} - {proposal.customerName}</h4>
-                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${proposal.status === 'approved' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
-                                                            {proposal.status === 'approved' ? 'ONAYLANDI' : 'GÖNDERİLDİ'}
+                                                        <h4 className="font-medium text-gray-900">{proposal.proposalNumber ? `${proposal.proposalNumber} - ` : ''}{proposal.customerName}</h4>
+                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${proposal.status === 'draft' ? 'bg-yellow-100 text-yellow-700' :
+                                                            proposal.status === 'sent' ? 'bg-green-100 text-green-700' :
+                                                                proposal.status === 'approved' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                                                            }`}>
+                                                            {proposal.status === 'draft' ? 'TASLAK' :
+                                                                proposal.status === 'sent' ? 'GÖNDERİLDİ' :
+                                                                    proposal.status === 'approved' ? 'ONAYLANDI' : proposal.status}
                                                         </span>
                                                     </div>
-                                                    <p className="text-sm text-gray-500">Gönderim: {proposal.sentAt}</p>
+                                                    <p className="text-sm text-gray-500">Oluşturma: {proposal.createdAt}</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-4">
-                                                <span className="text-lg font-semibold text-gray-900">₺{proposal.totalAmount.toLocaleString()}</span>
+                                                <div className="text-right">
+                                                    <p className="text-lg font-bold text-gray-900">₺{proposal.totalAmount.toLocaleString()}</p>
+                                                    <p className="text-[10px] text-gray-400">KDV Dahil</p>
+                                                </div>
                                                 <div className="flex gap-2">
-                                                    {proposal.status === 'sent' && (
-                                                        <div className="flex gap-2">
-                                                            <button
-                                                                onClick={() => {
-                                                                    setProposals(prev => prev.map(p =>
-                                                                        p.id === proposal.id ? { ...p, status: 'approved' } : p
-                                                                    ))
-                                                                    success('Teklif onaylandı olarak işaretlendi.')
-                                                                }}
-                                                                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                                                            >
-                                                                <CheckCircle className="w-4 h-4" />
-                                                                Onayla
-                                                            </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    // Müşteriyi bul ve seç
-                                                                    const customer = customers.find(c => c.id === proposal.customerId)
-                                                                    if (customer) {
-                                                                        setSelectedCustomer(customer)
-                                                                    }
+                                                    <button
+                                                        onClick={() => {
+                                                            const customer = customers.find(c => c.id === proposal.customerId)
+                                                            if (customer) {
+                                                                setSelectedCustomer(customer)
+                                                            }
+                                                            setSelectedProposal(proposal)
+                                                            setProposalItems([...proposal.items])
+                                                            setIsBlockList(proposal.isBlockList)
 
-                                                                    // Ürünleri ve diğer ayarları yükle
-                                                                    setProposalItems([...proposal.items])
-                                                                    setIsBlockList(proposal.isBlockList)
+                                                            // Süreyi ayıkla (Örn: "2 Hafta" -> 2)
+                                                            const duration = parseInt(proposal.usagePeriod || '1')
+                                                            setDurationWeeks(isNaN(duration) ? 1 : duration)
 
-                                                                    // Süreyi ayıkla (Örn: "2 Hafta" -> 2)
-                                                                    const duration = parseInt(proposal.usagePeriod || '1')
-                                                                    setDurationWeeks(isNaN(duration) ? 1 : duration)
+                                                            // Dönemi ayıkla
+                                                            if (proposal.weekInfo) {
+                                                                const parts = proposal.weekInfo.split(' ')
+                                                                if (parts.length >= 2) {
+                                                                    const mIdx = monthNames.indexOf(parts[0])
+                                                                    if (mIdx !== -1) setStartMonth(mIdx + 1)
+                                                                    const weekNum = parseInt(parts[1])
+                                                                    if (!isNaN(weekNum)) setStartWeek(weekNum)
+                                                                }
+                                                            }
 
-                                                                    // Dönemi ayıkla (Örn: "Ocak 1. Hafta - 2 Hafta")
-                                                                    if (proposal.weekInfo) {
-                                                                        const parts = proposal.weekInfo.split(' ')
-                                                                        if (parts.length >= 2) {
-                                                                            const monthName = parts[0]
-                                                                            const weekNum = parseInt(parts[1])
-                                                                            const mIdx = monthNames.indexOf(monthName)
-                                                                            if (mIdx !== -1) setStartMonth(mIdx + 1)
-                                                                            if (!isNaN(weekNum)) setStartWeek(weekNum)
-                                                                        }
-                                                                    }
-
-                                                                    // Bütçe sekmesine dön ve modalı aç
-                                                                    setActiveTab('proposals')
-                                                                    setShowProposalModal(true)
-
-                                                                    info('Teklif bilgileri yeni bütçe teklifi için kopyalandı.')
-                                                                }}
-                                                                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors"
-                                                            >
-                                                                <RefreshCw className="w-4 h-4" />
-                                                                Revize Et
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                    {proposal.status === 'approved' && (
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedProposal(proposal)
-                                                                setIsLocationModalOpen(true)
-                                                            }}
-                                                            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-sm"
-                                                        >
-                                                            <MapPin className="w-4 h-4" />
-                                                            Yer Talebi Oluştur
-                                                        </button>
-                                                    )}
+                                                            setShowProposalModal(true)
+                                                        }}
+                                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors shadow-sm"
+                                                    >
+                                                        <RefreshCw className="w-4 h-4" />
+                                                        Revize Et
+                                                    </button>
                                                     <button
                                                         onClick={() => {
                                                             if (window.confirm('Bu teklifi silmek istediğinize emin misiniz?')) {
@@ -1096,17 +1153,136 @@ export default function SalesPage() {
                                         </div>
                                         <div className="flex flex-wrap gap-2 ml-13">
                                             {proposal.items.map((item, idx) => (
-                                                <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-primary-50 text-primary-700">
+                                                <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-primary-50 text-primary-700 border border-primary-100">
                                                     {item.quantity} {item.code}
                                                 </span>
                                             ))}
                                         </div>
                                     </div>
-                                ))}
-                            </div>
+                                ))
+                            ) : (
+                                <div className="p-12 text-center text-gray-500">
+                                    <FileText className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                                    <p>Henüz herhangi bir teklif oluşturulmamış.</p>
+                                </div>
+                            )}
                         </div>
                     </div>
-                )
+                </div>
+            )}
+
+            {activeTab === 'sent' && (
+                <div className="space-y-4">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="p-6 border-b border-gray-100">
+                            <h3 className="text-lg font-semibold text-gray-900">Gönderilen Teklifler</h3>
+                            <p className="text-sm text-gray-500">Müşteriye mail ile iletilen teklifler</p>
+                        </div>
+                        <div className="divide-y divide-gray-100">
+                            {proposals.filter(p => p.status === 'sent' || p.status === 'approved').map((proposal) => (
+                                <div key={proposal.id} className="p-6 hover:bg-gray-50 transition-colors">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-10 h-10 ${proposal.status === 'approved' ? 'bg-blue-100' : 'bg-green-100'} rounded-lg flex items-center justify-center`}>
+                                                {proposal.status === 'approved' ? <CheckCircle className="w-5 h-5 text-blue-600" /> : <Check className="w-5 h-5 text-green-600" />}
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <h4 className="font-medium text-gray-900">{proposal.proposalNumber || proposal.id} - {proposal.customerName}</h4>
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${proposal.status === 'approved' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
+                                                        {proposal.status === 'approved' ? 'ONAYLANDI' : 'GÖNDERİLDİ'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-gray-500">Gönderim: {proposal.sentAt}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <span className="text-lg font-semibold text-gray-900">₺{proposal.totalAmount.toLocaleString()}</span>
+                                            <div className="flex gap-2">
+                                                {proposal.status === 'sent' && (
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => {
+                                                                setProposals(prev => prev.map(p =>
+                                                                    p.id === proposal.id ? { ...p, status: 'approved' } : p
+                                                                ))
+                                                                success('Teklif onaylandı olarak işaretlendi.')
+                                                            }}
+                                                            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                                                        >
+                                                            <CheckCircle className="w-4 h-4" />
+                                                            Onayla
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                // Müşteriyi bul ve seç
+                                                                const customer = customers.find(c => c.id === proposal.customerId)
+                                                                if (customer) {
+                                                                    setSelectedCustomer(customer)
+                                                                }
+                                                                setSelectedProposal(proposal)
+
+                                                                // Ürünleri ve diğer ayarları yükle
+                                                                setProposalItems([...proposal.items])
+                                                                setIsBlockList(proposal.isBlockList)
+
+                                                                // Süreyi ayıkla (Örn: "2 Hafta" -> 2)
+                                                                const duration = parseInt(proposal.usagePeriod || '1')
+                                                                setDurationWeeks(isNaN(duration) ? 1 : duration)
+
+                                                                // Dönemi ayıkla (Örn: "Ocak 1. Hafta - 2 Hafta")
+                                                                if (proposal.weekInfo) {
+                                                                    const parts = proposal.weekInfo.split(' ')
+                                                                    if (parts.length >= 2) {
+                                                                        const monthName = parts[0]
+                                                                        const weekNum = parseInt(parts[1])
+                                                                        const mIdx = monthNames.indexOf(monthName)
+                                                                        if (mIdx !== -1) setStartMonth(mIdx + 1)
+                                                                        if (!isNaN(weekNum)) setStartWeek(weekNum)
+                                                                    }
+                                                                }
+
+                                                                // Bütçe sekmesine dön ve modalı aç
+                                                                setActiveTab('proposals')
+                                                                setShowProposalModal(true)
+
+                                                                info('Teklif bilgileri yeni bütçe teklifi için kopyalandı.')
+                                                            }}
+                                                            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors"
+                                                        >
+                                                            <RefreshCw className="w-4 h-4" />
+                                                            Revize Et
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                <button
+                                                    onClick={() => {
+                                                        if (window.confirm('Bu teklifi silmek istediğinize emin misiniz?')) {
+                                                            handleDeleteProposal(proposal.id)
+                                                        }
+                                                    }}
+                                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                                                    title="Sil"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                    Sil
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 ml-13">
+                                        {proposal.items.map((item, idx) => (
+                                            <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-primary-50 text-primary-700">
+                                                {item.quantity} {item.code}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )
             }
 
             {/* Müşteri Kartı Modal */}

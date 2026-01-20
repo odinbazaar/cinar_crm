@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect } from 'react'
 import { FileSpreadsheet, MapPin, Search, Filter, Calendar, Clock, Check, X, CheckCircle, Smartphone, RefreshCw, ChevronRight, ChevronLeft, Download, Plus, Trash2, AlertCircle, CalendarDays, Send } from 'lucide-react'
 import { reservationsData } from '../data/reservations'
 import { useToast } from '../hooks/useToast'
-import { inventoryService, bookingsService, customerRequestsService } from '../services'
+import { inventoryService, bookingsService, customerRequestsService, proposalsService } from '../services'
+import LocationRequestModal from '../components/proposals/LocationRequestModal'
 
 // Lokasyon tipi
 interface Location {
@@ -105,10 +106,13 @@ export default function ReservationsPage() {
     const districtOptions = useMemo(() => ['Tümü', ...Array.from(new Set(locations.map(l => l.ilce)))], [locations])
     const neighborhoodOptions = useMemo(() => ['Tümü', ...Array.from(new Set(locations.map(l => l.semt)))], [locations])
 
-    const [activeTab, setActiveTab] = useState<'list' | 'requests'>('list')
+    const [activeTab, setActiveTab] = useState<'list' | 'requests' | 'proposals'>('list')
     const [reservationRequests, setReservationRequests] = useState<any[]>([])
     const [isLoadingRequests, setIsLoadingRequests] = useState(false)
     const [isLoadingLocations, setIsLoadingLocations] = useState(false)
+    const [proposals, setProposals] = useState<any[]>([])
+    const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
+    const [selectedProposal, setSelectedProposal] = useState<any | null>(null)
 
     // Onay modalı için state'ler
     const [showProcessModal, setShowProcessModal] = useState(false)
@@ -127,6 +131,16 @@ export default function ReservationsPage() {
             return `${parts[2]}.${parts[1]}.${parts[0]}`; // Convert to DD.MM.YYYY
         }
         return dateStr; // Already in DD.MM.YYYY format
+    };
+
+    // Helper function to convert DD.MM.YYYY to YYYY-MM-DD for backend
+    const toBackendDate = (dateStr: string): string => {
+        if (!dateStr) return '';
+        if (dateStr.includes('.')) {
+            const [d, m, y] = dateStr.split('.');
+            return `${y}-${m}-${d}`;
+        }
+        return dateStr;
     };
 
     const fetchData = async () => {
@@ -159,11 +173,14 @@ export default function ReservationsPage() {
             });
             setReservationRequests(mappedRequests);
 
-            // 2. Fetch Inventory and Bookings
-            const [inventory, bookings] = await Promise.all([
+            // 2. Fetch Inventory, Bookings and Proposals
+            const [inventory, bookings, proposalsData] = await Promise.all([
                 inventoryService.getAll(),
-                bookingsService.getAll()
+                bookingsService.getAll(),
+                proposalsService.getAll()
             ]);
+
+            setProposals(proposalsData);
 
 
             // Combine inventory with bookings to create UI locations
@@ -400,7 +417,7 @@ export default function ReservationsPage() {
                 return;
             }
 
-            const brandUpper = selectedRequest.brandName.toUpperCase();
+            const brandUpper = (selectedRequest.customerName || selectedRequest.brandName).toUpperCase();
 
             // Perform assignments
             for (const { item, booking } of toAssign) {
@@ -420,8 +437,8 @@ export default function ReservationsPage() {
                         inventory_item_id: item.id,
                         brand_name: selectedRequest.brandName,
                         network: String(selectedRequest.network),
-                        start_date: targetWeek,
-                        end_date: targetWeek,
+                        start_date: toBackendDate(targetWeek),
+                        end_date: toBackendDate(targetWeek),
                         status: 'OPSİYON',
                         brand_option_1: brandUpper
                     });
@@ -518,7 +535,7 @@ export default function ReservationsPage() {
     // Otomatik atama (Macro benzeri)
     const handleAutoAssign = async () => {
         if (!brandName.trim()) {
-            alert('Lütfen marka adı girin!')
+            alert('Lütfen ticari ünvan girin!')
             return
         }
 
@@ -548,8 +565,8 @@ export default function ReservationsPage() {
                         brand_option_2: newLoc.marka2Opsiyon,
                         brand_option_3: newLoc.marka3Opsiyon,
                         brand_option_4: newLoc.marka4Opsiyon,
-                        start_date: selectedWeek,
-                        end_date: selectedWeek,
+                        start_date: toBackendDate(selectedWeek),
+                        end_date: toBackendDate(selectedWeek),
                         status: newLoc.durum,
                         network: String(selectedNetwork)
                     };
@@ -566,7 +583,7 @@ export default function ReservationsPage() {
 
             setLocations(updated as any)
             localStorage.setItem('inventoryLocations', JSON.stringify(updated))
-            toastSuccess(`${selectedRows.length} adet lokasyona ${brandUpper} markası atandı!`)
+            toastSuccess(`${selectedRows.length} adet lokasyona ${brandUpper} ticari ünvanı atandı!`)
         } catch (error) {
             console.error('Auto assign error:', error);
             toastInfo('Bazı kayıtlar güncellenemedi.');
@@ -691,8 +708,8 @@ export default function ReservationsPage() {
                         // Create new booking with KESİN status
                         await bookingsService.create({
                             inventory_item_id: loc.id,
-                            start_date: selectedWeek,
-                            end_date: selectedWeek,
+                            start_date: toBackendDate(selectedWeek),
+                            end_date: toBackendDate(selectedWeek),
                             status: 'KESİN',
                             network: String(selectedNetwork),
                             brand_option_1: loc.marka1Opsiyon || '',
@@ -778,8 +795,8 @@ export default function ReservationsPage() {
                             brand_option_2: newLoc.marka2Opsiyon,
                             brand_option_3: newLoc.marka3Opsiyon,
                             brand_option_4: newLoc.marka4Opsiyon,
-                            start_date: selectedWeek,
-                            end_date: selectedWeek,
+                            start_date: toBackendDate(selectedWeek),
+                            end_date: toBackendDate(selectedWeek),
                             status: newLoc.durum,
                             network: String(selectedNetwork)
                         };
@@ -815,6 +832,10 @@ export default function ReservationsPage() {
         bos: filteredLocations.filter(l => l.durum === 'BOŞ').length,
     }
 
+    const approvedProposals = useMemo(() => {
+        return proposals.filter(p => p.status?.toLowerCase() === 'approved' || p.status?.toLowerCase() === 'sent');
+    }, [proposals]);
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -839,8 +860,25 @@ export default function ReservationsPage() {
                     </div>
                 </button>
                 <button
+                    onClick={() => setActiveTab('proposals')}
+                    className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'proposals'
+                        ? 'border-primary-600 text-primary-600 bg-primary-50'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 font-bold'
+                        } `}
+                >
+                    <div className="flex items-center gap-2">
+                        <FileSpreadsheet className="w-4 h-4" />
+                        Onaylı Teklifler
+                        {approvedProposals.length > 0 && (
+                            <span className="bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                                {approvedProposals.length}
+                            </span>
+                        )}
+                    </div>
+                </button>
+                <button
                     onClick={() => setActiveTab('requests')}
-                    className={`px-6 py-3 text-sm font - medium border-b - 2 transition - colors ${activeTab === 'requests'
+                    className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'requests'
                         ? 'border-primary-600 text-primary-600 bg-primary-50'
                         : 'border-transparent text-gray-500 hover:text-gray-700 font-bold'
                         } `}
@@ -857,7 +895,7 @@ export default function ReservationsPage() {
                 </button>
             </div>
 
-            {activeTab === 'list' ? (
+            {activeTab === 'list' && (
                 <>
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                         <div className="flex justify-between items-center mb-4">
@@ -1135,10 +1173,10 @@ export default function ReservationsPage() {
                                         <th className="px-3 py-3 text-left font-semibold">Kod</th>
                                         <th className="px-3 py-3 text-left font-semibold">Network</th>
                                         <th className="px-3 py-3 text-left font-semibold">Rout No</th>
-                                        <th className="px-3 py-3 text-left font-semibold bg-green-700">Marka 1.Opsiyon</th>
-                                        <th className="px-3 py-3 text-left font-semibold bg-green-700">Marka 2.Opsiyon</th>
-                                        <th className="px-3 py-3 text-left font-semibold bg-green-700">Marka 3.Opsiyon</th>
-                                        <th className="px-3 py-3 text-left font-semibold bg-green-700">Marka 4.Opsiyon</th>
+                                        <th className="px-3 py-3 text-left font-semibold bg-green-700">Ticari Ünvan 1.Opsiyon</th>
+                                        <th className="px-3 py-3 text-left font-semibold bg-green-700">Ticari Ünvan 2.Opsiyon</th>
+                                        <th className="px-3 py-3 text-left font-semibold bg-green-700">Ticari Ünvan 3.Opsiyon</th>
+                                        <th className="px-3 py-3 text-left font-semibold bg-green-700">Ticari Ünvan 4.Opsiyon</th>
                                         <th className="px-3 py-3 text-left font-semibold">Durum</th>
                                     </tr>
                                 </thead>
@@ -1208,7 +1246,7 @@ export default function ReservationsPage() {
                         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
                                 <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                                    <h2 className="text-xl font-semibold text-gray-900">Otomatik Marka Atama</h2>
+                                    <h2 className="text-xl font-semibold text-gray-900">Otomatik Ticari Ünvan Atama</h2>
                                     <button onClick={() => setShowAssignModal(false)} className="text-gray-400 hover:text-gray-600">
                                         <X className="w-6 h-6" />
                                     </button>
@@ -1217,7 +1255,7 @@ export default function ReservationsPage() {
                                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                         <p className="text-sm text-blue-800">
                                             <strong>{selectedRows.length}</strong> adet lokasyon seçildi.
-                                            Bu lokasyonlara otomatik olarak marka ataması yapılacak.
+                                            Bu lokasyonlara otomatik olarak ticari ünvan ataması yapılacak.
                                         </p>
                                     </div>
                                     <div>
@@ -1239,12 +1277,12 @@ export default function ReservationsPage() {
                                         <p className="text-xs text-gray-500 mt-2">Hangi opsiyon alanına marka atanacak?</p>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Marka Adı</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Ticari Ünvan</label>
                                         <input
                                             type="text"
                                             value={brandName}
                                             onChange={(e) => setBrandName(e.target.value)}
-                                            placeholder="Örn: FORD, TOYOTA, BMW"
+                                            placeholder="Örn: AZİMEDYA REKLAM HİZMETLERİ LTD. ŞTİ."
                                             className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
                                         />
                                     </div>
@@ -1302,18 +1340,18 @@ export default function ReservationsPage() {
                                         <label className="block text-sm font-bold text-gray-700 mb-2">Hangi Markayı Kaydırmak İstiyorsunuz?</label>
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                             {[1, 2, 3, 4].map((num) => {
-                                                const brand = (locations.find(l => l.id === selectedRows[0]) as any)?.[`marka${num} Opsiyon`];
+                                                const brand = (locations.find(l => l.id === selectedRows[0]) as any)?.[`marka${num}Opsiyon`];
                                                 return (
                                                     <button
                                                         key={num}
                                                         onClick={() => setReviseSlot(num as 1 | 2 | 3 | 4)}
                                                         disabled={!brand}
-                                                        className={`p - 3 rounded-xl border-2 transition - all flex flex - col items-center justify-center gap-1 ${reviseSlot === num
+                                                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1 ${reviseSlot === num
                                                             ? 'border-orange-500 bg-orange-50 text-orange-700 shadow-md'
                                                             : brand
                                                                 ? 'border-gray-200 bg-white hover:border-gray-300'
                                                                 : 'border-gray-100 bg-gray-50 opacity-40 cursor-not-allowed'
-                                                            } `}
+                                                            }`}
                                                     >
                                                         <span className="text-[10px] font-bold uppercase tracking-wider">Opsiyon {num}</span>
                                                         <span className="text-sm font-black truncate w-full text-center">{brand || '-'}</span>
@@ -1382,9 +1420,91 @@ export default function ReservationsPage() {
                                 </div>
                             </div>
                         </div>
-                    )}
                 </>
-            ) : (
+            )}
+
+            {activeTab === 'proposals' && (
+                <div className="space-y-6">
+                    <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100">
+                        <div className="flex items-center gap-4 mb-8">
+                            <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center">
+                                <FileSpreadsheet className="w-6 h-6 text-blue-600" />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900">Onaylı Bütçe Teklifleri</h2>
+                                <p className="text-gray-500">Yer talebi oluşturulmayı bekleyen onaylı teklifler</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4">
+                            {approvedProposals.length > 0 ? (
+                                approvedProposals.map((proposal) => (
+                                    <div key={proposal.id} className="group p-6 bg-gray-50 rounded-2xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm border border-gray-100">
+                                                    <CheckCircle className="w-6 h-6 text-blue-600" />
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <h4 className="font-bold text-gray-900 text-lg">
+                                                            {proposal.proposal_number || proposal.id} - {proposal.client?.company_name || proposal.customerName}
+                                                        </h4>
+                                                        <span className="px-2.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-black rounded-full uppercase">
+                                                            ONAYLANDI
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                                                        <span className="flex items-center gap-1">
+                                                            <Calendar className="w-3.5 h-3.5" />
+                                                            {proposal.created_at ? new Date(proposal.created_at).toLocaleDateString('tr-TR') : '-'}
+                                                        </span>
+                                                        <span className="font-bold text-gray-900">
+                                                            ₺{proposal.total?.toLocaleString() || proposal.totalAmount?.toLocaleString()}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedProposal({
+                                                        ...proposal,
+                                                        customerName: proposal.client?.company_name || proposal.customerName,
+                                                        proposalNumber: proposal.proposal_number || proposal.id,
+                                                        grandTotal: proposal.total || proposal.totalAmount,
+                                                        kdvAmount: proposal.tax_amount || proposal.kdvAmount,
+                                                        createdAt: proposal.created_at,
+                                                        items: (proposal.items || []).map((item: any) => ({
+                                                            code: item.description,
+                                                            quantity: item.quantity,
+                                                            unitPrice: item.unit_price
+                                                        }))
+                                                    });
+                                                    setIsLocationModalOpen(true);
+                                                }}
+                                                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
+                                            >
+                                                <MapPin className="w-5 h-5" />
+                                                Yer Talebi Oluştur
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="py-20 text-center bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+                                    <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                                        <FileSpreadsheet className="w-10 h-10 text-gray-300" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-gray-900">Onaylı Teklif Bulunamadı</h3>
+                                    <p className="text-gray-500">Yer talebi oluşturulabilecek onaylanmış bütçe teklifi bulunmuyor.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'requests' && (
                 <div className="space-y-6">
                     {/* Gelen Talepler Sekmesi */}
                     <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
@@ -1529,8 +1649,39 @@ export default function ReservationsPage() {
                         )}
                     </div>
                 </div>
-            )
-            }
+            )}
+
+            <LocationRequestModal
+                isOpen={isLocationModalOpen}
+                onClose={() => setIsLocationModalOpen(false)}
+                proposal={selectedProposal ? {
+                    id: selectedProposal.id,
+                    proposal_number: selectedProposal.proposalNumber || selectedProposal.id,
+                    title: `Teklif - ${selectedProposal.customerName}`,
+                    client_id: selectedProposal.client_id || selectedProposal.customerId,
+                    created_by_id: 'admin',
+                    client: { name: selectedProposal.customerName } as any,
+                    items: (selectedProposal.items || []).map((item: any, i: number) => ({
+                        id: String(i),
+                        proposal_id: selectedProposal.id,
+                        description: item.code,
+                        quantity: item.quantity,
+                        unit_price: item.unitPrice,
+                        total: item.quantity * item.unitPrice,
+                        order: i
+                    })),
+                    status: (selectedProposal.status || '').toUpperCase(),
+                    subtotal: selectedProposal.subtotal || selectedProposal.totalAmount,
+                    tax_rate: selectedProposal.tax_rate || 20,
+                    tax_amount: selectedProposal.tax_amount || selectedProposal.kdvAmount,
+                    total: selectedProposal.total || selectedProposal.grandTotal,
+                    created_at: selectedProposal.created_at || selectedProposal.createdAt,
+                    updated_at: selectedProposal.updated_at || selectedProposal.createdAt
+                } as any : null}
+                onComplete={() => {
+                    fetchData();
+                }}
+            />
 
             {/* Talep İşleme Onay Modalı */}
             {showProcessModal && selectedRequest && (

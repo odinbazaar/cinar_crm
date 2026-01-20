@@ -41,6 +41,10 @@ export interface CreateProposalDto {
     description?: string;
     terms?: string;
     valid_until?: Date;
+    subtotal?: number;
+    tax_rate?: number;
+    tax_amount?: number;
+    total?: number;
     items: CreateProposalItemDto[];
 }
 

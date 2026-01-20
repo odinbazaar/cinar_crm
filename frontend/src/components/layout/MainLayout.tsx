@@ -63,10 +63,10 @@ export default function MainLayout({ onLogout }: MainLayoutProps) {
                 <div className="h-16 flex items-center justify-between px-6 border-b border-gray-200">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-lg flex items-center justify-center">
-                            <span className="text-xl font-bold text-white">Ç</span>
+                            <span className="text-xl font-bold text-white">İ</span>
                         </div>
                         <div>
-                            <h1 className="text-lg font-bold text-gray-900">Çınar CRM</h1>
+                            <h1 className="text-lg font-bold text-gray-900">İzmir Açıkhava CRM</h1>
                             <p className="text-xs text-gray-500">Reklam Ajansı</p>
                         </div>
                     </div>
