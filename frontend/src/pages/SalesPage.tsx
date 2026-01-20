@@ -34,7 +34,7 @@ import { useToast } from '../hooks/useToast'
 import { clientsService } from '../services/clientsService'
 import { proposalsService } from '../services/proposalsService'
 import { customerRequestsService } from '../services/customerRequestsService'
-import { incomingCallsService } from '../services/incomingCallsService'
+import { incomingCallsService, type IncomingCall } from '../services/incomingCallsService'
 import { inventoryService, type InventoryItem } from '../services/inventoryService'
 
 // Müşteri tipi
@@ -137,6 +137,8 @@ export default function SalesPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [networkCounts, setNetworkCounts] = useState<Record<string, Record<string, number>>>({})
     const [pendingIncomingCallId, setPendingIncomingCallId] = useState<string | null>(null)
+    const [incomingCalls, setIncomingCalls] = useState<IncomingCall[]>([])
+    const [showCompanySuggestions, setShowCompanySuggestions] = useState(false)
     const location = useLocation()
 
     // Fetch data on mount
@@ -295,7 +297,9 @@ export default function SalesPage() {
             })
             setNetworkCounts(counts)
 
-            // Fetch incoming calls (Arayan Firmalar) - Removed from here
+            // Fetch incoming calls (Arayan Firmalar)
+            const callsData = await incomingCallsService.getAll()
+            setIncomingCalls(callsData)
         } catch (error) {
             console.error('Data fetch error:', error)
             info('Veriler sunucudan alınırken bir hata oluştu.')
@@ -1334,17 +1338,67 @@ export default function SalesPage() {
                                 {/* Şirket Bilgileri Tab */}
                                 {customerModalTab === 'company' && (
                                     <>
-                                        <div>
+                                        <div className="relative">
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                                 Şirket Unvanı <span className="text-red-500">*</span>
                                             </label>
                                             <input
                                                 type="text"
                                                 value={customerForm.companyName}
-                                                onChange={(e) => setCustomerForm({ ...customerForm, companyName: e.target.value })}
+                                                onChange={(e) => {
+                                                    setCustomerForm({ ...customerForm, companyName: e.target.value })
+                                                    setShowCompanySuggestions(e.target.value.length > 0)
+                                                }}
+                                                onFocus={() => setShowCompanySuggestions(customerForm.companyName.length > 0 || incomingCalls.length > 0)}
+                                                onBlur={() => setTimeout(() => setShowCompanySuggestions(false), 200)}
                                                 className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                placeholder="Örn: ABC Holding A.Ş."
+                                                placeholder="Yazın veya Arayan Firmalardan seçin..."
                                             />
+                                            {/* Arayan Firmalar Dropdown */}
+                                            {showCompanySuggestions && (
+                                                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                                                    {incomingCalls
+                                                        .filter(call =>
+                                                            call.company_name?.toLowerCase().includes(customerForm.companyName.toLowerCase()) ||
+                                                            customerForm.companyName === ''
+                                                        )
+                                                        .slice(0, 10)
+                                                        .map((call) => (
+                                                            <button
+                                                                key={call.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setCustomerForm({
+                                                                        ...customerForm,
+                                                                        companyName: `"${call.company_name || ''}"`,
+                                                                        contactPerson: call.contact_person || customerForm.contactPerson,
+                                                                        phone: call.phone || customerForm.phone,
+                                                                        email: call.email || customerForm.email,
+                                                                        notes: call.notes || customerForm.notes,
+                                                                        requestDetail: call.request_detail || customerForm.requestDetail,
+                                                                        calledPhone: call.called_phone || customerForm.calledPhone
+                                                                    })
+                                                                    setPendingIncomingCallId(call.id)
+                                                                    setShowCompanySuggestions(false)
+                                                                }}
+                                                                className="w-full px-4 py-3 text-left hover:bg-primary-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                                                            >
+                                                                <div className="font-semibold text-gray-900">{call.company_name}</div>
+                                                                <div className="text-xs text-gray-500 flex items-center gap-2 mt-0.5">
+                                                                    {call.contact_person && <span>{call.contact_person}</span>}
+                                                                    {call.phone && <span>• {call.phone}</span>}
+                                                                </div>
+                                                            </button>
+                                                        ))
+                                                    }
+                                                    {incomingCalls.filter(call =>
+                                                        call.company_name?.toLowerCase().includes(customerForm.companyName.toLowerCase()) ||
+                                                        customerForm.companyName === ''
+                                                    ).length === 0 && (
+                                                            <div className="px-4 py-3 text-gray-500 text-sm">Eşleşen kayıt bulunamadı</div>
+                                                        )}
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>

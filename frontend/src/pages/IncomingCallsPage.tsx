@@ -251,8 +251,17 @@ export default function IncomingCallsPage() {
                         className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     />
                 </div>
-                <div className="text-sm text-gray-500 self-center">
-                    {filteredCalls.length} / {incomingCalls.length} kayıt gösteriliyor
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => setShowAddCallModal(true)}
+                        className="px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-orange-500 to-red-600 rounded-xl shadow-lg shadow-orange-200 hover:shadow-orange-300 hover:scale-105 transition-all active:scale-95 flex items-center gap-2"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Yeni Müşteri Ekle
+                    </button>
+                    <div className="text-sm text-gray-500">
+                        {filteredCalls.length} / {incomingCalls.length} kayıt gösteriliyor
+                    </div>
                 </div>
             </div>
 
