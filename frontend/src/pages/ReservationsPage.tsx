@@ -849,10 +849,10 @@ export default function ReservationsPage() {
             <div className="flex border-b border-gray-200">
                 <button
                     onClick={() => setActiveTab('list')}
-                    className={`px-6 py-3 text-sm font - medium border-b - 2 transition - colors ${activeTab === 'list'
+                    className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'list'
                         ? 'border-primary-600 text-primary-600 bg-primary-50'
                         : 'border-transparent text-gray-500 hover:text-gray-700'
-                        } `}
+                        }`}
                 >
                     <div className="flex items-center gap-2">
                         <CalendarDays className="w-4 h-4" />
@@ -881,7 +881,7 @@ export default function ReservationsPage() {
                     className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'requests'
                         ? 'border-primary-600 text-primary-600 bg-primary-50'
                         : 'border-transparent text-gray-500 hover:text-gray-700 font-bold'
-                        } `}
+                        }`}
                 >
                     <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4" />
@@ -1265,10 +1265,10 @@ export default function ReservationsPage() {
                                                 <button
                                                     key={num}
                                                     onClick={() => setSelectedOpsiyonNumber(num as 1 | 2 | 3 | 4)}
-                                                    className={`px-4 py-2 rounded-lg text-sm font - medium transition - colors ${selectedOpsiyonNumber === num
+                                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedOpsiyonNumber === num
                                                         ? 'bg-primary-600 text-white'
                                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                                        } `}
+                                                        }`}
                                                 >
                                                     {num}. Opsiyon
                                                 </button>
@@ -1378,7 +1378,7 @@ export default function ReservationsPage() {
                                                         <tr
                                                             key={loc.id}
                                                             onClick={() => setReviseTargetId(loc.id)}
-                                                            className={`cursor - pointer transition - colors ${reviseTargetId === loc.id ? 'bg-orange-50' : 'hover:bg-gray-50'} `}
+                                                            className={`cursor-pointer transition-colors ${reviseTargetId === loc.id ? 'bg-orange-50' : 'hover:bg-gray-50'}`}
                                                         >
                                                             <td className="p-2 font-bold">{loc.kod}</td>
                                                             <td className="p-2">
@@ -1386,12 +1386,12 @@ export default function ReservationsPage() {
                                                                 <p className="text-[10px] text-gray-500">{loc.ilce} / {loc.semt}</p>
                                                             </td>
                                                             <td className="p-2 text-[10px]">
-                                                                <span className={`px-1.5 py-0.5 rounded-full font - bold ${loc.durum === 'BOŞ' ? 'bg-gray-100 text-gray-500' : 'bg-yellow-100 text-yellow-700'} `}>
+                                                                <span className={`px-1.5 py-0.5 rounded-full font-bold ${loc.durum === 'BOŞ' ? 'bg-gray-100 text-gray-500' : 'bg-yellow-100 text-yellow-700'}`}>
                                                                     {loc.durum === 'BOŞ' ? 'BOŞ' : 'DOLU'}
                                                                 </span>
                                                             </td>
                                                             <td className="p-2 text-center">
-                                                                <div className={`w-5 h-5 rounded-full border-2 mx-auto flex items-center justify-center transition - all ${reviseTargetId === loc.id ? 'border-orange-500 bg-orange-500 text-white' : 'border-gray-300'} `}>
+                                                                <div className={`w-5 h-5 rounded-full border-2 mx-auto flex items-center justify-center transition-all ${reviseTargetId === loc.id ? 'border-orange-500 bg-orange-500 text-white' : 'border-gray-300'}`}>
                                                                     {reviseTargetId === loc.id && <Check className="w-3 h-3" />}
                                                                 </div>
                                                             </td>
@@ -1420,6 +1420,7 @@ export default function ReservationsPage() {
                                 </div>
                             </div>
                         </div>
+                    )}
                 </>
             )}
 
