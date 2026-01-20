@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import supabase from '../config/supabase.config';
 import { Proposal, CreateProposalDto, UpdateProposalDto } from './proposals.dto';
-import * as PDFDocument from 'pdfkit';
+import PDFDocument from 'pdfkit';
 
 @Injectable()
 export class ProposalsService {
@@ -280,7 +280,7 @@ export class ProposalsService {
         if (!proposal) throw new Error('Teklif bulunamadı');
 
         return new Promise((resolve, reject) => {
-            const doc = new (PDFDocument as any)({ margin: 50, size: 'A4' });
+            const doc = new PDFDocument({ margin: 50, size: 'A4' });
             const buffers: Buffer[] = [];
 
             doc.on('data', buffers.push.bind(buffers));
