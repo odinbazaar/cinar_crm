@@ -50,7 +50,18 @@ export class ProposalsController {
         @Param('id') id: string,
         @Body() body: { recipientEmail?: string; message?: string },
     ) {
-        return this.proposalsService.sendProposalEmail(id, body.recipientEmail, body.message);
+        try {
+            console.log(`📧 E-posta gönderme isteği: ID=${id}, TO=${body.recipientEmail}`);
+            const result = await this.proposalsService.sendProposalEmail(id, body.recipientEmail, body.message);
+            console.log(`✅ E-posta gönderildi:`, result);
+            return result;
+        } catch (error) {
+            console.error(`❌ E-posta gönderme hatası:`, error);
+            return {
+                success: false,
+                message: error.message || 'Bilinmeyen bir hata oluştu'
+            };
+        }
     }
 
     @Delete(':id')
