@@ -34,16 +34,34 @@ export class MailService {
         this.logger.log(`📧 Mail user: ${this.mailConfig.auth.user}`);
     }
 
-    private createTransporter(): nodemailer.Transporter {
-        return nodemailer.createTransport(this.mailConfig);
+    private createTransporter(auth?: { user: string; pass: string }): nodemailer.Transporter {
+        const config = { ...this.mailConfig };
+        if (auth) {
+            config.auth = auth;
+        }
+        return nodemailer.createTransport(config);
     }
 
     async sendMail(to: string, subject: string, html: string, text?: string, attachments?: any[], fromEmail?: string) {
         const maxRetries = 3;
         let lastError: any;
 
+        // Gönderici adresine göre kimlik doğrulama bilgilerini belirle
+        let auth = null;
+        if (fromEmail && fromEmail.toLowerCase().includes('rezervasyon')) {
+            const rezUser = this.configService.get<string>('REZERVASYON_MAIL_USER');
+            const rezPass = this.configService.get<string>('REZERVASYON_MAIL_PASS');
+            if (rezUser && rezPass) {
+                auth = {
+                    user: rezUser,
+                    pass: rezPass
+                };
+                this.logger.log(`📧 Using Rezervasyon credentials for sending.`);
+            }
+        }
+
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            const transporter = this.createTransporter();
+            const transporter = this.createTransporter(auth);
 
             try {
                 // Gönderici: önce fromEmail parametresi, yoksa MAIL_FROM, yoksa MAIL_USER

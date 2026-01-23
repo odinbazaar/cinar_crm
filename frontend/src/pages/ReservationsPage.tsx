@@ -67,7 +67,7 @@ export default function ReservationsPage() {
     const [customers, setCustomers] = useState<{ id: string, companyName: string }[]>([])
 
     // Dinamik network listesi
-    const [availableNetworks, setAvailableNetworks] = useState<string[]>(['1', '2', '3', '4', 'BLD'])
+    const [availableNetworks, setAvailableNetworks] = useState<string[]>(['Tümü', '1', '2', '3', '4', 'BLD'])
 
     // Sabit Seçenekler
     const allMonths = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık']
@@ -200,9 +200,9 @@ export default function ReservationsPage() {
             const uniqueNetworks = Array.from(new Set(
                 inventory.map((item: any) => String(item.network || '1'))
             )).sort();
-            if (uniqueNetworks.length > 0) {
-                setAvailableNetworks(uniqueNetworks);
-            }
+
+            // 'Tümü' seçeneğini her zaman en başa ekle
+            setAvailableNetworks(['Tümü', ...uniqueNetworks]);
 
 
             // Combine inventory with bookings to create UI locations
@@ -551,6 +551,7 @@ export default function ReservationsPage() {
         loc.ay === selectedMonth &&
         loc.hafta === selectedWeek &&
         (() => {
+            if (selectedNetwork === 'Tümü') return true;
             const itemNet = String(loc.network).toUpperCase();
             const filterNet = String(selectedNetwork).toUpperCase();
             return itemNet === filterNet ||
@@ -1094,7 +1095,9 @@ export default function ReservationsPage() {
                                     className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
                                 >
                                     {availableNetworks.map(net => (
-                                        <option key={net} value={net}>Network {net}</option>
+                                        <option key={net} value={net}>
+                                            {net === 'Tümü' ? 'Tüm Networkler' : `Network ${net}`}
+                                        </option>
                                     ))}
                                 </select>
                             </div>

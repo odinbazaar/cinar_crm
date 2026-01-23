@@ -40,20 +40,21 @@ export class UsersService {
     async create(createUserDto: CreateUserDto): Promise<User> {
         const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
+        const userData: any = {
+            email: createUserDto.email,
+            password_hash: hashedPassword,
+            first_name: createUserDto.first_name,
+            last_name: createUserDto.last_name,
+            role: createUserDto.role,
+            status: 'ACTIVE',
+        };
+
+        if (createUserDto.phone) userData.phone = createUserDto.phone;
+        if (createUserDto.hourly_rate !== undefined) userData.hourly_rate = createUserDto.hourly_rate;
+
         const { data, error } = await supabase
             .from('users')
-            .insert([
-                {
-                    email: createUserDto.email,
-                    password_hash: hashedPassword,
-                    first_name: createUserDto.first_name,
-                    last_name: createUserDto.last_name,
-                    role: createUserDto.role,
-                    phone: createUserDto.phone,
-                    hourly_rate: createUserDto.hourly_rate,
-                    status: 'ACTIVE',
-                },
-            ])
+            .insert([userData])
             .select()
             .single();
 
