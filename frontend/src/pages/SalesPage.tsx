@@ -63,6 +63,29 @@ interface Customer {
     leadStage?: string
 }
 
+interface CustomerForm {
+    companyName: string
+    tradeName: string
+    sector: string
+    taxOffice: string
+    taxNumber: string
+    status: string
+    address: string
+    city: string
+    district: string
+    postalCode: string
+    contactPerson: string
+    email: string
+    phone: string
+    mobile: string
+    website: string
+    notes: string
+    requestDetail: string
+    calledPhone: string
+    leadSource: string
+    leadStage: string
+}
+
 // Teklif ürün tipi
 interface ProposalItem {
     type: string
@@ -169,7 +192,9 @@ export default function SalesPage() {
                 website: '',
                 notes: prefill.notes || '',
                 requestDetail: prefill.requestDetail || '',
-                calledPhone: prefill.calledPhone || ''
+                calledPhone: prefill.calledPhone || '',
+                leadSource: '',
+                leadStage: 'Aday'
             })
             setPendingIncomingCallId(prefill.incomingCallId)
             setShowCustomerModal(true)
@@ -314,7 +339,7 @@ export default function SalesPage() {
 
     // Form states
     const [customerModalTab, setCustomerModalTab] = useState<'company' | 'address' | 'contact' | 'notes' | 'crm'>('company')
-    const [customerForm, setCustomerForm] = useState({
+    const [customerForm, setCustomerForm] = useState<CustomerForm>({
         companyName: '',
         tradeName: '',
         sector: '',
@@ -1113,7 +1138,9 @@ export default function SalesPage() {
                                                 website: (customer as any).website || '',
                                                 notes: (customer as any).notes || '',
                                                 requestDetail: customer.requestDetail || '',
-                                                calledPhone: customer.calledPhone || ''
+                                                calledPhone: customer.calledPhone || '',
+                                                leadSource: customer.leadSource || '',
+                                                leadStage: customer.leadStage || 'Aday'
                                             })
                                             setShowCustomerModal(true)
                                         }}
