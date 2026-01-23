@@ -4,12 +4,12 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class MailService {
-    private transporter: nodemailer.Transporter;
     private readonly logger = new Logger(MailService.name);
+    private mailConfig: any;
 
     constructor(private configService: ConfigService) {
         const port = Number(this.configService.get<number>('MAIL_PORT') || 465);
-        this.transporter = nodemailer.createTransport({
+        this.mailConfig = {
             host: this.configService.get<string>('MAIL_HOST'),
             port: port,
             secure: port === 465,
@@ -18,38 +18,68 @@ export class MailService {
                 pass: this.configService.get<string>('MAIL_PASS'),
             },
             tls: {
-                rejectUnauthorized: false // Often needed for custom domains/corporate mail
-            }
-        });
+                rejectUnauthorized: false
+            },
+            // Yandex için önemli ayarlar
+            pool: false, // Bağlantı havuzunu devre dışı bırak
+            maxConnections: 1,
+            rateDelta: 1000,
+            rateLimit: 5,
+            connectionTimeout: 10000, // 10 saniye
+            greetingTimeout: 10000,
+            socketTimeout: 30000
+        };
 
-        // Verify connection on startup
-        this.transporter.verify((error) => {
-            if (error) {
-                this.logger.error('❌ Mail server connection failed:', error);
-            } else {
-                this.logger.log('✅ Mail server is ready to send messages');
-            }
-        });
+        this.logger.log(`📧 Mail config: ${this.mailConfig.host}:${this.mailConfig.port} (secure: ${this.mailConfig.secure})`);
+        this.logger.log(`📧 Mail user: ${this.mailConfig.auth.user}`);
+    }
+
+    private createTransporter(): nodemailer.Transporter {
+        return nodemailer.createTransport(this.mailConfig);
     }
 
     async sendMail(to: string, subject: string, html: string, text?: string, attachments?: any[]) {
-        try {
-            const from = this.configService.get<string>('MAIL_FROM');
-            const info = await this.transporter.sendMail({
-                from: from,
-                to: to,
-                subject: subject,
-                text: text || '',
-                html: html,
-                attachments: attachments || [],
-            });
+        const maxRetries = 3;
+        let lastError: any;
 
-            this.logger.log(`📧 Email sent to ${to}: ${info.messageId}`);
-            return info;
-        } catch (error) {
-            this.logger.error(`❌ Failed to send email to ${to}:`, error);
-            throw error;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            const transporter = this.createTransporter();
+
+            try {
+                const from = this.configService.get<string>('MAIL_FROM') || this.mailConfig.auth.user;
+
+                this.logger.log(`📧 Attempt ${attempt}/${maxRetries}: Sending email to ${to}...`);
+
+                const info = await transporter.sendMail({
+                    from: from,
+                    to: to,
+                    subject: subject,
+                    text: text || '',
+                    html: html,
+                    attachments: attachments || [],
+                });
+
+                this.logger.log(`✅ Email sent to ${to}: ${info.messageId}`);
+                transporter.close();
+                return info;
+            } catch (error) {
+                lastError = error;
+                this.logger.error(`❌ Attempt ${attempt}/${maxRetries} failed:`, error.message);
+                transporter.close();
+
+                // 454 hatası için bekle ve tekrar dene
+                if (error.responseCode === 454 && attempt < maxRetries) {
+                    const waitTime = attempt * 2000; // 2s, 4s, 6s
+                    this.logger.log(`⏳ Waiting ${waitTime}ms before retry...`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                } else if (attempt >= maxRetries) {
+                    break;
+                }
+            }
         }
+
+        this.logger.error(`❌ All ${maxRetries} attempts failed for ${to}:`, lastError);
+        throw lastError;
     }
 
     // Example: Welcome email
