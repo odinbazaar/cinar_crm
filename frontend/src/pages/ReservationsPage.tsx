@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { FileSpreadsheet, MapPin, Search, Filter, Calendar, Clock, Check, X, CheckCircle, Smartphone, RefreshCw, ChevronRight, ChevronLeft, Download, Plus, Trash2, AlertCircle, CalendarDays, Send } from 'lucide-react'
 import { reservationsData } from '../data/reservations'
 import { useToast } from '../hooks/useToast'
-import { inventoryService, bookingsService, customerRequestsService, proposalsService } from '../services'
+import { inventoryService, bookingsService, customerRequestsService, proposalsService, clientsService } from '../services'
 import LocationRequestModal from '../components/proposals/LocationRequestModal'
 import * as XLSX from 'xlsx'
 
@@ -63,10 +63,15 @@ export default function ReservationsPage() {
     const [reviseSlot, setReviseSlot] = useState<1 | 2 | 3 | 4>(1)
     const [reviseTargetId, setReviseTargetId] = useState('')
 
+    // Müşteri listesi (Ticari Ünvan dropdown için)
+    const [customers, setCustomers] = useState<{ id: string, companyName: string }[]>([])
+
+    // Dinamik network listesi
+    const [availableNetworks, setAvailableNetworks] = useState<string[]>(['1', '2', '3', '4', 'BLD'])
+
     // Sabit Seçenekler
     const allMonths = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık']
     const yearOptions = [2026, 2027, 2028, 2029, 2030]
-    const networkOptions = [1, 2, 3, 4, 'BLD']
     const productTypes = ['Tümü', 'BB', 'CLP', 'MGL', 'LB', 'GB', 'MB', 'KB']
 
     // Dinamik Filtre Seçenekleri
@@ -174,14 +179,30 @@ export default function ReservationsPage() {
             });
             setReservationRequests(mappedRequests);
 
-            // 2. Fetch Inventory, Bookings and Proposals
-            const [inventory, bookings, proposalsData] = await Promise.all([
+            // 2. Fetch Inventory, Bookings, Proposals and Clients
+            const [inventory, bookings, proposalsData, clientsData] = await Promise.all([
                 inventoryService.getAll(),
                 bookingsService.getAll(),
-                proposalsService.getAll()
+                proposalsService.getAll(),
+                clientsService.getAll()
             ]);
 
             setProposals(proposalsData);
+
+            // Müşteri listesini güncelle (Ticari Ünvan dropdown için)
+            const customerList = clientsData.map((c: any) => ({
+                id: c.id,
+                companyName: c.company_name || c.name || ''
+            })).filter((c: any) => c.companyName);
+            setCustomers(customerList);
+
+            // Envanterdeki tüm benzersiz network değerlerini al
+            const uniqueNetworks = Array.from(new Set(
+                inventory.map((item: any) => String(item.network || '1'))
+            )).sort();
+            if (uniqueNetworks.length > 0) {
+                setAvailableNetworks(uniqueNetworks);
+            }
 
 
             // Combine inventory with bookings to create UI locations
@@ -626,6 +647,67 @@ export default function ReservationsPage() {
         }
     }
 
+    // Manuel Ticari Ünvan (Opsiyon) Güncelleme
+    const handleManualBrandChange = async (locId: string, slotNumber: 1 | 2 | 3 | 4, newBrand: string) => {
+        const brandUpper = newBrand.toUpperCase();
+
+        // UI'da güncelle
+        const updated = locations.map(loc => {
+            if (loc.id === locId) {
+                const newLoc = { ...loc };
+                if (slotNumber === 1) newLoc.marka1Opsiyon = brandUpper;
+                else if (slotNumber === 2) newLoc.marka2Opsiyon = brandUpper;
+                else if (slotNumber === 3) newLoc.marka3Opsiyon = brandUpper;
+                else if (slotNumber === 4) newLoc.marka4Opsiyon = brandUpper;
+
+                // Eğer herhangi bir marka atandıysa ve durum BOŞ ise, OPSİYON yap
+                if (brandUpper && newLoc.durum === 'BOŞ') {
+                    newLoc.durum = 'OPSİYON';
+                }
+                return newLoc;
+            }
+            return loc;
+        });
+
+        setLocations(updated);
+        localStorage.setItem('inventoryLocations', JSON.stringify(updated));
+
+        // Backend'e kaydet
+        try {
+            const existingBookings = await bookingsService.getAll();
+            const existing = existingBookings.find(b =>
+                b.inventory_item_id === locId &&
+                normalizeDate(b.start_date) === selectedWeek
+            );
+
+            const loc = updated.find(l => l.id === locId);
+            if (!loc) return;
+
+            const bookingData = {
+                inventory_item_id: locId,
+                brand_option_1: loc.marka1Opsiyon,
+                brand_option_2: loc.marka2Opsiyon,
+                brand_option_3: loc.marka3Opsiyon,
+                brand_option_4: loc.marka4Opsiyon,
+                start_date: toBackendDate(selectedWeek),
+                end_date: toBackendDate(selectedWeek),
+                status: loc.durum,
+                network: String(selectedNetwork)
+            };
+
+            if (existing) {
+                await bookingsService.update(existing.id, bookingData);
+            } else {
+                await bookingsService.create(bookingData);
+            }
+
+            toastSuccess(`${loc.kod} - ${slotNumber}. opsiyon güncellendi: ${brandUpper || 'Temizlendi'}`);
+        } catch (error) {
+            console.error('Manual brand update error:', error);
+            toastInfo('Güncelleme kaydedilirken hata oluştu.');
+        }
+    }
+
     // Durumu değiştir
     const handleStatusChange = (id: string, newStatus: 'OPSİYON' | 'KESİN' | 'BOŞ') => {
         const updated = locations.map(loc => {
@@ -1011,7 +1093,7 @@ export default function ReservationsPage() {
                                     onChange={(e) => setSelectedNetwork(e.target.value)}
                                     className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
                                 >
-                                    {networkOptions.map(net => (
+                                    {availableNetworks.map(net => (
                                         <option key={net} value={net}>Network {net}</option>
                                     ))}
                                 </select>
@@ -1221,10 +1303,70 @@ export default function ReservationsPage() {
                                             </td>
                                             <td className="px-3 py-2 text-center text-gray-900">{loc.network}</td>
                                             <td className="px-3 py-2 text-primary-600 font-bold">{loc.routeNo || '-'}</td>
-                                            <td className="px-3 py-2 text-primary-700 font-medium">{loc.marka1Opsiyon || '-'}</td>
-                                            <td className="px-3 py-2 text-blue-700 font-medium">{loc.marka2Opsiyon || '-'}</td>
-                                            <td className="px-3 py-2 text-purple-700 font-medium">{loc.marka3Opsiyon || '-'}</td>
-                                            <td className="px-3 py-2 text-orange-700 font-medium">{loc.marka4Opsiyon || '-'}</td>
+                                            <td className="px-1 py-1">
+                                                <select
+                                                    value={loc.marka1Opsiyon || ''}
+                                                    onChange={(e) => handleManualBrandChange(loc.id, 1, e.target.value)}
+                                                    className="w-full px-1 py-1 text-xs font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded focus:ring-1 focus:ring-primary-500 truncate"
+                                                    title={loc.marka1Opsiyon || 'Seçiniz'}
+                                                >
+                                                    <option value="">-</option>
+                                                    {customers.map(c => (
+                                                        <option key={c.id} value={c.companyName}>{c.companyName}</option>
+                                                    ))}
+                                                    {loc.marka1Opsiyon && !customers.find(c => c.companyName === loc.marka1Opsiyon) && (
+                                                        <option value={loc.marka1Opsiyon}>{loc.marka1Opsiyon}</option>
+                                                    )}
+                                                </select>
+                                            </td>
+                                            <td className="px-1 py-1">
+                                                <select
+                                                    value={loc.marka2Opsiyon || ''}
+                                                    onChange={(e) => handleManualBrandChange(loc.id, 2, e.target.value)}
+                                                    className="w-full px-1 py-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded focus:ring-1 focus:ring-blue-500 truncate"
+                                                    title={loc.marka2Opsiyon || 'Seçiniz'}
+                                                >
+                                                    <option value="">-</option>
+                                                    {customers.map(c => (
+                                                        <option key={c.id} value={c.companyName}>{c.companyName}</option>
+                                                    ))}
+                                                    {loc.marka2Opsiyon && !customers.find(c => c.companyName === loc.marka2Opsiyon) && (
+                                                        <option value={loc.marka2Opsiyon}>{loc.marka2Opsiyon}</option>
+                                                    )}
+                                                </select>
+                                            </td>
+                                            <td className="px-1 py-1">
+                                                <select
+                                                    value={loc.marka3Opsiyon || ''}
+                                                    onChange={(e) => handleManualBrandChange(loc.id, 3, e.target.value)}
+                                                    className="w-full px-1 py-1 text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded focus:ring-1 focus:ring-purple-500 truncate"
+                                                    title={loc.marka3Opsiyon || 'Seçiniz'}
+                                                >
+                                                    <option value="">-</option>
+                                                    {customers.map(c => (
+                                                        <option key={c.id} value={c.companyName}>{c.companyName}</option>
+                                                    ))}
+                                                    {loc.marka3Opsiyon && !customers.find(c => c.companyName === loc.marka3Opsiyon) && (
+                                                        <option value={loc.marka3Opsiyon}>{loc.marka3Opsiyon}</option>
+                                                    )}
+                                                </select>
+                                            </td>
+                                            <td className="px-1 py-1">
+                                                <select
+                                                    value={loc.marka4Opsiyon || ''}
+                                                    onChange={(e) => handleManualBrandChange(loc.id, 4, e.target.value)}
+                                                    className="w-full px-1 py-1 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded focus:ring-1 focus:ring-orange-500 truncate"
+                                                    title={loc.marka4Opsiyon || 'Seçiniz'}
+                                                >
+                                                    <option value="">-</option>
+                                                    {customers.map(c => (
+                                                        <option key={c.id} value={c.companyName}>{c.companyName}</option>
+                                                    ))}
+                                                    {loc.marka4Opsiyon && !customers.find(c => c.companyName === loc.marka4Opsiyon) && (
+                                                        <option value={loc.marka4Opsiyon}>{loc.marka4Opsiyon}</option>
+                                                    )}
+                                                </select>
+                                            </td>
                                             <td className="px-3 py-2">
                                                 <select
                                                     value={loc.durum}
