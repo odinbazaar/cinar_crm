@@ -48,11 +48,11 @@ export class ProposalsController {
     @Post(':id/send-email')
     async sendEmail(
         @Param('id') id: string,
-        @Body() body: { recipientEmail?: string; message?: string },
+        @Body() body: { recipientEmail?: string; message?: string; senderEmail?: string },
     ) {
         try {
-            console.log(`📧 E-posta gönderme isteği: ID=${id}, TO=${body.recipientEmail}`);
-            const result = await this.proposalsService.sendProposalEmail(id, body.recipientEmail, body.message);
+            console.log(`📧 E-posta gönderme isteği: ID=${id}, TO=${body.recipientEmail}, FROM=${body.senderEmail}`);
+            const result = await this.proposalsService.sendProposalEmail(id, body.recipientEmail, body.message, body.senderEmail);
             console.log(`✅ E-posta gönderildi:`, result);
             return result;
         } catch (error) {

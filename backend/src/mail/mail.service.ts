@@ -38,7 +38,7 @@ export class MailService {
         return nodemailer.createTransport(this.mailConfig);
     }
 
-    async sendMail(to: string, subject: string, html: string, text?: string, attachments?: any[]) {
+    async sendMail(to: string, subject: string, html: string, text?: string, attachments?: any[], fromEmail?: string) {
         const maxRetries = 3;
         let lastError: any;
 
@@ -46,9 +46,11 @@ export class MailService {
             const transporter = this.createTransporter();
 
             try {
-                const from = this.configService.get<string>('MAIL_FROM') || this.mailConfig.auth.user;
+                // Gönderici: önce fromEmail parametresi, yoksa MAIL_FROM, yoksa MAIL_USER
+                const defaultFrom = this.configService.get<string>('MAIL_FROM') || this.mailConfig.auth.user;
+                const from = fromEmail ? `"İzmir Açıkhava CRM" <${fromEmail}>` : defaultFrom;
 
-                this.logger.log(`📧 Attempt ${attempt}/${maxRetries}: Sending email to ${to}...`);
+                this.logger.log(`📧 Attempt ${attempt}/${maxRetries}: Sending email to ${to} from ${from}...`);
 
                 const info = await transporter.sendMail({
                     from: from,

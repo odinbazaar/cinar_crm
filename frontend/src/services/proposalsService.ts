@@ -92,10 +92,11 @@ export const proposalsService = {
         return apiClient.delete<void>(`/proposals/${id}`);
     },
 
-    async sendEmail(id: string, recipientEmail?: string, message?: string): Promise<{ success: boolean; message: string }> {
+    async sendEmail(id: string, recipientEmail?: string, message?: string, senderEmail?: string): Promise<{ success: boolean; message: string }> {
         return apiClient.post<{ success: boolean; message: string }>(`/proposals/${id}/send-email`, {
             recipientEmail,
-            message
+            message,
+            senderEmail
         });
     },
 };

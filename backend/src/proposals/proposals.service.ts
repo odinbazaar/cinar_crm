@@ -407,7 +407,7 @@ export class ProposalsService {
         });
     }
 
-    async sendProposalEmail(id: string, recipientEmail?: string, customMessage?: string): Promise<{ success: boolean; message: string }> {
+    async sendProposalEmail(id: string, recipientEmail?: string, customMessage?: string, senderEmail?: string): Promise<{ success: boolean; message: string }> {
         // Teklifi getir
         const proposal = await this.findOne(id);
         if (!proposal) {
@@ -525,13 +525,15 @@ export class ProposalsService {
                         filename: `Teklif_${proposal.proposal_number}.pdf`,
                         content: pdfBuffer
                     }
-                ]
+                ],
+                senderEmail // Seçilen gönderici e-posta adresi
             );
 
             // Durumu "SENT" olarak güncelle
             await this.updateStatus(id, 'SENT');
 
-            return { success: true, message: `Teklif ${toEmail} adresine başarıyla gönderildi.` };
+            const fromInfo = senderEmail || 'varsayılan hesap';
+            return { success: true, message: `Teklif ${toEmail} adresine ${fromInfo} üzerinden başarıyla gönderildi.` };
         } catch (error) {
             console.error('❌ E-posta gönderme hatası:', error);
             throw new Error(`E-posta gönderilemedi: ${error.message}`);

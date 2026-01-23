@@ -164,7 +164,14 @@ export default function SalesPage() {
     const [pendingIncomingCallId, setPendingIncomingCallId] = useState<string | null>(null)
     const [incomingCalls, setIncomingCalls] = useState<IncomingCall[]>([])
     const [showCompanySuggestions, setShowCompanySuggestions] = useState(false)
+    const [selectedSenderEmail, setSelectedSenderEmail] = useState('pazarlama@izmiracikhavareklam.com')
     const location = useLocation()
+
+    // Tanımlı e-posta hesapları
+    const emailAccounts = [
+        { value: 'pazarlama@izmiracikhavareklam.com', label: 'Pazarlama', color: 'green' },
+        { value: 'rezervasyon@izmiracikhavareklam.com', label: 'Rezervasyon', color: 'blue' }
+    ]
 
     // Fetch data on mount
     useEffect(() => {
@@ -805,10 +812,10 @@ export default function SalesPage() {
                 return;
             }
 
-            // E-postayı pazarlama@izmiracikhavareklam.com adresinden gönder
-            const senderEmail = 'pazarlama@izmiracikhavareklam.com';
+            // E-postayı seçilen hesaptan gönder
+            const senderEmail = selectedSenderEmail;
 
-            const response = await proposalsService.sendEmail(proposalId, recipientEmail, message);
+            const response = await proposalsService.sendEmail(proposalId, recipientEmail, message, senderEmail);
 
             if (response.success) {
                 // Teklifi 'sent' durumuna güncelle
@@ -2271,7 +2278,7 @@ export default function SalesPage() {
                                         </div>
                                         <div>
                                             <h3 className="text-lg font-bold text-gray-900">Teklifi E-posta ile Gönder</h3>
-                                            <p className="text-sm text-gray-500">Pazarlama@IzmirAcikhavaReklam.com üzerinden</p>
+                                            <p className="text-sm text-gray-500">{selectedSenderEmail} üzerinden</p>
                                         </div>
                                     </div>
                                     <button
@@ -2308,6 +2315,21 @@ export default function SalesPage() {
                                         </p>
                                     </div>
                                 )}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Gönderici Hesap</label>
+                                    <select
+                                        value={selectedSenderEmail}
+                                        onChange={(e) => setSelectedSenderEmail(e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white font-medium"
+                                    >
+                                        {emailAccounts.map(account => (
+                                            <option key={account.value} value={account.value}>
+                                                {account.label} - {account.value}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-xs text-gray-500 mt-1">E-posta bu hesaptan gönderilecek</p>
+                                </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Alıcı E-posta</label>
                                     <input
