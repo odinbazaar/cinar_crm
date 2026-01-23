@@ -10,6 +10,7 @@ import {
     RefreshCw
 } from 'lucide-react';
 import { bookingsService, inventoryService } from '../services';
+import * as XLSX from 'xlsx';
 
 interface AsimData {
     id: string;
@@ -264,18 +265,88 @@ const AsimListesiPage = () => {
 
     // Export to Excel
     const handleExportExcel = () => {
-        const csvContent = [
-            ['Yıl', 'Ay', 'Hafta', 'Müşteri/Marka', 'Network', 'Adet'].join('\t'),
-            ...filteredData.map(item =>
-                [item.year, item.month, item.weekStart, item.client, item.network, item.adet].join('\t')
-            )
-        ].join('\n');
+        const rows: any[] = [];
 
-        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `asim_listesi_${selectedYear}_network_${selectedNetwork}.csv`;
-        link.click();
+        groupedData.forEach(yearGroup => {
+            // Year row
+            rows.push({
+                'Yıl': yearGroup.year,
+                'Ay': '',
+                'Hafta': '',
+                'Müşteri / Marka': '',
+                'Network': '',
+                'Toplam': yearGroup.yearTotal
+            });
+
+            yearGroup.months.forEach(monthGroup => {
+                // Month row
+                rows.push({
+                    'Yıl': '',
+                    'Ay': monthGroup.month,
+                    'Hafta': '',
+                    'Müşteri / Marka': '',
+                    'Network': '',
+                    'Toplam': monthGroup.monthTotal
+                });
+
+                monthGroup.weeks.forEach(weekGroup => {
+                    // Week total row
+                    rows.push({
+                        'Yıl': '',
+                        'Ay': '',
+                        'Hafta': weekGroup.weekStart,
+                        'Müşteri / Marka': 'HAFTA TOPLAMI',
+                        'Network': '',
+                        'Toplam': weekGroup.weekTotal
+                    });
+
+                    // Week data rows
+                    weekGroup.rows.forEach(row => {
+                        rows.push({
+                            'Yıl': '',
+                            'Ay': '',
+                            'Hafta': weekGroup.weekStart,
+                            'Müşteri / Marka': row.client === '(boş)' ? '-' : row.client,
+                            'Network': row.network || '-',
+                            'Toplam': row.adet
+                        });
+                    });
+                });
+            });
+        });
+
+        // Add Grand Total
+        if (rows.length > 0) {
+            rows.push({
+                'Yıl': 'GENEL TOPLAM',
+                'Ay': '',
+                'Hafta': '',
+                'Müşteri / Marka': '',
+                'Network': '',
+                'Toplam': grandTotal
+            });
+        }
+
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Asım Listesi');
+
+        // Column widths
+        const wscols = [
+            { wch: 10 }, // Yıl
+            { wch: 15 }, // Ay
+            { wch: 15 }, // Hafta
+            { wch: 40 }, // Müşteri / Marka
+            { wch: 10 }, // Network
+            { wch: 10 }, // Toplam
+        ];
+        worksheet['!cols'] = wscols;
+
+        // Generate filename
+        const filename = `asim_listesi_${selectedYear}_network_${selectedNetwork}.xlsx`;
+
+        // Export file
+        XLSX.writeFile(workbook, filename);
     };
 
     return (
