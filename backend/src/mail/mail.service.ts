@@ -8,14 +8,18 @@ export class MailService {
     private readonly logger = new Logger(MailService.name);
 
     constructor(private configService: ConfigService) {
+        const port = Number(this.configService.get<number>('MAIL_PORT') || 465);
         this.transporter = nodemailer.createTransport({
             host: this.configService.get<string>('MAIL_HOST'),
-            port: this.configService.get<number>('MAIL_PORT'),
-            secure: this.configService.get<number>('MAIL_PORT') === 465, // true for 465, false for other ports
+            port: port,
+            secure: port === 465,
             auth: {
                 user: this.configService.get<string>('MAIL_USER'),
                 pass: this.configService.get<string>('MAIL_PASS'),
             },
+            tls: {
+                rejectUnauthorized: false // Often needed for custom domains/corporate mail
+            }
         });
 
         // Verify connection on startup
@@ -28,7 +32,7 @@ export class MailService {
         });
     }
 
-    async sendMail(to: string, subject: string, html: string, text?: string) {
+    async sendMail(to: string, subject: string, html: string, text?: string, attachments?: any[]) {
         try {
             const from = this.configService.get<string>('MAIL_FROM');
             const info = await this.transporter.sendMail({
@@ -37,9 +41,10 @@ export class MailService {
                 subject: subject,
                 text: text || '',
                 html: html,
+                attachments: attachments || [],
             });
 
-            this.logger.log(`📧 Email sent: ${info.messageId}`);
+            this.logger.log(`📧 Email sent to ${to}: ${info.messageId}`);
             return info;
         } catch (error) {
             this.logger.error(`❌ Failed to send email to ${to}:`, error);

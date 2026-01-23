@@ -47,26 +47,39 @@ model Client {
   id              String        @id @default(uuid())
   name            String
   type            String        // Enum handled as string
-  companyName     String?
-  taxNumber       String?
+  companyName     String?       @map("company_name")
+  tradeName       String?       @map("trade_name")
+  sector          String?
+  taxOffice       String?       @map("tax_office")
+  taxNumber       String?       @map("tax_number")
   email           String?
   phone           String?
   address         String?
+  city            String?
+  district        String?
+  postalCode      String?       @map("postal_code")
   website         String?
+  contactPerson   String?       @map("contact_person")
+  status          String?       // potential, active, inactive
+  notes           String?
   
   // Lead tracking
-  leadSource      String?
-  leadStage       String        @default("LEAD")
+  leadSource      String?       @map("lead_source")
+  leadStage       String        @default("LEAD") @map("lead_stage")
   
+  // CRM / Request Detail
+  requestDetail   String?       @map("request_detail")
+  calledPhone     String?       @map("called_phone")
+
   // Brand information
-  brandMission    String?       // @db.Text removed
-  brandTone       String?
-  brandValues     String?       // @db.Text removed
-  targetAudience  String?       // @db.Text removed
+  brandMission    String?       @map("brand_mission")
+  brandTone       String?       @map("brand_tone")
+  brandValues     String?       @map("brand_values")
+  targetAudience  String?       @map("target_audience")
   
   // Account Manager
-  accountManagerId String?
-  accountManager   User?         @relation("AccountManager", fields: [accountManagerId], references: [id])
+  accountManagerId String?      @map("account_manager_id")
+  accountManager   User?        @relation("AccountManager", fields: [accountManagerId], references: [id])
   
   // Relations
   projects        Project[]
@@ -77,12 +90,12 @@ model Client {
   bookings        Booking[]
   
   // Metadata
-  isActive        Boolean       @default(true)
-  lostReason      String?       // @db.Text removed
-  lostDate        DateTime?
+  isActive        Boolean       @default(true) @map("is_active")
+  lostReason      String?       @map("lost_reason")
+  lostDate        DateTime?     @map("lost_date")
   
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
   
   @@map("clients")
 }

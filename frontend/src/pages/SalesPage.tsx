@@ -59,6 +59,8 @@ interface Customer {
     notes?: string
     requestDetail?: string
     calledPhone?: string
+    leadSource?: string
+    leadStage?: string
 }
 
 // Teklif ürün tipi
@@ -208,6 +210,8 @@ export default function SalesPage() {
                 notes: (c as any).notes || '',
                 requestDetail: (c as any).request_detail || '',
                 calledPhone: (c as any).called_phone || '',
+                leadSource: (c as any).lead_source || '',
+                leadStage: (c as any).lead_stage || 'Aday',
                 createdAt: c.created_at?.split('T')[0] || new Date().toISOString().split('T')[0]
             }))
             setCustomers(mappedCustomers)
@@ -309,7 +313,7 @@ export default function SalesPage() {
     }
 
     // Form states
-    const [customerModalTab, setCustomerModalTab] = useState<'company' | 'address' | 'contact' | 'notes'>('company')
+    const [customerModalTab, setCustomerModalTab] = useState<'company' | 'address' | 'contact' | 'notes' | 'crm'>('company')
     const [customerForm, setCustomerForm] = useState({
         companyName: '',
         tradeName: '',
@@ -328,7 +332,9 @@ export default function SalesPage() {
         website: '',
         notes: '',
         requestDetail: '',
-        calledPhone: ''
+        calledPhone: '',
+        leadSource: '',
+        leadStage: 'Aday'
     })
     const [requestForm, setRequestForm] = useState({
         customerId: '',
@@ -584,6 +590,8 @@ export default function SalesPage() {
                 notes: customerForm.notes,
                 request_detail: customerForm.requestDetail,
                 called_phone: customerForm.calledPhone,
+                lead_source: customerForm.leadSource,
+                lead_stage: customerForm.leadStage,
                 account_manager_id: userId
             }
 
@@ -624,7 +632,9 @@ export default function SalesPage() {
                 website: '',
                 notes: '',
                 requestDetail: '',
-                calledPhone: ''
+                calledPhone: '',
+                leadSource: '',
+                leadStage: 'Aday'
             })
             setCustomerModalTab('company')
         } catch (error) {
@@ -1331,6 +1341,16 @@ export default function SalesPage() {
                                     <StickyNote className="w-4 h-4" />
                                     Notlar
                                 </button>
+                                <button
+                                    onClick={() => setCustomerModalTab('crm')}
+                                    className={`flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-xl transition-all ${customerModalTab === 'crm'
+                                        ? 'bg-white text-primary-600 shadow-sm border border-gray-100'
+                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                                        }`}
+                                >
+                                    <TrendingUp className="w-4 h-4" />
+                                    CRM & Talep
+                                </button>
                             </div>
 
                             {/* Tab Content */}
@@ -1370,13 +1390,15 @@ export default function SalesPage() {
                                                                 onClick={() => {
                                                                     setCustomerForm({
                                                                         ...customerForm,
-                                                                        companyName: `"${call.company_name || ''}"`,
+                                                                        companyName: call.company_name || '',
                                                                         contactPerson: call.contact_person || customerForm.contactPerson,
                                                                         phone: call.phone || customerForm.phone,
                                                                         email: call.email || customerForm.email,
                                                                         notes: call.notes || customerForm.notes,
                                                                         requestDetail: call.request_detail || customerForm.requestDetail,
-                                                                        calledPhone: call.called_phone || customerForm.calledPhone
+                                                                        calledPhone: call.called_phone || customerForm.calledPhone,
+                                                                        leadSource: 'Arayan Firma',
+                                                                        leadStage: 'Aday'
                                                                     })
                                                                     setPendingIncomingCallId(call.id)
                                                                     setShowCompanySuggestions(false)
@@ -1571,6 +1593,66 @@ export default function SalesPage() {
                                             placeholder="Müşteri hakkında notlar..."
                                             rows={6}
                                         />
+                                    </div>
+                                )}
+
+                                {/* CRM & Talep Tab */}
+                                {customerModalTab === 'crm' && (
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Müşteri Kaynağı</label>
+                                                <select
+                                                    value={customerForm.leadSource}
+                                                    onChange={(e) => setCustomerForm({ ...customerForm, leadSource: e.target.value })}
+                                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                                >
+                                                    <option value="">Seçiniz</option>
+                                                    <option value="Arayan Firma">Arayan Firma</option>
+                                                    <option value="Web Sitesi">Web Sitesi</option>
+                                                    <option value="Referans">Referans</option>
+                                                    <option value="Sosyal Medya">Sosyal Medya</option>
+                                                    <option value="Dış Arama">Dış Arama</option>
+                                                    <option value="Fuar/Etkinlik">Fuar/Etkinlik</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Satış Aşaması</label>
+                                                <select
+                                                    value={customerForm.leadStage}
+                                                    onChange={(e) => setCustomerForm({ ...customerForm, leadStage: e.target.value })}
+                                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                                >
+                                                    <option value="Aday">Aday</option>
+                                                    <option value="İletişim Kuruldu">İletişim Kuruldu</option>
+                                                    <option value="Teklif Verildi">Teklif Verildi</option>
+                                                    <option value="Pazarlık">Pazarlık</option>
+                                                    <option value="Kazandı">Kazandı</option>
+                                                    <option value="Kaybetti">Kaybetti</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Talep Detayı</label>
+                                            <textarea
+                                                value={customerForm.requestDetail}
+                                                onChange={(e) => setCustomerForm({ ...customerForm, requestDetail: e.target.value })}
+                                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                                placeholder="Müşterinin reklam talebi detayları..."
+                                                rows={3}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Aranan Numara (Gelen Çağrı)</label>
+                                            <input
+                                                type="text"
+                                                value={customerForm.calledPhone}
+                                                onChange={(e) => setCustomerForm({ ...customerForm, calledPhone: e.target.value })}
+                                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 bg-gray-50"
+                                                placeholder="Çağrının geldiği numara"
+                                                readOnly
+                                            />
+                                        </div>
                                     </div>
                                 )}
                             </div>

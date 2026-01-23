@@ -4,9 +4,15 @@ import * as path from 'path';
 import supabase from '../config/supabase.config';
 import { Proposal, CreateProposalDto, UpdateProposalDto } from './proposals.dto';
 import PDFDocument from 'pdfkit';
+import { MailService } from '../mail/mail.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ProposalsService {
+    constructor(
+        private mailService: MailService,
+        private configService: ConfigService
+    ) { }
     async findAll(): Promise<Proposal[]> {
         const { data, error } = await supabase
             .from('proposals')
@@ -287,15 +293,23 @@ export class ProposalsService {
             const regularFontPath = path.join(process.cwd(), 'src', 'assets', 'fonts', 'Roboto-Regular.ttf');
             const boldFontPath = path.join(process.cwd(), 'src', 'assets', 'fonts', 'Roboto-Bold.ttf');
 
-            // Fontları kaydet (Eğer dosyalar yoksa hata vermemesi için kontrol et)
-            const hasFonts = fs.existsSync(regularFontPath) && fs.existsSync(boldFontPath);
-            if (hasFonts) {
-                doc.registerFont('CustomRegular', regularFontPath);
-                doc.registerFont('CustomBold', boldFontPath);
+            // Fontları kaydet (Hata durumunda Helvetica fallback kullan)
+            try {
+                if (fs.existsSync(regularFontPath) && fs.existsSync(boldFontPath)) {
+                    doc.registerFont('CustomRegular', regularFontPath);
+                    doc.registerFont('CustomBold', boldFontPath);
+                    console.log('✅ Custom fonts registered successfully');
+                } else {
+                    console.warn('⚠️ Custom fonts not found, using Helvetica fallback');
+                }
+            } catch (fontError) {
+                console.error('❌ Error registering fonts (corrupted format?):', fontError.message);
+                console.warn('⚠️ Using Helvetica fallback due to font error');
             }
 
-            const fontRegular = hasFonts ? 'CustomRegular' : 'Helvetica';
-            const fontBold = hasFonts ? 'CustomBold' : 'Helvetica-Bold';
+            // Override font usage if fallback is needed
+            const safeFontRegular = (doc as any)._fontFamilies && (doc as any)._fontFamilies['CustomRegular'] ? 'CustomRegular' : 'Helvetica';
+            const safeFontBold = (doc as any)._fontFamilies && (doc as any)._fontFamilies['CustomBold'] ? 'CustomBold' : 'Helvetica-Bold';
 
             doc.on('data', buffers.push.bind(buffers));
             doc.on('end', () => resolve(Buffer.concat(buffers)));
@@ -306,15 +320,15 @@ export class ProposalsService {
 
             // Header - Logo
             doc.rect(50, 45, 60, 60).fill(primaryColor);
-            doc.fillColor('white').fontSize(24).font(fontBold).text('İAR', 50, 62, { width: 60, align: 'center' });
+            doc.fillColor('white').fontSize(24).font(safeFontBold).text('İAR', 50, 62, { width: 60, align: 'center' });
 
             // Brand
-            doc.fillColor(primaryColor).fontSize(20).font(fontBold).text('İZMİR AÇIK HAVA', 125, 55);
-            doc.fillColor('#6b7280').fontSize(10).font(fontRegular).text('REKLAM AJANSI', 125, 80, { characterSpacing: 2 });
+            doc.fillColor(primaryColor).fontSize(20).font(safeFontBold).text('İZMİR AÇIK HAVA', 125, 55);
+            doc.fillColor('#6b7280').fontSize(10).font(safeFontRegular).text('REKLAM AJANSI', 125, 80, { characterSpacing: 2 });
 
             // Company Info
-            const companyName = process.env.COMPANY_NAME || 'İzmir Açıkhava Reklam Ajansı';
-            doc.fillColor(secondaryColor).fontSize(8).font(fontRegular).text(companyName, 350, 50, { align: 'right' });
+            const companyName = this.configService.get<string>('COMPANY_NAME') || 'İzmir Açıkhava Reklam Ajansı';
+            doc.fillColor(secondaryColor).fontSize(8).font(safeFontRegular).text(companyName, 350, 50, { align: 'right' });
             doc.text('MANAS BULVARI ADALET MAHALLESİ NO:47 KAT:28 FOLKART TOWERS BAYRAKLI İZMİR', 350, 62, { align: 'right', width: 200 });
             doc.text('TEL: 0232 431 0 75 | FAKS: 0232 431 00 73', 350, 85, { align: 'right' });
             doc.text('KARŞIYAKA V.D. - 6490546546', 350, 97, { align: 'right' });
@@ -322,25 +336,25 @@ export class ProposalsService {
             doc.moveTo(50, 115).lineTo(550, 115).stroke('#e5e7eb');
 
             // Proposal Header
-            doc.fillColor('#111827').fontSize(14).font(fontBold).text('BÜTÇE TEKLİF MEKTUBU', 50, 140, { align: 'center' });
+            doc.fillColor('#111827').fontSize(14).font(safeFontBold).text('BÜTÇE TEKLİF MEKTUBU', 50, 140, { align: 'center' });
 
             // Info Grid
-            doc.fontSize(10).font(fontBold).text('TEKLİF NO:', 50, 180);
-            doc.font(fontRegular).text(proposal.proposal_number, 150, 180);
+            doc.fontSize(10).font(safeFontBold).text('TEKLİF NO:', 50, 180);
+            doc.font(safeFontRegular).text(proposal.proposal_number, 150, 180);
 
-            doc.font(fontBold).text('MÜŞTERİ:', 50, 200);
-            doc.font(fontRegular).text((proposal as any).client?.company_name || '—', 150, 200);
+            doc.font(safeFontBold).text('MÜŞTERİ:', 50, 200);
+            doc.font(safeFontRegular).text((proposal as any).client?.company_name || '—', 150, 200);
 
-            doc.font(fontBold).text('TARİH:', 350, 180);
-            doc.font(fontRegular).text(new Date(proposal.created_at).toLocaleDateString('tr-TR'), 450, 180);
+            doc.font(safeFontBold).text('TARİH:', 350, 180);
+            doc.font(safeFontRegular).text(new Date(proposal.created_at).toLocaleDateString('tr-TR'), 450, 180);
 
-            doc.font(fontBold).text('GEÇERLİLİK:', 350, 200);
-            doc.font(fontRegular).text(proposal.valid_until ? new Date(proposal.valid_until).toLocaleDateString('tr-TR') : '30 Gün', 450, 200);
+            doc.font(safeFontBold).text('GEÇERLİLİK:', 350, 200);
+            doc.font(safeFontRegular).text(proposal.valid_until ? new Date(proposal.valid_until).toLocaleDateString('tr-TR') : '30 Gün', 450, 200);
 
             // Table Header
             const tableTop = 240;
             doc.rect(50, tableTop, 500, 25).fill(primaryColor);
-            doc.fillColor('white').fontSize(10).font(fontBold);
+            doc.fillColor('white').fontSize(10).font(safeFontBold);
             doc.text('ÜRÜN / HİZMET', 60, tableTop + 8);
             doc.text('ADET', 300, tableTop + 8, { width: 50, align: 'center' });
             doc.text('BİRİM FİYAT', 360, tableTop + 8, { width: 80, align: 'right' });
@@ -349,7 +363,7 @@ export class ProposalsService {
             // Table Rows
             let rowY = tableTop + 25;
             const items = (proposal as any).items || [];
-            doc.fillColor('#374151').font(fontRegular);
+            doc.fillColor('#374151').font(safeFontRegular);
 
             items.forEach((item: any) => {
                 doc.text(item.description, 60, rowY + 10, { width: 230 });
@@ -365,26 +379,26 @@ export class ProposalsService {
             const totalsY = rowY + 20;
             doc.fillColor('#4b5563').fontSize(10);
             doc.text('Ara Toplam:', 350, totalsY);
-            doc.fillColor('#111827').font(fontBold).text(`₺${proposal.subtotal.toLocaleString('tr-TR')}`, 450, totalsY, { width: 90, align: 'right' });
+            doc.fillColor('#111827').font(safeFontBold).text(`₺${proposal.subtotal.toLocaleString('tr-TR')}`, 450, totalsY, { width: 90, align: 'right' });
 
-            doc.fillColor('#4b5563').font(fontRegular).text(`KDV (%${proposal.tax_rate}):`, 350, totalsY + 20);
-            doc.fillColor('#111827').font(fontBold).text(`₺${proposal.tax_amount.toLocaleString('tr-TR')}`, 450, totalsY + 20, { width: 90, align: 'right' });
+            doc.fillColor('#4b5563').font(safeFontRegular).text(`KDV (%${proposal.tax_rate}):`, 350, totalsY + 20);
+            doc.fillColor('#111827').font(safeFontBold).text(`₺${proposal.tax_amount.toLocaleString('tr-TR')}`, 450, totalsY + 20, { width: 90, align: 'right' });
 
             doc.rect(340, totalsY + 40, 210, 40).fill('#fef2f2');
-            doc.fillColor(primaryColor).fontSize(12).font(fontBold).text('GENEL TOPLAM:', 350, totalsY + 55);
+            doc.fillColor(primaryColor).fontSize(12).font(safeFontBold).text('GENEL TOPLAM:', 350, totalsY + 55);
             doc.fontSize(14).text(`₺${proposal.total.toLocaleString('tr-TR')}`, 450, totalsY + 55, { width: 90, align: 'right' });
 
             // Terms
             const termsY = totalsY + 110;
-            doc.fillColor('#111827').fontSize(10).font(fontBold).text('Teklif Koşulları:', 50, termsY);
-            doc.fillColor(secondaryColor).fontSize(9).font(fontRegular).text(proposal.terms || 'Teklifimize ilan reklam vergileri dahil, KDV hariçtir. Her türlü iptal talebi, en geç kampanya başlangıç tarihine 20 gün kala bildirilmelidir.', 50, termsY + 15, { width: 500, lineGap: 3 });
+            doc.fillColor('#111827').fontSize(10).font(safeFontBold).text('Teklif Koşulları:', 50, termsY);
+            doc.fillColor(secondaryColor).fontSize(9).font(safeFontRegular).text(proposal.terms || 'Teklifimize ilan reklam vergileri dahil, KDV hariçtir. Her türlü iptal talebi, en geç kampanya başlangıç tarihine 20 gün kala bildirilmelidir.', 50, termsY + 15, { width: 500, lineGap: 3 });
 
             // Signatures
             const sigY = 700;
             doc.moveTo(50, sigY).lineTo(250, sigY).stroke('#000');
             doc.moveTo(350, sigY).lineTo(550, sigY).stroke('#000');
 
-            doc.fillColor('#111827').fontSize(10).font(fontBold);
+            doc.fillColor('#111827').fontSize(10).font(safeFontBold);
             doc.text('İZMİR AÇIK HAVA (ONAY)', 50, sigY + 10, { width: 200, align: 'center' });
             doc.text('KİRACI (ONAY)', 350, sigY + 10, { width: 200, align: 'center' });
 
@@ -393,8 +407,6 @@ export class ProposalsService {
     }
 
     async sendProposalEmail(id: string, recipientEmail?: string, customMessage?: string): Promise<{ success: boolean; message: string }> {
-        const nodemailer = await import('nodemailer');
-
         // Teklifi getir
         const proposal = await this.findOne(id);
         if (!proposal) {
@@ -409,17 +421,6 @@ export class ProposalsService {
         if (!toEmail) {
             throw new Error('Müşteri e-posta adresi bulunamadı');
         }
-
-        // Rezervasyon@izmiracikhavareklam.com hesabından gönder (şifresi çalışıyor)
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.yandex.com.tr',
-            port: 465,
-            secure: true,
-            auth: {
-                user: 'Rezervasyon@izmiracikhavareklam.com',
-                pass: process.env.MAIL_PASS || 'Reziar.075',
-            },
-        });
 
         // Teklif detaylarını oluştur
         const items = (proposal as any).items || [];
@@ -442,11 +443,12 @@ export class ProposalsService {
             `;
         }).join('');
 
+        const companyName = this.configService.get<string>('COMPANY_NAME') || 'İzmir Açıkhava Reklam Ajansı';
         const html = `
             <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 700px; margin: auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
                 <!-- Header -->
                 <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 30px; text-align: center;">
-                    <h1 style="color: white; margin: 0; font-size: 24px;">${process.env.COMPANY_NAME || 'İzmir Açıkhava Reklam Ajansı'}</h1>
+                    <h1 style="color: white; margin: 0; font-size: 24px;">${companyName}</h1>
                     <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Teklif Bilgilendirmesi</p>
                 </div>
 
@@ -498,38 +500,36 @@ export class ProposalsService {
                     <p style="color: #6b7280; font-size: 14px;">
                         Bu teklif hakkında sorularınız için bizimle iletişime geçebilirsiniz.<br>
                         <strong>Tel:</strong> 0232 431 0 75<br>
-                        <strong>E-posta:</strong> Rezervasyon@izmiracikhavareklam.com
+                        <strong>E-posta:</strong> ${this.configService.get('MAIL_USER')}
                     </p>
                 </div>
 
                 <!-- Footer -->
                 <div style="background: #1f2937; padding: 20px; text-align: center;">
                     <p style="color: #9ca3af; margin: 0; font-size: 12px;">
-                        © ${new Date().getFullYear()} ${process.env.COMPANY_NAME || 'İzmir Açıkhava Reklam Ajansı'} - Tüm hakları saklıdır.
+                        © ${new Date().getFullYear()} ${companyName} - Tüm hakları saklıdır.
                     </p>
                 </div>
             </div>
         `;
 
         try {
-            await transporter.sendMail({
-                from: `"${process.env.COMPANY_NAME || 'İzmir Açıkhava Reklam Ajansı'}" <Rezervasyon@izmiracikhavareklam.com>`,
-                to: toEmail,
-                cc: 'Rezervasyon@izmiracikhavareklam.com',
-                subject: `Teklif (₺${((proposal as any).total || 0).toLocaleString('tr-TR')}): ${(proposal as any).proposal_number} - ${(proposal as any).title || 'İzmir Açıkhava Reklam Ajansı'}`,
-                html: html,
-                attachments: [
+            await this.mailService.sendMail(
+                toEmail,
+                `Teklif (₺${((proposal as any).total || 0).toLocaleString('tr-TR')}): ${(proposal as any).proposal_number} - ${(proposal as any).title || companyName}`,
+                html,
+                undefined,
+                [
                     {
                         filename: `Teklif_${proposal.proposal_number}.pdf`,
                         content: pdfBuffer
                     }
                 ]
-            });
+            );
 
             // Durumu "SENT" olarak güncelle
             await this.updateStatus(id, 'SENT');
 
-            console.log(`✅ Teklif e-postası gönderildi: ${toEmail}`);
             return { success: true, message: `Teklif ${toEmail} adresine başarıyla gönderildi.` };
         } catch (error) {
             console.error('❌ E-posta gönderme hatası:', error);

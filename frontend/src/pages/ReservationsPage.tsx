@@ -4,6 +4,7 @@ import { reservationsData } from '../data/reservations'
 import { useToast } from '../hooks/useToast'
 import { inventoryService, bookingsService, customerRequestsService, proposalsService } from '../services'
 import LocationRequestModal from '../components/proposals/LocationRequestModal'
+import * as XLSX from 'xlsx'
 
 // Lokasyon tipi
 interface Location {
@@ -688,18 +689,33 @@ export default function ReservationsPage() {
 
     // Excel export
     const handleExportExcel = () => {
-        const csvContent = [
-            ['Yıl', 'Ay', 'Hafta', 'Koordinat', 'İlçe', 'Semt', 'Adres', 'Kod', 'Rout No', 'Network', 'Marka 1.Opsiyon', 'Marka 2.Opsiyon', 'Marka 3.Opsiyon', 'Marka 4.Opsiyon', 'Durum'].join('\t'),
-            ...filteredLocations.map(loc =>
-                [loc.yil, loc.ay, loc.hafta, loc.koordinat, loc.ilce, loc.semt, loc.adres, loc.kod, loc.routeNo || '-', loc.network, loc.marka1Opsiyon, loc.marka2Opsiyon, loc.marka3Opsiyon, loc.marka4Opsiyon, loc.durum].join('\t')
-            )
-        ].join('\n')
+        const exportData = filteredLocations.map(loc => ({
+            'Yıl': loc.yil,
+            'Ay': loc.ay,
+            'Hafta': loc.hafta,
+            'Koordinat': loc.koordinat,
+            'İlçe': loc.ilce,
+            'Semt': loc.semt,
+            'Adres': loc.adres,
+            'Kod': loc.kod,
+            'Rout No': loc.routeNo || '-',
+            'Network': loc.network,
+            'Marka 1.Opsiyon': loc.marka1Opsiyon,
+            'Marka 2.Opsiyon': loc.marka2Opsiyon,
+            'Marka 3.Opsiyon': loc.marka3Opsiyon,
+            'Marka 4.Opsiyon': loc.marka4Opsiyon,
+            'Durum': loc.durum
+        }))
 
-        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
-        const link = document.createElement('a')
-        link.href = URL.createObjectURL(blob)
-        link.download = `rezervasyon_${selectedWeek.replace(/\./g, '_')}_network${selectedNetwork}.csv`
-        link.click()
+        const worksheet = XLSX.utils.json_to_sheet(exportData)
+        const workbook = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Rezervasyonlar')
+
+        // Generate filename
+        const filename = `rezervasyon_${selectedWeek.replace(/\./g, '_')}_network${selectedNetwork}.xlsx`
+
+        // Export file
+        XLSX.writeFile(workbook, filename)
     }
 
     // Mail gönder
@@ -939,7 +955,19 @@ export default function ReservationsPage() {
                             </button>
                         </div>
                         {/* İlk Satır - Ana Filtreler */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Ürün Tipi</label>
+                                <select
+                                    value={selectedProductType}
+                                    onChange={(e) => setSelectedProductType(e.target.value)}
+                                    className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                                >
+                                    {productTypes.map(type => (
+                                        <option key={type} value={type}>{type}</option>
+                                    ))}
+                                </select>
+                            </div>
                             <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Yıl</label>
                                 <select
@@ -989,42 +1017,6 @@ export default function ReservationsPage() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">İlçe</label>
-                                <select
-                                    value={selectedDistrict}
-                                    onChange={(e) => setSelectedDistrict(e.target.value)}
-                                    className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
-                                >
-                                    {districtOptions.map(district => (
-                                        <option key={district} value={district}>{district}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Semt</label>
-                                <select
-                                    value={selectedNeighborhood}
-                                    onChange={(e) => setSelectedNeighborhood(e.target.value)}
-                                    className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
-                                >
-                                    {neighborhoodOptions.map(neighborhood => (
-                                        <option key={neighborhood} value={neighborhood}>{neighborhood}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Ürün Tipi</label>
-                                <select
-                                    value={selectedProductType}
-                                    onChange={(e) => setSelectedProductType(e.target.value)}
-                                    className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
-                                >
-                                    {productTypes.map(type => (
-                                        <option key={type} value={type}>{type}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Ara</label>
                                 <div className="relative">
                                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -1041,6 +1033,11 @@ export default function ReservationsPage() {
                         {/* Seçili Filtreler Özeti */}
                         <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
                             <span className="text-xs text-gray-500">Aktif Filtreler:</span>
+                            {selectedProductType !== 'Tümü' && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    {selectedProductType}
+                                </span>
+                            )}
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-800">
                                 {selectedYear}
                             </span>
@@ -1050,21 +1047,6 @@ export default function ReservationsPage() {
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                                 Network {selectedNetwork}
                             </span>
-                            {selectedDistrict !== 'Tümü' && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                                    {selectedDistrict}
-                                </span>
-                            )}
-                            {selectedNeighborhood !== 'Tümü' && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
-                                    {selectedNeighborhood}
-                                </span>
-                            )}
-                            {selectedProductType !== 'Tümü' && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                                    {selectedProductType}
-                                </span>
-                            )}
                         </div>
                     </div>
 
