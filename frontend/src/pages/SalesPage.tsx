@@ -226,7 +226,7 @@ export default function SalesPage() {
                 sector: (c as any).sector || '',
                 taxOffice: (c as any).tax_office || '',
                 taxNumber: (c as any).tax_number || '',
-                status: (c as any).status || 'Potansiyel',
+                status: (c as any).status === 'active' ? 'Aktif' : (c as any).status === 'inactive' ? 'Pasif' : 'Potansiyel',
                 city: (c as any).city || '',
                 district: (c as any).district || '',
                 postalCode: (c as any).postal_code || '',
@@ -805,14 +805,14 @@ export default function SalesPage() {
                 return;
             }
 
-            // E-postayı rezervasyon@izmiracikhavareklam.com adresinden gönder
-            const senderEmail = 'rezervasyon@izmiracikhavareklam.com';
+            // E-postayı pazarlama@izmiracikhavareklam.com adresinden gönder
+            const senderEmail = 'pazarlama@izmiracikhavareklam.com';
 
             const response = await proposalsService.sendEmail(proposalId, recipientEmail, message);
 
             if (response.success) {
                 // Teklifi 'sent' durumuna güncelle
-                await proposalsService.updateStatus(proposalId, 'sent');
+                await proposalsService.updateStatus(proposalId, 'SENT');
 
                 success(`Teklif ${recipientEmail} adresine ${senderEmail} üzerinden gönderildi.`);
                 setShowEmailModal(false);
@@ -825,6 +825,78 @@ export default function SalesPage() {
         } catch (error: any) {
             console.error('Email send error:', error);
             alert('E-posta gönderilemedi: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    const handleApproveProposal = async (id: string) => {
+        try {
+            setIsLoading(true);
+            await proposalsService.updateStatus(id, 'APPROVED');
+
+            // Onaylandığında otomatik olarak rezervasyon talebi gönder (simülasyon)
+            const proposal = proposals.find(p => p.id === id);
+            if (proposal) {
+                const customer = customers.find(c => c.id === proposal.customerId);
+                if (customer) {
+                    const reservationEmail = 'pazarlama@izmiracikhavareklam.com'
+                    const itemsSummary = proposal.items.map(item => {
+                        const label = item.network ? `${item.code} (Network ${item.network})` : item.code
+                        return `${item.quantity} ${label} `
+                    }).join(', ')
+
+                    success(`Teklif #${proposal.proposalNumber} onaylandı ve yer listesi talebi ${reservationEmail} adresine iletildi.`);
+                }
+            }
+
+            fetchData();
+        } catch (error: any) {
+            console.error('Approve error:', error);
+            alert('Teklif onaylanırken hata oluştu: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    const handleReviseFromSent = async (proposal: Proposal) => {
+        try {
+            setIsLoading(true);
+            // Teklifi 'draft' durumuna çek
+            await proposalsService.updateStatus(proposal.id, 'DRAFT');
+
+            // Teklif hazırlama modalanı açmak için gerekli state'leri set et
+            const customer = customers.find(c => c.id === proposal.customerId);
+            if (customer) {
+                setSelectedCustomer(customer);
+            }
+            setSelectedProposal(proposal);
+            setProposalItems([...proposal.items]);
+            setIsBlockList(proposal.isBlockList);
+
+            // Süreyi ayıkla (Örn: "2 Hafta" -> 2)
+            const duration = parseInt(proposal.usagePeriod || '1');
+            setDurationWeeks(isNaN(duration) ? 1 : duration);
+
+            // Dönemi ayıkla
+            if (proposal.weekInfo) {
+                const parts = proposal.weekInfo.split(' ');
+                if (parts.length >= 2) {
+                    const mIdx = monthNames.indexOf(parts[0]);
+                    if (mIdx !== -1) setStartMonth(mIdx + 1);
+                    const weekNum = parseInt(parts[1]);
+                    if (!isNaN(weekNum)) setStartWeek(weekNum);
+                }
+            }
+
+            setShowProposalModal(true);
+            setActiveTab('proposals'); // Bütçe Teklifleri sekmesine yönlendir (taslak olduğu için)
+
+            fetchData();
+            success(`Teklif #${proposal.proposalNumber} revize edilmek üzere taslaklara taşındı.`);
+        } catch (error: any) {
+            console.error('Revise error:', error);
+            alert('Teklif revize edilirken hata oluştu.');
         } finally {
             setIsLoading(false);
         }
@@ -923,7 +995,7 @@ export default function SalesPage() {
 
     const handleSendToReservation = () => {
         // Rezervasyona talep gönderme simülasyonu
-        const reservationEmail = 'rezervasyon@izmiracikhavareklam.com'
+        const reservationEmail = 'pazarlama@izmiracikhavareklam.com'
         const itemsSummary = proposalItems.map(item => {
             const label = item.network ? `${item.code} (Network ${item.network})` : item.code
             return `${item.quantity} ${label} `
@@ -1303,9 +1375,37 @@ export default function SalesPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <button className="text-gray-400 hover:text-primary-600 transition-colors">
-                                                <FileText className="w-5 h-5" />
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                {p.status === 'sent' && (
+                                                    <button
+                                                        onClick={() => handleApproveProposal(p.id)}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors shadow-sm"
+                                                        title="Onayla"
+                                                    >
+                                                        <CheckCircle className="w-3.5 h-3.5" />
+                                                        Onayla
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => handleReviseFromSent(p)}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors shadow-sm"
+                                                    title="Revize Et"
+                                                >
+                                                    <RefreshCw className="w-3.5 h-3.5" />
+                                                    Revize Et
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        if (window.confirm('Bu teklifi silmek istediğinize emin misiniz?')) {
+                                                            handleDeleteProposal(p.id)
+                                                        }
+                                                    }}
+                                                    className="inline-flex items-center p-1.5 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                                                    title="Sil"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -2171,7 +2271,7 @@ export default function SalesPage() {
                                         </div>
                                         <div>
                                             <h3 className="text-lg font-bold text-gray-900">Teklifi E-posta ile Gönder</h3>
-                                            <p className="text-sm text-gray-500">Rezervasyon@izmiracikhavareklam.com üzerinden</p>
+                                            <p className="text-sm text-gray-500">Pazarlama@IzmirAcikhavaReklam.com üzerinden</p>
                                         </div>
                                     </div>
                                     <button

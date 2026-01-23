@@ -257,11 +257,12 @@ export class ProposalsService {
     }
 
     async updateStatus(id: string, status: string): Promise<Proposal> {
-        const updateData: any = { status };
+        const upperStatus = status.toUpperCase();
+        const updateData: any = { status: upperStatus };
 
-        if (status === 'SENT' && !updateData.sent_at) {
+        if (upperStatus === 'SENT' && !updateData.sent_at) {
             updateData.sent_at = new Date();
-        } else if (status === 'ACCEPTED') {
+        } else if (upperStatus === 'ACCEPTED' || upperStatus === 'APPROVED') {
             updateData.accepted_at = new Date();
         }
 

@@ -61,7 +61,9 @@ export default function IncomingCallsPage() {
         website: '',
         notes: '',
         requestDetail: '',
-        calledPhone: ''
+        calledPhone: '',
+        leadSource: '',
+        leadStage: 'Aday'
     })
 
     useEffect(() => {
