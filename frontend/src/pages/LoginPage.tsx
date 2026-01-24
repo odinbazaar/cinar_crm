@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LogIn, AlertCircle } from 'lucide-react'
+import { LogIn, AlertCircle, Users, Shield } from 'lucide-react'
 import { authService } from '../services'
 
 interface LoginPageProps {
@@ -18,7 +18,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         setError(null)
 
         try {
-            // Backend API'ye giriş isteği gönder
+            // Backend API'ye hem email hem password gönderiyoruz
             const response = await authService.login({ email, password })
 
             // Başarılı giriş
@@ -47,58 +47,60 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                         <span className="text-3xl font-bold text-primary-600">İ</span>
                     </div>
                     <h1 className="text-4xl font-bold text-white mb-2">İzmir Açıkhava CRM</h1>
-                    <p className="text-primary-100">Reklam Ajansı Yönetim Sistemi</p>
+                    <p className="text-primary-100 font-medium">Reklam Ajansı Yönetim Sistemi</p>
                 </div>
 
                 {/* Login Card */}
-                <div className="bg-white rounded-2xl shadow-2xl p-8">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Giriş Yap</h2>
+                <div className="bg-white rounded-2xl shadow-2xl p-8 transition-all hover:shadow-primary-500/10">
+                    <div className="text-center mb-8">
+                        <h2 className="text-2xl font-bold text-gray-900">Hoş Geldiniz</h2>
+                        <p className="text-sm text-gray-500 mt-2">Devam etmek için lütfen giriş bilgilerinizi yazın</p>
+                    </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                                E-posta
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div className="space-y-2">
+                            <label htmlFor="email" className="block text-sm font-semibold text-gray-700">
+                                Kullanıcı Adı / E-posta
                             </label>
-                            <input
-                                id="email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="input"
-                                placeholder="ornek@cinarajans.com"
-                                required
-                            />
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                                    <Users className="w-5 h-5" />
+                                </span>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all outline-none"
+                                    placeholder="ornek@cinarajans.com"
+                                    required
+                                />
+                            </div>
                         </div>
 
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                        <div className="space-y-2">
+                            <label htmlFor="password" className="block text-sm font-semibold text-gray-700">
                                 Şifre
                             </label>
-                            <input
-                                id="password"
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="input"
-                                placeholder="••••••••"
-                                required
-                            />
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                                    <Shield className="w-5 h-5" />
+                                </span>
+                                <input
+                                    id="password"
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all outline-none"
+                                    placeholder="••••••••"
+                                    required
+                                />
+                            </div>
                         </div>
 
-                        <div className="flex items-center justify-between">
-                            <label className="flex items-center">
-                                <input type="checkbox" className="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
-                                <span className="ml-2 text-sm text-gray-600">Beni hatırla</span>
-                            </label>
-                            <a href="#" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
-                                Şifremi unuttum
-                            </a>
-                        </div>
-
-                        {/* Error Message */}
                         {error && (
-                            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                            <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm animate-shake">
+                                <AlertCircle className="w-5 h-5 flex-shrink-0" />
                                 <span>{error}</span>
                             </div>
                         )}
@@ -106,7 +108,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full btn btn-primary flex items-center justify-center gap-2 py-3"
+                            className="w-full bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary-200 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-3 disabled:opacity-50 disabled:transform-none"
                         >
                             {isLoading ? (
                                 <>
@@ -116,26 +118,23 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                             ) : (
                                 <>
                                     <LogIn className="w-5 h-5" />
-                                    Giriş Yap
+                                    Sisteme Güvenli Giriş Yap
                                 </>
                             )}
                         </button>
                     </form>
 
-                    {/* Demo Credentials */}
-                    <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-600 font-medium mb-2">Giriş Bilgileri:</p>
-                        <div className="text-xs text-gray-500 space-y-1">
-                            <p>Admin: ali@izmiracikhavareklam.com / Cinarcrm123!</p>
-                            <p>Çalışan: ayse@izmiracikhavareklam.com / Cinarcrm123!</p>
-                            <p>Yönetici: muhasebe@izmiracikhavareklam.com / Cinarcrm123!</p>
-                        </div>
+                    {/* Quick Help */}
+                    <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-center">
+                        <p className="text-xs text-center text-gray-400">
+                            Şifrenizi unuttuysanız sistem yöneticisi ile iletişime geçin.
+                        </p>
                     </div>
                 </div>
 
                 {/* Footer */}
-                <p className="text-center text-primary-100 text-sm mt-6">
-                    © 2026 İzmir Açıkhava Reklam Ajansı. Tüm hakları saklıdır.
+                <p className="text-center text-primary-100 text-sm mt-10 opacity-70">
+                    © 2026 İzmir Açıkhava Reklam Ajansı
                 </p>
             </div>
         </div>

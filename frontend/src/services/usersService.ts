@@ -10,6 +10,7 @@ export interface CreateUserDto {
     role: string;
     phone?: string;
     hourly_rate?: number;
+    permissions?: string[];
 }
 
 export interface UpdateUserDto {
@@ -19,6 +20,9 @@ export interface UpdateUserDto {
     hourly_rate?: number;
     avatar?: string;
     status?: string;
+    permissions?: string[];
+    email?: string;
+    password?: string;
 }
 
 // Users Service

@@ -6,30 +6,33 @@ import * as bcrypt from 'bcrypt';
 @Injectable()
 export class AuthService {
     async login(email: string, password: string) {
-        console.log('🔐 Login attempt:', { email, password });
+        console.log('🔐 Login attempt:', { email });
 
-        // Find user by email
-        const { data: users, error } = await supabase
+        // Giriş kodu e-posta değilse dummy domain ekliyoruz (Supabase Auth kısıtı için)
+        const loginEmail = email.includes('@') ? email : `${email}@cinarcrm.com`;
+
+        // DB'den kullanıcıyı bul (İzinler ve detaylar için)
+        const { data: user, error } = await supabase
             .from('users')
             .select('*')
             .eq('email', email)
             .single();
 
-        console.log('👤 User lookup result:', { users, error });
+        console.log('👤 User lookup result:', { user, error });
 
-        if (error || !users) {
+        if (error || !user) {
             console.log('❌ User not found');
             throw new UnauthorizedException('Invalid credentials');
         }
 
         console.log('🔑 Password comparison:', {
             providedPassword: password,
-            storedHash: users.password_hash,
-            hashLength: users.password_hash?.length
+            storedHash: user.password_hash,
+            hashLength: user.password_hash?.length
         });
 
         // Verify password
-        const isPasswordValid = await bcrypt.compare(password, users.password_hash);
+        const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
         console.log('✅ Password valid:', isPasswordValid);
 
@@ -39,7 +42,7 @@ export class AuthService {
         }
 
         // Return user without password
-        const { password_hash, ...userWithoutPassword } = users;
+        const { password_hash, ...userWithoutPassword } = user;
 
         console.log('✅ Login successful for:', email);
 

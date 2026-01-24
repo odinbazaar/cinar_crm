@@ -47,7 +47,7 @@ export class MailService {
         let lastError: any;
 
         // Gönderici adresine göre kimlik doğrulama bilgilerini belirle
-        let auth = null;
+        let auth: { user: string; pass: string } | undefined = undefined;
         if (fromEmail && fromEmail.toLowerCase().includes('rezervasyon')) {
             const rezUser = this.configService.get<string>('REZERVASYON_MAIL_USER');
             const rezPass = this.configService.get<string>('REZERVASYON_MAIL_PASS');

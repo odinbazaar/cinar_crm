@@ -30,4 +30,7 @@ export interface UpdateUserDto {
     hourly_rate?: number;
     avatar?: string;
     status?: string;
+    email?: string;
+    password?: string;
+    permissions?: string[];
 }

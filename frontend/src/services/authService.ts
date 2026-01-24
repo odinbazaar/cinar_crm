@@ -24,6 +24,7 @@ export interface User {
     avatar?: string;
     phone?: string;
     hourly_rate?: number;
+    permissions?: string[];
     created_at: string;
     updated_at: string;
 }
