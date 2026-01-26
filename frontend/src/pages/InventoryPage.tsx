@@ -11,6 +11,15 @@ import DataImportModal from '../components/common/DataImportModal'
 export default function InventoryPage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [filterType, setFilterType] = useState<string>('ALL')
+    const [columnFilters, setColumnFilters] = useState({
+        code: '',
+        type: '',
+        district: '',
+        neighborhood: '',
+        address: '',
+        network: '',
+        routeNo: ''
+    })
 
     // State for inventory data
     const [inventory, setInventory] = useState<InventoryItem[]>([])
@@ -55,7 +64,16 @@ export default function InventoryPage() {
 
         const matchesFilter = filterType === 'ALL' || item.type === filterType
 
-        return matchesSearch && matchesFilter
+        // Column-based filters
+        const matchesCode = item.code.toLowerCase().includes(columnFilters.code.toLowerCase())
+        const matchesType = columnFilters.type === '' || item.type === columnFilters.type
+        const matchesDistrict = (item.district || '').toLowerCase().includes(columnFilters.district.toLowerCase())
+        const matchesNeighborhood = (item.neighborhood || '').toLowerCase().includes(columnFilters.neighborhood.toLowerCase())
+        const matchesAddress = (item.address || '').toLowerCase().includes(columnFilters.address.toLowerCase())
+        const matchesNetwork = columnFilters.network === '' || String(item.network).includes(columnFilters.network)
+        const matchesRouteNo = columnFilters.routeNo === '' || String(item.routeNo || '').includes(columnFilters.routeNo)
+
+        return matchesSearch && matchesFilter && matchesCode && matchesType && matchesDistrict && matchesNeighborhood && matchesAddress && matchesNetwork && matchesRouteNo
     })
 
     const handleAddNew = () => {
@@ -232,6 +250,74 @@ export default function InventoryPage() {
                                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200">Rout NO</th>
                                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200">Durum</th>
                                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">İşlemler</th>
+                            </tr>
+                            <tr className="bg-white border-b border-gray-200">
+                                <th className="px-2 py-2 border-r border-gray-100">
+                                    <input
+                                        type="text"
+                                        className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-primary-500"
+                                        placeholder="Ara..."
+                                        value={columnFilters.code}
+                                        onChange={(e) => setColumnFilters({ ...columnFilters, code: e.target.value })}
+                                    />
+                                </th>
+                                <th className="px-2 py-2 border-r border-gray-100">
+                                    <select
+                                        className="w-full px-1 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-primary-500"
+                                        value={columnFilters.type}
+                                        onChange={(e) => setColumnFilters({ ...columnFilters, type: e.target.value })}
+                                    >
+                                        <option value="">Hepsi</option>
+                                        {filterTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                                    </select>
+                                </th>
+                                <th className="px-2 py-2 border-r border-gray-100">
+                                    <input
+                                        type="text"
+                                        className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-primary-500"
+                                        placeholder="Ara..."
+                                        value={columnFilters.district}
+                                        onChange={(e) => setColumnFilters({ ...columnFilters, district: e.target.value })}
+                                    />
+                                </th>
+                                <th className="px-2 py-2 border-r border-gray-100">
+                                    <input
+                                        type="text"
+                                        className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-primary-500"
+                                        placeholder="Ara..."
+                                        value={columnFilters.neighborhood}
+                                        onChange={(e) => setColumnFilters({ ...columnFilters, neighborhood: e.target.value })}
+                                    />
+                                </th>
+                                <th className="px-2 py-2 border-r border-gray-100">
+                                    <input
+                                        type="text"
+                                        className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-primary-500"
+                                        placeholder="Ara..."
+                                        value={columnFilters.address}
+                                        onChange={(e) => setColumnFilters({ ...columnFilters, address: e.target.value })}
+                                    />
+                                </th>
+                                <th className="px-2 py-2 border-r border-gray-100">
+                                    <input
+                                        type="text"
+                                        className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-primary-500"
+                                        placeholder="Ara..."
+                                        value={columnFilters.network}
+                                        onChange={(e) => setColumnFilters({ ...columnFilters, network: e.target.value })}
+                                    />
+                                </th>
+                                <th className="px-2 py-2 border-r border-gray-100">
+                                    <input
+                                        type="text"
+                                        className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-primary-500"
+                                        placeholder="Ara..."
+                                        value={columnFilters.routeNo}
+                                        onChange={(e) => setColumnFilters({ ...columnFilters, routeNo: e.target.value })}
+                                    />
+                                </th>
+                                <th className="px-2 py-2 border-r border-gray-100"></th>
+                                <th className="px-2 py-2"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">

@@ -21,6 +21,12 @@ interface AsimData {
     client: string;
     network: string;
     adet: number;
+    kod: string;
+    ilce: string;
+    semt: string;
+    adres: string;
+    koordinat: string;
+    routNo: string;
 }
 
 // Group data hierarchically
@@ -114,6 +120,14 @@ const AsimListesiPage = () => {
     const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set([2026]));
     const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set(['2026-Ocak', '2026-Şubat', '2026-Nisan', '2026-Mayıs']));
     const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
+    const [columnFilters, setColumnFilters] = useState({
+        client: '',
+        kod: '',
+        ilce: '',
+        semt: '',
+        adres: '',
+        network: ''
+    });
 
     const [asimData, setAsimData] = useState<AsimData[]>([]);
     const [loading, setLoading] = useState(true);
@@ -194,8 +208,8 @@ const AsimListesiPage = () => {
                 const brand = booking.brand_option_1 || booking.brand_name || '(boş)';
                 const network = invItem.network || '';
 
-                // Create unique key for grouping
-                const key = `${year}-${monthNum}-${weekStart}-${brand}-${network}`;
+                // Create unique key for grouping - including inventory item ID to show each location
+                const key = `${year}-${monthNum}-${weekStart}-${brand}-${network}-${invItem.id}`;
 
                 if (!brandGroups[key]) {
                     brandGroups[key] = {
@@ -206,10 +220,15 @@ const AsimListesiPage = () => {
                         weekStart,
                         client: brand,
                         network,
-                        adet: 0
+                        adet: 1, // Since we are grouping by individual location now
+                        kod: invItem.code,
+                        ilce: invItem.district,
+                        semt: invItem.neighborhood || '',
+                        adres: invItem.address,
+                        koordinat: invItem.coordinates || '',
+                        routNo: String(invItem.routeNo || '-')
                     };
                 }
-                brandGroups[key].adet += 1;
             });
 
             setAsimData(Object.values(brandGroups));
@@ -225,9 +244,18 @@ const AsimListesiPage = () => {
         return asimData.filter(item => {
             const networkMatch = selectedNetwork === 'all' || item.network === selectedNetwork;
             const weekMatch = selectedWeek === 'all' || item.weekStart === selectedWeek;
-            return networkMatch && weekMatch;
+
+            // Column filters
+            const clientMatch = item.client.toLowerCase().includes(columnFilters.client.toLowerCase());
+            const kodMatch = item.kod.toLowerCase().includes(columnFilters.kod.toLowerCase());
+            const ilceMatch = item.ilce.toLowerCase().includes(columnFilters.ilce.toLowerCase());
+            const semtMatch = item.semt.toLowerCase().includes(columnFilters.semt.toLowerCase());
+            const adresMatch = item.adres.toLowerCase().includes(columnFilters.adres.toLowerCase());
+            const netMatch = columnFilters.network === '' || String(item.network).includes(columnFilters.network);
+
+            return networkMatch && weekMatch && clientMatch && kodMatch && ilceMatch && semtMatch && adresMatch && netMatch;
         });
-    }, [asimData, selectedNetwork, selectedWeek]);
+    }, [asimData, selectedNetwork, selectedWeek, columnFilters]);
 
     const groupedData = useMemo(() => groupData(filteredData), [filteredData]);
 
@@ -296,7 +324,13 @@ const AsimListesiPage = () => {
                         'Ay': '',
                         'Hafta': weekGroup.weekStart,
                         'Müşteri / Marka': 'HAFTA TOPLAMI',
+                        'Koordinat': '',
+                        'İlçe': '',
+                        'Semt': '',
+                        'Adres': '',
+                        'Kod': '',
                         'Network': '',
+                        'Rout No': '',
                         'Toplam': weekGroup.weekTotal
                     });
 
@@ -307,7 +341,13 @@ const AsimListesiPage = () => {
                             'Ay': '',
                             'Hafta': weekGroup.weekStart,
                             'Müşteri / Marka': row.client === '(boş)' ? '-' : row.client,
+                            'Koordinat': row.koordinat,
+                            'İlçe': row.ilce,
+                            'Semt': row.semt,
+                            'Adres': row.adres,
+                            'Kod': row.kod,
                             'Network': row.network || '-',
+                            'Rout No': row.routNo,
                             'Toplam': row.adet
                         });
                     });
@@ -336,8 +376,14 @@ const AsimListesiPage = () => {
             { wch: 10 }, // Yıl
             { wch: 15 }, // Ay
             { wch: 15 }, // Hafta
-            { wch: 40 }, // Müşteri / Marka
+            { wch: 30 }, // Müşteri / Marka
+            { wch: 20 }, // Koordinat
+            { wch: 15 }, // İlçe
+            { wch: 15 }, // Semt
+            { wch: 40 }, // Adres
+            { wch: 10 }, // Kod
             { wch: 10 }, // Network
+            { wch: 10 }, // Rout No
             { wch: 10 }, // Toplam
         ];
         worksheet['!cols'] = wscols;
@@ -471,9 +517,77 @@ const AsimListesiPage = () => {
                                     <th className="px-3 py-3 text-left font-semibold border-r border-primary-600 w-20">Yıl</th>
                                     <th className="px-3 py-3 text-left font-semibold border-r border-primary-600 w-24">Ay</th>
                                     <th className="px-3 py-3 text-left font-semibold border-r border-primary-600 w-32">Hafta</th>
-                                    <th className="px-3 py-3 text-left font-semibold border-r border-primary-600 min-w-[200px]">Müşteri / Marka</th>
+                                    <th className="px-3 py-3 text-left font-semibold border-r border-primary-600 min-w-[150px]">Müşteri / Marka</th>
+                                    <th className="px-3 py-3 text-left font-semibold border-r border-primary-600">Koordinat</th>
+                                    <th className="px-3 py-3 text-left font-semibold border-r border-primary-600">İlçe</th>
+                                    <th className="px-3 py-3 text-left font-semibold border-r border-primary-600">Semt</th>
+                                    <th className="px-3 py-3 text-left font-semibold border-r border-primary-600 min-w-[200px]">Adres</th>
+                                    <th className="px-3 py-3 text-left font-semibold border-r border-primary-600">Kod</th>
                                     <th className="px-3 py-3 text-center font-semibold border-r border-primary-600 w-24">Network</th>
+                                    <th className="px-3 py-3 text-center font-semibold border-r border-primary-600">Rout No</th>
                                     <th className="px-3 py-3 text-center font-semibold w-24 bg-primary-800">Toplam</th>
+                                </tr>
+                                <tr className="bg-white border-b border-gray-200">
+                                    <th className="px-1 py-1 border-r border-gray-100"></th>
+                                    <th className="px-1 py-1 border-r border-gray-100"></th>
+                                    <th className="px-1 py-1 border-r border-gray-100"></th>
+                                    <th className="px-1 py-1 border-r border-gray-100">
+                                        <input
+                                            type="text"
+                                            className="w-full px-2 py-1 text-[10px] border border-gray-200 rounded focus:ring-1 focus:ring-primary-500"
+                                            placeholder="Filtrele..."
+                                            value={columnFilters.client}
+                                            onChange={(e) => setColumnFilters({ ...columnFilters, client: e.target.value })}
+                                        />
+                                    </th>
+                                    <th className="px-1 py-1 border-r border-gray-100"></th>
+                                    <th className="px-1 py-1 border-r border-gray-100">
+                                        <input
+                                            type="text"
+                                            className="w-full px-2 py-1 text-[10px] border border-gray-200 rounded focus:ring-1 focus:ring-primary-500"
+                                            placeholder="Filtrele..."
+                                            value={columnFilters.ilce}
+                                            onChange={(e) => setColumnFilters({ ...columnFilters, ilce: e.target.value })}
+                                        />
+                                    </th>
+                                    <th className="px-1 py-1 border-r border-gray-100">
+                                        <input
+                                            type="text"
+                                            className="w-full px-2 py-1 text-[10px] border border-gray-200 rounded focus:ring-1 focus:ring-primary-500"
+                                            placeholder="Filtrele..."
+                                            value={columnFilters.semt}
+                                            onChange={(e) => setColumnFilters({ ...columnFilters, semt: e.target.value })}
+                                        />
+                                    </th>
+                                    <th className="px-1 py-1 border-r border-gray-100">
+                                        <input
+                                            type="text"
+                                            className="w-full px-2 py-1 text-[10px] border border-gray-200 rounded focus:ring-1 focus:ring-primary-500"
+                                            placeholder="Filtrele..."
+                                            value={columnFilters.adres}
+                                            onChange={(e) => setColumnFilters({ ...columnFilters, adres: e.target.value })}
+                                        />
+                                    </th>
+                                    <th className="px-1 py-1 border-r border-gray-100">
+                                        <input
+                                            type="text"
+                                            className="w-full px-2 py-1 text-[10px] border border-gray-200 rounded focus:ring-1 focus:ring-primary-500"
+                                            placeholder="Filtrele..."
+                                            value={columnFilters.kod}
+                                            onChange={(e) => setColumnFilters({ ...columnFilters, kod: e.target.value })}
+                                        />
+                                    </th>
+                                    <th className="px-1 py-1 border-r border-gray-100">
+                                        <input
+                                            type="text"
+                                            className="w-full px-2 py-1 text-[10px] border border-gray-200 rounded focus:ring-1 focus:ring-primary-500"
+                                            placeholder="Fil..."
+                                            value={columnFilters.network}
+                                            onChange={(e) => setColumnFilters({ ...columnFilters, network: e.target.value })}
+                                        />
+                                    </th>
+                                    <th className="px-1 py-1 border-r border-gray-100"></th>
+                                    <th className="px-1 py-1"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -564,6 +678,11 @@ const AsimListesiPage = () => {
                                                                                 <span className="text-primary-700">{row.client}</span>
                                                                             )}
                                                                         </td>
+                                                                        <td className="px-3 py-2 border-r border-gray-200 text-gray-600 text-[10px]">{row.koordinat}</td>
+                                                                        <td className="px-3 py-2 border-r border-gray-200 text-gray-600">{row.ilce}</td>
+                                                                        <td className="px-3 py-2 border-r border-gray-200 text-gray-600">{row.semt}</td>
+                                                                        <td className="px-3 py-2 border-r border-gray-200 text-gray-600 text-xs max-w-xs truncate" title={row.adres}>{row.adres}</td>
+                                                                        <td className="px-3 py-2 border-r border-gray-200 font-bold text-gray-700">{row.kod}</td>
                                                                         <td className="px-3 py-2 text-center border-r border-gray-200">
                                                                             {row.network ? (
                                                                                 <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
@@ -571,6 +690,7 @@ const AsimListesiPage = () => {
                                                                                 </span>
                                                                             ) : '-'}
                                                                         </td>
+                                                                        <td className="px-3 py-2 text-center border-r border-gray-200 font-bold text-primary-600">{row.routNo}</td>
                                                                         <td className="px-3 py-2 text-center font-bold bg-yellow-50 text-yellow-800">
                                                                             {row.adet}
                                                                         </td>
@@ -588,7 +708,7 @@ const AsimListesiPage = () => {
                                 {/* Grand Total Row */}
                                 {groupedData.length > 0 && (
                                     <tr className="bg-gradient-to-r from-primary-800 to-secondary-800 text-white font-bold border-t-2 border-primary-600">
-                                        <td colSpan={5} className="px-4 py-3 text-left">
+                                        <td colSpan={11} className="px-4 py-3 text-left">
                                             Genel Toplam
                                         </td>
                                         <td className="px-4 py-3 text-center text-lg bg-yellow-500 text-yellow-900">

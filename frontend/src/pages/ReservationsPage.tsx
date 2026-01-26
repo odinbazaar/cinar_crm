@@ -78,11 +78,12 @@ export default function ReservationsPage() {
     const monthOptions = allMonths
 
     const weekOptions = useMemo(() => {
-        // Envanterdeki mevcut haftaları al
-        const existingWeeks = Array.from(new Set(locations.map(l => l.hafta)))
+        // Seçilen ayın numarasını bul (1-12)
+        const monthIndex = allMonths.indexOf(selectedMonth);
+        if (monthIndex === -1) return [];
 
         // Seçilen yılın tüm Pazartesi günlerini üret (52 veya 53 hafta)
-        const generatedWeeks: string[] = []
+        const generatedWeeks: { value: string; label: string; month: string }[] = []
         const startOfYear = new Date(selectedYear, 0, 1)
 
         // Yılın ilk Pazartesi'sini bul
@@ -96,18 +97,29 @@ export default function ReservationsPage() {
             const day = String(curr.getDate()).padStart(2, '0')
             const month = String(curr.getMonth() + 1).padStart(2, '0')
             const dateStr = `${day}.${month}.${curr.getFullYear()}`
-            generatedWeeks.push(dateStr)
+
+            // Bu haftanın hangi aya ait olduğunu belirle
+            // Pazartesi günü hangi aya denk geliyorsa o ayın haftası kabul edilir
+            const weekMonthName = allMonths[curr.getMonth()];
+
+            generatedWeeks.push({ value: dateStr, label: dateStr, month: weekMonthName })
             curr.setDate(curr.getDate() + 7)
         }
 
-        const combined = Array.from(new Set([...existingWeeks, ...generatedWeeks])).sort((a, b) => {
-            const [d1, m1, y1] = a.split('.').map(Number)
-            const [d2, m2, y2] = b.split('.').map(Number)
-            return new Date(y1, m1 - 1, d1).getTime() - new Date(y2, m2 - 1, d2).getTime()
-        })
+        // Sadece seçilen aya ait olan haftaları döndür
+        return generatedWeeks.filter(w => w.month === selectedMonth);
+    }, [selectedYear, selectedMonth])
 
-        return combined.map(w => ({ value: w, label: w }))
-    }, [locations, selectedYear])
+    // Ay değiştiğinde haftayı o ayın ilk haftasına ayarla
+    useEffect(() => {
+        if (weekOptions.length > 0) {
+            // Eğer mevcut seçili hafta yeni ayın haftaları arasında yoksa, ilk haftayı seç
+            const isWeekInMonth = weekOptions.some(w => w.value === selectedWeek);
+            if (!isWeekInMonth) {
+                setSelectedWeek(weekOptions[0].value);
+            }
+        }
+    }, [selectedMonth, weekOptions]);
 
     const districtOptions = useMemo(() => ['Tümü', ...Array.from(new Set(locations.map(l => l.ilce)))], [locations])
     const neighborhoodOptions = useMemo(() => ['Tümü', ...Array.from(new Set(locations.map(l => l.semt)))], [locations])
