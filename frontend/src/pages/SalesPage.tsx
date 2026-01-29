@@ -170,7 +170,9 @@ export default function SalesPage() {
     // Tanımlı e-posta hesapları
     const emailAccounts = [
         { value: 'pazarlama@izmiracikhavareklam.com', label: 'Pazarlama', color: 'green' },
-        { value: 'rezervasyon@izmiracikhavareklam.com', label: 'Rezervasyon', color: 'blue' }
+        { value: 'rezervasyon@izmiracikhavareklam.com', label: 'Rezervasyon', color: 'blue' },
+        { value: 'simge@izmiracikhavareklam.com', label: 'Simge', color: 'purple' },
+        { value: 'ali@izmiracikhavareklam.com', label: 'Ali Çınar', color: 'orange' }
     ]
 
     // Fetch data on mount
@@ -2289,14 +2291,14 @@ export default function SalesPage() {
                                     </button>
                                 </div>
                             </div>
-                            <div className="p-6 space-y-4">
-                                <div className="bg-gray-50 rounded-xl p-4">
+                            <div className="p-4 space-y-3">
+                                <div className="bg-gray-50 rounded-xl p-3">
                                     <p className="text-sm text-gray-600 mb-1">Teklif No</p>
                                     <p className="font-semibold text-gray-900">
                                         {selectedProposal?.proposalNumber || selectedProposal?.id || 'Yeni Teklif'}
                                     </p>
                                 </div>
-                                <div className="bg-gray-50 rounded-xl p-4">
+                                <div className="bg-gray-50 rounded-xl p-3">
                                     <p className="text-sm text-gray-600 mb-1">Müşteri</p>
                                     <p className="font-semibold text-gray-900">
                                         {selectedProposal?.customerName || selectedCustomer?.companyName}
@@ -2306,7 +2308,7 @@ export default function SalesPage() {
                                     </p>
                                 </div>
                                 {!selectedProposal && (
-                                    <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+                                    <div className="bg-green-50 rounded-xl p-3 border border-green-200">
                                         <p className="text-sm text-green-700 font-medium">
                                             💡 Yeni teklif oluşturulacak ve e-posta ile gönderilecek.
                                         </p>
@@ -2320,7 +2322,7 @@ export default function SalesPage() {
                                     <select
                                         value={selectedSenderEmail}
                                         onChange={(e) => setSelectedSenderEmail(e.target.value)}
-                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white font-medium"
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white font-medium"
                                     >
                                         {emailAccounts.map(account => (
                                             <option key={account.value} value={account.value}>
@@ -2337,16 +2339,16 @@ export default function SalesPage() {
                                         id="recipientEmail"
                                         defaultValue={selectedCustomer?.email || ''}
                                         placeholder="ornek@firma.com"
-                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500"
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Ek Mesaj (Opsiyonel)</label>
                                     <textarea
                                         id="emailMessage"
-                                        rows={3}
+                                        rows={2}
                                         placeholder="Müşteriye iletmek istediğiniz ek bir mesaj..."
-                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
                                     />
                                 </div>
                             </div>

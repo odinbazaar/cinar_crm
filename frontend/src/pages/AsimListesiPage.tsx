@@ -27,6 +27,7 @@ interface AsimData {
     adres: string;
     koordinat: string;
     routNo: string;
+    type: string;
 }
 
 // Group data hierarchically
@@ -116,6 +117,7 @@ const generateWeekOptions = (year: number): { value: string; label: string }[] =
 const AsimListesiPage = () => {
     const [selectedYear, setSelectedYear] = useState(2026);
     const [selectedNetwork, setSelectedNetwork] = useState<string>('all');
+    const [selectedProductType, setSelectedProductType] = useState<string>('all');
     const [selectedWeek, setSelectedWeek] = useState<string>('all');
     const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set([2026]));
     const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set(['2026-Ocak', '2026-Şubat', '2026-Nisan', '2026-Mayıs']));
@@ -134,6 +136,15 @@ const AsimListesiPage = () => {
 
     const weekOptions = useMemo(() => generateWeekOptions(selectedYear), [selectedYear]);
     const networks = ['1', '2', '3', 'BELEDİYE'];
+    const productTypes = [
+        { code: 'BB', name: 'Billboard' },
+        { code: 'CLP', name: 'Raket' },
+        { code: 'MGL', name: 'Megalight' },
+        { code: 'GB', name: 'Giantboard' },
+        { code: 'LB', name: 'LED' },
+        { code: 'MB', name: 'Megaboard' },
+        { code: 'KB', name: 'Kuleboard' }
+    ];
 
     // Fetch real data from bookings
     useEffect(() => {
@@ -226,7 +237,8 @@ const AsimListesiPage = () => {
                         semt: invItem.neighborhood || '',
                         adres: invItem.address,
                         koordinat: invItem.coordinates || '',
-                        routNo: String(invItem.routeNo || '-')
+                        routNo: String(invItem.routeNo || '-'),
+                        type: invItem.type || ''
                     };
                 }
             });
@@ -244,6 +256,7 @@ const AsimListesiPage = () => {
         return asimData.filter(item => {
             const networkMatch = selectedNetwork === 'all' || item.network === selectedNetwork;
             const weekMatch = selectedWeek === 'all' || item.weekStart === selectedWeek;
+            const productTypeMatch = selectedProductType === 'all' || item.type?.toUpperCase() === selectedProductType.toUpperCase();
 
             // Column filters
             const clientMatch = item.client.toLowerCase().includes(columnFilters.client.toLowerCase());
@@ -253,9 +266,9 @@ const AsimListesiPage = () => {
             const adresMatch = item.adres.toLowerCase().includes(columnFilters.adres.toLowerCase());
             const netMatch = columnFilters.network === '' || String(item.network).includes(columnFilters.network);
 
-            return networkMatch && weekMatch && clientMatch && kodMatch && ilceMatch && semtMatch && adresMatch && netMatch;
+            return networkMatch && weekMatch && productTypeMatch && clientMatch && kodMatch && ilceMatch && semtMatch && adresMatch && netMatch;
         });
-    }, [asimData, selectedNetwork, selectedWeek, columnFilters]);
+    }, [asimData, selectedNetwork, selectedWeek, selectedProductType, columnFilters]);
 
     const groupedData = useMemo(() => groupData(filteredData), [filteredData]);
 
@@ -478,12 +491,32 @@ const AsimListesiPage = () => {
                     </select>
                 </div>
 
+                {/* Product Type Filter */}
+                <div className="flex items-center gap-2 border-l border-gray-200 pl-4">
+                    <label className="text-sm text-gray-600 text-nowrap">Ürün Tipi:</label>
+                    <select
+                        value={selectedProductType}
+                        onChange={(e) => setSelectedProductType(e.target.value)}
+                        className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    >
+                        <option value="all">Tüm Ürünler</option>
+                        {productTypes.map(pt => (
+                            <option key={pt.code} value={pt.code}>{pt.name} ({pt.code})</option>
+                        ))}
+                    </select>
+                </div>
+
                 {/* Active Filter Badge */}
-                {(selectedNetwork !== 'all' || selectedWeek !== 'all') && (
+                {(selectedNetwork !== 'all' || selectedWeek !== 'all' || selectedProductType !== 'all') && (
                     <div className="flex items-center gap-2">
                         {selectedNetwork !== 'all' && (
                             <span className="px-2 py-1 bg-primary-100 text-primary-700 rounded-full text-xs font-medium">
                                 Network: {selectedNetwork}
+                            </span>
+                        )}
+                        {selectedProductType !== 'all' && (
+                            <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
+                                Ürün: {selectedProductType}
                             </span>
                         )}
                         {selectedWeek !== 'all' && (
@@ -492,7 +525,7 @@ const AsimListesiPage = () => {
                             </span>
                         )}
                         <button
-                            onClick={() => { setSelectedNetwork('all'); setSelectedWeek('all'); }}
+                            onClick={() => { setSelectedNetwork('all'); setSelectedWeek('all'); setSelectedProductType('all'); }}
                             className="text-gray-400 hover:text-gray-600 text-xs underline"
                         >
                             Temizle

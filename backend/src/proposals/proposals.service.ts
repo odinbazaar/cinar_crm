@@ -291,8 +291,19 @@ export class ProposalsService {
             const buffers: Buffer[] = [];
 
             // Font Yolları
-            const regularFontPath = path.join(process.cwd(), 'src', 'assets', 'fonts', 'Roboto-Regular.ttf');
-            const boldFontPath = path.join(process.cwd(), 'src', 'assets', 'fonts', 'Roboto-Bold.ttf');
+            // Font Yolları - Hem src hem dist (dev/prod) için kontrol et
+            const fontsDir = path.join(process.cwd(), 'src', 'assets', 'fonts');
+            const distFontsDir = path.join(process.cwd(), 'dist', 'assets', 'fonts');
+
+            let regularFontPath = path.join(fontsDir, 'Roboto-Regular.ttf');
+            let boldFontPath = path.join(fontsDir, 'Roboto-Bold.ttf');
+
+            if (!fs.existsSync(regularFontPath)) {
+                regularFontPath = path.join(distFontsDir, 'Roboto-Regular.ttf');
+                boldFontPath = path.join(distFontsDir, 'Roboto-Bold.ttf');
+            }
+
+            console.log('PDF Fonts Check:', { regularFontPath, exists: fs.existsSync(regularFontPath) });
 
             // Fontları kaydet (Hata durumunda Helvetica fallback kullan)
             try {
@@ -301,11 +312,10 @@ export class ProposalsService {
                     doc.registerFont('CustomBold', boldFontPath);
                     console.log('✅ Custom fonts registered successfully');
                 } else {
-                    console.warn('⚠️ Custom fonts not found, using Helvetica fallback');
+                    console.warn('⚠️ Custom fonts not found, checking system paths or using Helvetica');
                 }
             } catch (fontError) {
-                console.error('❌ Error registering fonts (corrupted format?):', fontError.message);
-                console.warn('⚠️ Using Helvetica fallback due to font error');
+                console.error('❌ Error registering fonts:', fontError.message);
             }
 
             // Override font usage if fallback is needed
@@ -321,7 +331,7 @@ export class ProposalsService {
 
             // Header - Logo
             doc.rect(50, 45, 60, 60).fill(primaryColor);
-            doc.fillColor('white').fontSize(24).font(safeFontBold).text('İAR', 50, 62, { width: 60, align: 'center' });
+            doc.fillColor('white').fontSize(24).font(safeFontBold || 'Helvetica-Bold').text('İAR', 50, 62, { width: 60, align: 'center' });
 
             // Brand
             doc.fillColor(primaryColor).fontSize(20).font(safeFontBold).text('İZMİR AÇIK HAVA', 125, 55);
@@ -448,6 +458,9 @@ export class ProposalsService {
         const html = `
             <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 700px; margin: auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
                 <!-- Header -->
+                <head>
+                    <meta charset="UTF-8">
+                </head>
                 <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 30px; text-align: center;">
                     <h1 style="color: white; margin: 0; font-size: 24px;">${companyName}</h1>
                     <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Teklif Bilgilendirmesi</p>
