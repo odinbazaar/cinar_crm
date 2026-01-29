@@ -172,7 +172,8 @@ export default function SalesPage() {
         { value: 'pazarlama@izmiracikhavareklam.com', label: 'Pazarlama', color: 'green' },
         { value: 'rezervasyon@izmiracikhavareklam.com', label: 'Rezervasyon', color: 'blue' },
         { value: 'simge@izmiracikhavareklam.com', label: 'Simge', color: 'purple' },
-        { value: 'ali@izmiracikhavareklam.com', label: 'Ali Çınar', color: 'orange' }
+        { value: 'ali@izmiracikhavareklam.com', label: 'Ali Çınar', color: 'orange' },
+        { value: 'ayse@izmiracikhavareklam.com', label: 'Ayşe', color: 'pink' }
     ]
 
     // Fetch data on mount

@@ -74,6 +74,13 @@ export class MailService {
                     auth = { user: simgeUser, pass: simgePass };
                     this.logger.log(`📧 Using Simge credentials for sending.`);
                 }
+            } else if (lowerFrom.includes('ayse@izmiracikhavareklam.com') || lowerFrom.includes('ayse@')) {
+                const ayseUser = 'ayse@izmiracikhavareklam.com';
+                const aysePass = this.configService.get<string>('AYSE_MAIL_PASS');
+                if (aysePass) {
+                    auth = { user: ayseUser, pass: aysePass };
+                    this.logger.log(`📧 Using Ayşe credentials for sending.`);
+                }
             }
         }
 

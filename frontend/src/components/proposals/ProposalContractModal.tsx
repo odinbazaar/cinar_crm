@@ -23,6 +23,7 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
         { label: 'Rezervasyon', email: 'rezervasyon@izmiracikhavareklam.com' },
         { label: 'Simge', email: 'simge@izmiracikhavareklam.com' },
         { label: 'Ali Çınar', email: 'ali@izmiracikhavareklam.com' },
+        { label: 'Ayşe', email: 'ayse@izmiracikhavareklam.com' },
     ]
 
     if (!isOpen || !proposal) return null
