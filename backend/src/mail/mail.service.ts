@@ -60,15 +60,21 @@ export class MailService {
                     auth = { user: rezUser, pass: rezPass };
                     this.logger.log(`📧 Using Rezervasyon credentials for sending.`);
                 }
-            } else if (lowerFrom === 'ali@izmiracikhavareklam.com' || lowerFrom.startsWith('ali@')) {
+            } else if (lowerFrom.includes('ali@izmiracikhavareklam.com') || lowerFrom.startsWith('ali@')) {
                 const aliUser = 'ali@izmiracikhavareklam.com';
                 const aliPass = this.configService.get<string>('ALI_MAIL_PASS');
                 if (aliPass) {
                     auth = { user: aliUser, pass: aliPass };
                     this.logger.log(`📧 Using Ali credentials for sending.`);
                 }
+            } else if (lowerFrom.includes('simge@izmiracikhavareklam.com') || lowerFrom.includes('simge@')) {
+                const simgeUser = 'simge@izmiracikhavareklam.com';
+                const simgePass = this.configService.get<string>('SIMGE_MAIL_PASS') || this.configService.get<string>('ALI_MAIL_PASS');
+                if (simgePass) {
+                    auth = { user: simgeUser, pass: simgePass };
+                    this.logger.log(`📧 Using Simge credentials for sending.`);
+                }
             }
-            // Diğer özel hesaplar buraya eklenebilir
         }
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {

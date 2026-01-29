@@ -1,4 +1,4 @@
-const http = require('https');
+const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
@@ -10,26 +10,39 @@ if (!fs.existsSync(fontDir)) {
 const fonts = [
     {
         name: 'Roboto-Regular.ttf',
-        url: 'https://github.com/google/fonts/raw/main/apache/roboto/static/Roboto-Regular.ttf'
+        url: 'https://raw.githubusercontent.com/googlefonts/roboto/master/src/hinted/Roboto-Regular.ttf'
     },
     {
         name: 'Roboto-Bold.ttf',
-        url: 'https://github.com/google/fonts/raw/main/apache/roboto/static/Roboto-Bold.ttf'
+        url: 'https://raw.githubusercontent.com/googlefonts/roboto/master/src/hinted/Roboto-Bold.ttf'
     }
 ];
 
-fonts.forEach(font => {
-    const filePath = path.join(fontDir, font.name);
-    console.log(`Downloading ${font.name}...`);
-    const file = fs.createWriteStream(filePath);
-    http.get(font.url, function (response) {
-        response.pipe(file);
-        file.on('finish', function () {
-            file.close();
-            console.log(`${font.name} downloaded successfully.`);
-        });
-    }).on('error', function (err) {
-        fs.unlink(filePath);
-        console.error(`Error downloading ${font.name}: ${err.message}`);
-    });
-});
+async function downloadFonts() {
+    for (const font of fonts) {
+        const filePath = path.join(fontDir, font.name);
+        console.log(`Downloading ${font.name}...`);
+
+        try {
+            const response = await axios({
+                method: 'GET',
+                url: font.url,
+                responseType: 'stream'
+            });
+
+            const writer = fs.createWriteStream(filePath);
+            response.data.pipe(writer);
+
+            await new Promise((resolve, reject) => {
+                writer.on('finish', resolve);
+                writer.on('error', reject);
+            });
+
+            console.log(`✅ ${font.name} downloaded successfully.`);
+        } catch (err) {
+            console.error(`❌ Error downloading ${font.name}: ${err.message}`);
+        }
+    }
+}
+
+downloadFonts();

@@ -21,7 +21,8 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
     const SENDER_EMAILS = [
         { label: 'Pazarlama', email: 'pazarlama@izmiracikhavareklam.com' },
         { label: 'Rezervasyon', email: 'rezervasyon@izmiracikhavareklam.com' },
-        { label: 'Ali Bey', email: 'ali@izmiracikhavareklam.com' },
+        { label: 'Simge', email: 'simge@izmiracikhavareklam.com' },
+        { label: 'Ali Çınar', email: 'ali@izmiracikhavareklam.com' },
     ]
 
     if (!isOpen || !proposal) return null
