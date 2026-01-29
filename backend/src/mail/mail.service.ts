@@ -59,6 +59,8 @@ export class MailService {
                 if (rezPass) {
                     auth = { user: rezUser, pass: rezPass };
                     this.logger.log(`📧 Using Rezervasyon credentials for sending.`);
+                } else {
+                    throw new Error(`Rezervasyon hesabı için şifre (REZERVASYON_MAIL_PASS) .env dosyasında bulunamadı.`);
                 }
             } else if (lowerFrom.includes('ali@izmiracikhavareklam.com') || lowerFrom.startsWith('ali@')) {
                 const aliUser = 'ali@izmiracikhavareklam.com';
@@ -66,13 +68,17 @@ export class MailService {
                 if (aliPass) {
                     auth = { user: aliUser, pass: aliPass };
                     this.logger.log(`📧 Using Ali credentials for sending.`);
+                } else {
+                    throw new Error(`Ali Bey hesabı için şifre (ALI_MAIL_PASS) .env dosyasında bulunamadı.`);
                 }
             } else if (lowerFrom.includes('simge@izmiracikhavareklam.com') || lowerFrom.includes('simge@')) {
                 const simgeUser = 'simge@izmiracikhavareklam.com';
-                const simgePass = this.configService.get<string>('SIMGE_MAIL_PASS') || this.configService.get<string>('ALI_MAIL_PASS');
+                const simgePass = this.configService.get<string>('SIMGE_MAIL_PASS');
                 if (simgePass) {
                     auth = { user: simgeUser, pass: simgePass };
                     this.logger.log(`📧 Using Simge credentials for sending.`);
+                } else {
+                    throw new Error(`Simge hesabı için şifre (SIMGE_MAIL_PASS) .env dosyasında bulunamadı.`);
                 }
             } else if (lowerFrom.includes('ayse@izmiracikhavareklam.com') || lowerFrom.includes('ayse@')) {
                 const ayseUser = 'ayse@izmiracikhavareklam.com';
@@ -80,6 +86,8 @@ export class MailService {
                 if (aysePass) {
                     auth = { user: ayseUser, pass: aysePass };
                     this.logger.log(`📧 Using Ayşe credentials for sending.`);
+                } else {
+                    throw new Error(`Ayşe hesabı için şifre (AYSE_MAIL_PASS) .env dosyasında bulunamadı.`);
                 }
             }
         }
@@ -88,9 +96,9 @@ export class MailService {
             const transporter = this.createTransporter(auth);
 
             try {
-                // Gönderici: önce fromEmail parametresi, yoksa MAIL_FROM, yoksa MAIL_USER
+                // Gönderici formatını sadeleştiriyoruz (Yandex gibi sağlayıcılar için daha garanti)
                 const defaultFrom = this.configService.get<string>('MAIL_FROM') || this.mailConfig.auth.user;
-                const from = fromEmail ? `"İzmir Açıkhava CRM" <${fromEmail}>` : defaultFrom;
+                const from = fromEmail ? fromEmail : defaultFrom;
 
                 this.logger.log(`📧 Attempt ${attempt}/${maxRetries}: Sending email to ${to} from ${from}...`);
 
