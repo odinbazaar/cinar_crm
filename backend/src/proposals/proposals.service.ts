@@ -291,13 +291,13 @@ export class ProposalsService {
             const buffers: Buffer[] = [];
 
             // Font Yolları
-            // Font Yolları - Hem src hem dist (dev/prod) için kontrol et
             const fontsDir = path.join(process.cwd(), 'src', 'assets', 'fonts');
             const distFontsDir = path.join(process.cwd(), 'dist', 'assets', 'fonts');
 
             let regularFontPath = path.join(fontsDir, 'Roboto-Regular.ttf');
             let boldFontPath = path.join(fontsDir, 'Roboto-Bold.ttf');
 
+            // Find valid font paths
             if (!fs.existsSync(regularFontPath)) {
                 regularFontPath = path.join(distFontsDir, 'Roboto-Regular.ttf');
                 boldFontPath = path.join(distFontsDir, 'Roboto-Bold.ttf');
@@ -305,22 +305,27 @@ export class ProposalsService {
 
             console.log('PDF Fonts Check:', { regularFontPath, exists: fs.existsSync(regularFontPath) });
 
-            // Fontları kaydet (Hata durumunda Helvetica fallback kullan)
+            let safeFontRegular = 'Helvetica';
+            let safeFontBold = 'Helvetica-Bold';
+
+            // Fontları kaydet
             try {
                 if (fs.existsSync(regularFontPath) && fs.existsSync(boldFontPath)) {
                     doc.registerFont('CustomRegular', regularFontPath);
                     doc.registerFont('CustomBold', boldFontPath);
+                    safeFontRegular = 'CustomRegular';
+                    safeFontBold = 'CustomBold';
                     console.log('✅ Custom fonts registered successfully');
                 } else {
-                    console.warn('⚠️ Custom fonts not found, checking system paths or using Helvetica');
+                    console.warn('⚠️ Custom fonts not found, using Helvetica fallback');
+                    const errorLog = `\n[${new Date().toISOString()}] PDF FONT ERROR: Fonts not found at ${regularFontPath}\n`;
+                    fs.appendFileSync(path.join(process.cwd(), 'backend-error.txt'), errorLog);
                 }
             } catch (fontError) {
                 console.error('❌ Error registering fonts:', fontError.message);
+                const errorLog = `\n[${new Date().toISOString()}] PDF FONT REGISTRATION ERROR: ${fontError.message}\n`;
+                fs.appendFileSync(path.join(process.cwd(), 'backend-error.txt'), errorLog);
             }
-
-            // Override font usage if fallback is needed
-            const safeFontRegular = (doc as any)._fontFamilies && (doc as any)._fontFamilies['CustomRegular'] ? 'CustomRegular' : 'Helvetica';
-            const safeFontBold = (doc as any)._fontFamilies && (doc as any)._fontFamilies['CustomBold'] ? 'CustomBold' : 'Helvetica-Bold';
 
             doc.on('data', buffers.push.bind(buffers));
             doc.on('end', () => resolve(Buffer.concat(buffers)));
@@ -514,7 +519,7 @@ export class ProposalsService {
                     <p style="color: #6b7280; font-size: 14px;">
                         Bu teklif hakkında sorularınız için bizimle iletişime geçebilirsiniz.<br>
                         <strong>Tel:</strong> 0232 431 0 75<br>
-                        <strong>E-posta:</strong> ${this.configService.get('MAIL_USER')}
+                        <strong>E-posta:</strong> ${senderEmail || this.configService.get('MAIL_USER')}
                     </p>
                 </div>
 

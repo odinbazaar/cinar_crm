@@ -18,6 +18,7 @@ export class MailService {
                 pass: this.configService.get<string>('MAIL_PASS'),
             },
             tls: {
+                // TODO: Review for production. Currently disabled to allow connections with some mail providers
                 rejectUnauthorized: false
             },
             // Yandex için önemli ayarlar
@@ -48,16 +49,26 @@ export class MailService {
 
         // Gönderici adresine göre kimlik doğrulama bilgilerini belirle
         let auth: { user: string; pass: string } | undefined = undefined;
-        if (fromEmail && fromEmail.toLowerCase().includes('rezervasyon')) {
-            const rezUser = this.configService.get<string>('REZERVASYON_MAIL_USER');
-            const rezPass = this.configService.get<string>('REZERVASYON_MAIL_PASS');
-            if (rezUser && rezPass) {
-                auth = {
-                    user: rezUser,
-                    pass: rezPass
-                };
-                this.logger.log(`📧 Using Rezervasyon credentials for sending.`);
+
+        if (fromEmail) {
+            const lowerFrom = fromEmail.toLowerCase();
+
+            if (lowerFrom.includes('rezervasyon')) {
+                const rezUser = this.configService.get<string>('REZERVASYON_MAIL_USER') || 'rezervasyon@izmiracikhavareklam.com';
+                const rezPass = this.configService.get<string>('REZERVASYON_MAIL_PASS');
+                if (rezPass) {
+                    auth = { user: rezUser, pass: rezPass };
+                    this.logger.log(`📧 Using Rezervasyon credentials for sending.`);
+                }
+            } else if (lowerFrom === 'ali@izmiracikhavareklam.com' || lowerFrom.startsWith('ali@')) {
+                const aliUser = 'ali@izmiracikhavareklam.com';
+                const aliPass = this.configService.get<string>('ALI_MAIL_PASS');
+                if (aliPass) {
+                    auth = { user: aliUser, pass: aliPass };
+                    this.logger.log(`📧 Using Ali credentials for sending.`);
+                }
             }
+            // Diğer özel hesaplar buraya eklenebilir
         }
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {

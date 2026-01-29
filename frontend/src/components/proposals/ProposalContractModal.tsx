@@ -15,7 +15,14 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
     const printRef = useRef<HTMLDivElement>(null)
     const [contractType, setContractType] = useState<'standard' | 'tevkifat'>('standard')
     const [isSending, setIsSending] = useState(false)
+    const [selectedSender, setSelectedSender] = useState('pazarlama@izmiracikhavareklam.com')
     const { success, error } = useToast()
+
+    const SENDER_EMAILS = [
+        { label: 'Pazarlama', email: 'pazarlama@izmiracikhavareklam.com' },
+        { label: 'Rezervasyon', email: 'rezervasyon@izmiracikhavareklam.com' },
+        { label: 'Ali Bey', email: 'ali@izmiracikhavareklam.com' },
+    ]
 
     if (!isOpen || !proposal) return null
 
@@ -44,14 +51,13 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
             setIsSending(true)
 
             // Send real email via backend
-            const targetEmail = proposal.client?.contact_email || proposal.client?.email;
-            await proposalsService.sendEmail(proposal.id, targetEmail);
+            await proposalsService.sendEmail(proposal.id, targetEmail, undefined, selectedSender);
 
             if (onStatusUpdate) {
                 onStatusUpdate(proposal.id, 'SENT')
             }
 
-            success(`Teklif başarıyla ${targetEmail || 'ilgili adrese'} gönderildi`)
+            success(`Teklif başarıyla ${targetEmail} adresine ${selectedSender} üzerinden gönderildi`)
         } catch (err: any) {
             console.error('Failed to send email:', err)
             error(err.message || 'E-posta gönderilirken bir hata oluştu')
@@ -80,8 +86,22 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
                         </div>
                         <h2 className="text-sm font-bold text-gray-900 uppercase tracking-tight">Teklif Önizleme</h2>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="flex bg-gray-200 p-1 rounded-lg mr-2">
+                    <div className="flex items-center gap-3">
+                        {/* Sender Selection */}
+                        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Gönderen:</span>
+                            <select
+                                value={selectedSender}
+                                onChange={(e) => setSelectedSender(e.target.value)}
+                                className="text-[11px] font-bold text-gray-700 bg-transparent border-none focus:ring-0 p-0 cursor-pointer outline-none"
+                            >
+                                {SENDER_EMAILS.map(s => (
+                                    <option key={s.email} value={s.email}>{s.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex bg-gray-200 p-1 rounded-lg">
                             <button
                                 onClick={() => setContractType('standard')}
                                 className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${contractType === 'standard' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
@@ -117,14 +137,14 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
                                     <Printer className="w-5 h-5" />
                                 </button>
                             </div>
-                            <div className="flex flex-col items-end gap-1">
+                            <div className="flex flex-col items-end gap-1 mt-1">
                                 {proposal.client && (proposal.client.contact_email || proposal.client.email) && (
                                     <span className="text-[9px] text-gray-500 font-bold tracking-tight bg-gray-100 px-1.5 py-0.5 rounded uppercase">
                                         ALICI: {proposal.client.contact_email || proposal.client.email}
                                     </span>
                                 )}
                                 <span className="text-[9px] text-red-600 font-bold tracking-tight bg-red-50 px-1.5 py-0.5 rounded uppercase border border-red-100">
-                                    CC: Rezervasyon@izmiracikhavareklam.com
+                                    BCC: Rezervasyon@izmiracikhavareklam.com
                                 </span>
                             </div>
                         </div>
