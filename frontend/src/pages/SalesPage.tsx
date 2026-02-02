@@ -92,6 +92,7 @@ interface CustomerForm {
 interface ProposalItem {
     type: string
     code: string
+    description?: string
     quantity: number
     unitPrice: number
     operationCost: number

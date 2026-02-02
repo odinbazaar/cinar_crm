@@ -454,7 +454,7 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                                         <button
                                             key={idx}
                                             onClick={() => {
-                                                const foundType = productTypes.find(pt =>
+                                                const foundType = productTypes.find((pt: any) =>
                                                     item.description.includes(pt.name) ||
                                                     item.description.includes(pt.code)
                                                 );
