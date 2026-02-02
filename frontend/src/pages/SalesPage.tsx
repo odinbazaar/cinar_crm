@@ -909,7 +909,7 @@ export default function SalesPage() {
 
             // Blok liste operasyon adetini ayıkla (eğer açıklamada varsa)
             const opItem = proposal.items.find(item => item.description?.includes('Operasyon Maliyeti (Blok Liste'));
-            if (opItem) {
+            if (opItem && opItem.description) {
                 const qMatch = opItem.description.match(/- (\d+) Adet/);
                 if (qMatch) setBlockOperationQuantity(parseInt(qMatch[1]));
             } else {
