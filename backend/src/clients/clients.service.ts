@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import * as fs from 'fs';
 import supabase from '../config/supabase.config';
 import { Client, CreateClientDto, UpdateClientDto } from './clients.dto';
 
@@ -46,6 +47,10 @@ export class ClientsService {
             sanitizedData.account_manager_id = undefined;
         }
 
+        if (!sanitizedData.name) {
+            sanitizedData.name = sanitizedData.company_name;
+        }
+
         const { data, error } = await supabase
             .from('clients')
             .insert([sanitizedData])
@@ -54,10 +59,7 @@ export class ClientsService {
 
         if (error) {
             console.error('Supabase error creating client:', error);
-            console.error('Error code:', error.code);
-            console.error('Error details:', error.details);
-            console.error('Error hint:', error.hint);
-            throw new Error(error.message);
+            throw new HttpException(`Supabase Error: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         // Otomatik bildirim oluştur
