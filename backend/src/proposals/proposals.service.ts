@@ -75,7 +75,13 @@ export class ProposalsService {
             console.log(`Totals: Sub(${subtotal}), Tax(${taxAmount}), Total(${total})`);
 
             // Fallback user if not provided or valid
-            const validUserId = createProposalDto.created_by_id || '95959c2d-c5e1-454c-834f-3746d0a401c5';
+            const validUserId = (createProposalDto.created_by_id && createProposalDto.created_by_id !== '')
+                ? createProposalDto.created_by_id
+                : '95959c2d-c5e1-454c-834f-3746d0a401c5';
+
+            // Sanitize IDs
+            const clientId = createProposalDto.client_id === '' ? null : createProposalDto.client_id;
+            const projectId = createProposalDto.project_id === '' ? null : createProposalDto.project_id;
 
             // Create proposal
             const { data: proposal, error: proposalError } = await supabase
@@ -84,8 +90,8 @@ export class ProposalsService {
                     {
                         proposal_number: proposalNumber,
                         title: createProposalDto.title,
-                        client_id: createProposalDto.client_id,
-                        project_id: createProposalDto.project_id,
+                        client_id: clientId,
+                        project_id: projectId,
                         created_by_id: validUserId,
                         description: createProposalDto.description,
                         terms: createProposalDto.terms,

@@ -114,6 +114,7 @@ export class CustomerRequestsService {
     async create(createDto: CreateCustomerRequestDto): Promise<CustomerRequest> {
         const requestData = {
             ...createDto,
+            client_id: createDto.client_id === '' ? null : createDto.client_id,
             request_number: createDto.request_number || this.generateRequestNumber(),
             status: 'pending',
             quantity: createDto.quantity || 1,

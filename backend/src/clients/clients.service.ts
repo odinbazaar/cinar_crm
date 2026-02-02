@@ -34,9 +34,21 @@ export class ClientsService {
     async create(createClientDto: CreateClientDto): Promise<Client> {
         console.log('Creating client with data:', JSON.stringify(createClientDto, null, 2));
 
+        // Sanitize database fields - remove fields that don't exist in Supabase yet
+        const {
+            request_detail,
+            called_phone,
+            lead_source,
+            ...sanitizedData
+        } = createClientDto as any;
+
+        if (sanitizedData.account_manager_id === '') {
+            sanitizedData.account_manager_id = undefined;
+        }
+
         const { data, error } = await supabase
             .from('clients')
-            .insert([createClientDto])
+            .insert([sanitizedData])
             .select()
             .single();
 
@@ -66,14 +78,29 @@ export class ClientsService {
     }
 
     async update(id: string, updateClientDto: UpdateClientDto): Promise<Client> {
+        // Sanitize database fields
+        const {
+            request_detail,
+            called_phone,
+            lead_source,
+            ...sanitizedData
+        } = updateClientDto as any;
+
+        if (sanitizedData.account_manager_id === '') {
+            sanitizedData.account_manager_id = undefined;
+        }
+
         const { data, error } = await supabase
             .from('clients')
-            .update(updateClientDto)
+            .update(sanitizedData)
             .eq('id', id)
             .select()
             .single();
 
-        if (error) throw new Error(error.message);
+        if (error) {
+            console.error('Supabase error updating client:', error);
+            throw new Error(error.message);
+        }
         return data as Client;
     }
 

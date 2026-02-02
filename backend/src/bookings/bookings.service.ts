@@ -31,9 +31,14 @@ export class BookingsService {
     async create(createBookingDto: CreateBookingDto): Promise<Booking> {
         console.log('📝 Creating Booking Payload:', JSON.stringify(createBookingDto, null, 2));
 
+        // Sanitize for empty UUIDs
+        const sanitized = { ...createBookingDto };
+        if (sanitized.project_id === '') sanitized.project_id = undefined;
+        if (sanitized.client_id === '') sanitized.client_id = undefined;
+
         const { data, error } = await supabase
             .from('bookings')
-            .insert([{ ...createBookingDto, status: createBookingDto.status || 'OPTION' }])
+            .insert([{ ...sanitized, status: sanitized.status || 'OPTION' }])
             .select()
             .single();
 

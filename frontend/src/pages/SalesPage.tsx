@@ -604,7 +604,7 @@ export default function SalesPage() {
         }
 
         try {
-            const userId = localStorage.getItem('userId') || ''
+            const userId = localStorage.getItem('userId') || null
 
             const customerData = {
                 company_name: customerForm.companyName,
