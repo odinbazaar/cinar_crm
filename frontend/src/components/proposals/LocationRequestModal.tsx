@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { X, Search, Check, AlertCircle, Calendar, RefreshCw } from 'lucide-react'
 import type { Proposal } from '../../services/proposalsService'
 import { reservationsData } from '../../data/reservations'
@@ -111,11 +111,17 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                     initialWeek = `${day}.${month}.${initialYear}`;
                 }
             } else {
-                // Fallback to title check
                 months.forEach(m => {
                     if (proposal.title?.includes(m)) initialMonth = m;
                 });
             }
+
+            // Set initial week based on current month/year
+            const d = new Date(initialYear, months.indexOf(initialMonth), 1);
+            while (d.getDay() !== 1) d.setDate(d.getDate() + 1);
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            initialWeek = `${day}.${month}.${initialYear}`;
 
             // Extract product type from first item
             let productType = 'BB';
@@ -192,16 +198,41 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
         }
     }, [requestData.network, requestData.productType, networkCounts])
 
-    // Update week when year changes
+    // Generate weeks based on year and month
+    const weekOptions = useMemo(() => {
+        const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+        const generatedWeeks: { value: string; label: string; month: string }[] = []
+        const startOfYear = new Date(requestData.year, 0, 1)
+
+        // Find first Monday
+        let curr = new Date(startOfYear)
+        while (curr.getDay() !== 1) {
+            curr.setDate(curr.getDate() + 1)
+        }
+
+        // Iterate through year
+        while (curr.getFullYear() <= requestData.year) {
+            const day = String(curr.getDate()).padStart(2, '0')
+            const monthNum = String(curr.getMonth() + 1).padStart(2, '0')
+            const dateStr = `${day}.${monthNum}.${curr.getFullYear()}`
+            const weekMonthName = months[curr.getMonth()];
+
+            generatedWeeks.push({ value: dateStr, label: dateStr, month: weekMonthName })
+            curr.setDate(curr.getDate() + 7)
+        }
+
+        return generatedWeeks.filter(w => w.month === requestData.month);
+    }, [requestData.year, requestData.month]);
+
+    // Update selected week when month change makes current week invalid
     useEffect(() => {
-        if (!isOpen) return;
-        const d = new Date(requestData.year, 0, 1);
-        while (d.getDay() !== 1) d.setDate(d.getDate() + 1);
-        const day = String(d.getDate()).padStart(2, '0');
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const dateStr = `${day}.${month}.${requestData.year}`;
-        setRequestData(prev => ({ ...prev, week: dateStr }));
-    }, [requestData.year, isOpen])
+        if (weekOptions.length > 0) {
+            const isWeekInMonth = weekOptions.some(w => w.value === requestData.week);
+            if (!isWeekInMonth) {
+                setRequestData(prev => ({ ...prev, week: weekOptions[0].value }));
+            }
+        }
+    }, [requestData.month, weekOptions]);
 
     const [results, setResults] = useState<{
         available: any[]
@@ -412,6 +443,43 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                 <div className="flex-1 overflow-y-auto p-6">
                     {step === 1 ? (
                         <div className="space-y-6">
+                            {/* Proposal Items List */}
+                            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                                <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                                    <AlertCircle className="w-4 h-4 text-primary-500" />
+                                    Teklif Edilen Ürünler (Hızlı Seçim)
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {proposal.items?.map((item, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => {
+                                                const foundType = productTypes.find(pt =>
+                                                    item.description.includes(pt.name) ||
+                                                    item.description.includes(pt.code)
+                                                );
+                                                setRequestData(prev => ({
+                                                    ...prev,
+                                                    productType: (item as any).type || foundType?.code || 'BB',
+                                                    quantity: item.quantity,
+                                                    network: (item as any).network || prev.network
+                                                }));
+                                            }}
+                                            className={`flex items-center justify-between p-3 rounded-lg border transition-all text-left ${requestData.productType === ((item as any).type || 'BB') && requestData.quantity === item.quantity
+                                                ? 'bg-primary-50 border-primary-300 ring-2 ring-primary-200'
+                                                : 'bg-white border-gray-200 hover:border-primary-300'
+                                                }`}
+                                        >
+                                            <div>
+                                                <div className="text-sm font-bold text-gray-900">{item.description}</div>
+                                                <div className="text-xs text-gray-500">Adet: {item.quantity} {(item as any).network ? `| Network: ${(item as any).network}` : ''}</div>
+                                            </div>
+                                            <div className="bg-primary-100 text-primary-700 text-[10px] font-bold px-2 py-1 rounded">SEÇ</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Marka Adı</label>
@@ -469,15 +537,9 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                                         value={requestData.week}
                                         onChange={e => setRequestData({ ...requestData, week: e.target.value })}
                                     >
-                                        {/* Generate Mondays for the chosen year */}
-                                        {Array.from({ length: 52 }, (_, i) => {
-                                            const d = new Date(requestData.year, 0, 1 + (i * 7));
-                                            while (d.getDay() !== 1) d.setDate(d.getDate() + 1);
-                                            const day = String(d.getDate()).padStart(2, '0');
-                                            const month = String(d.getMonth() + 1).padStart(2, '0');
-                                            const dateStr = `${day}.${month}.${requestData.year}`;
-                                            return <option key={i} value={dateStr}>{dateStr}</option>
-                                        })}
+                                        {weekOptions.map((w, i) => (
+                                            <option key={i} value={w.value}>{w.label}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div>

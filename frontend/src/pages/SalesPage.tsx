@@ -27,7 +27,9 @@ import {
     RefreshCw,
     CheckCircle,
     Loader2,
-    Trash2
+    Trash2,
+    LayoutGrid,
+    List
 } from 'lucide-react'
 import LocationRequestModal from '../components/proposals/LocationRequestModal'
 import { useToast } from '../hooks/useToast'
@@ -165,6 +167,7 @@ export default function SalesPage() {
     const [incomingCalls, setIncomingCalls] = useState<IncomingCall[]>([])
     const [showCompanySuggestions, setShowCompanySuggestions] = useState(false)
     const [selectedSenderEmail, setSelectedSenderEmail] = useState('pazarlama@izmiracikhavareklam.com')
+    const [customerViewType, setCustomerViewType] = useState<'grid' | 'table'>('grid')
     const location = useLocation()
 
     // Tanımlı e-posta hesapları
@@ -267,11 +270,29 @@ export default function SalesPage() {
                     // Detect block list
                     if (desc.includes('Blok Liste')) isBlockList = true;
 
+                    const pTypes = getProductTypes();
                     let itemType = 'BB';
-                    if (desc.includes('Billboard') || desc.includes('BB')) itemType = 'BB';
-                    else if (desc.includes('CLP') || desc.includes('City Light')) itemType = 'CLP';
-                    else if (desc.includes('Megalight') || desc.includes('MGL')) itemType = 'MGL';
-                    else if (desc.includes('Giantboard') || desc.includes('GB')) itemType = 'GB';
+
+                    // Daha hassas eşleştirme için önce ürün ismine göre bakıyoruz (açıklama ürün ismiyle başlar)
+                    const matchByName = pTypes.find((pt: any) => desc.startsWith(pt.name));
+                    if (matchByName) {
+                        itemType = matchByName.code;
+                    } else {
+                        // İsme göre bulunamadıysa koda göre bakıyoruz
+                        const matchByCode = pTypes.find((pt: any) => desc.includes(pt.code));
+                        if (matchByCode) {
+                            itemType = matchByCode.code;
+                        } else {
+                            // Manuel kontroller (ek koruma ve geriye dönük uyumluluk için)
+                            if (desc.includes('CLP') || desc.includes('City Light')) itemType = 'CLP';
+                            else if (desc.includes('Megalight') || desc.includes('MGL') || desc.includes('ML')) itemType = 'MGL';
+                            else if (desc.includes('Giantboard') || desc.includes('GB')) itemType = 'GB';
+                            else if (desc.includes('Billboard') || desc.includes('BB')) itemType = 'BB';
+                            else if (desc.includes('Megaboard') || desc.includes('MB')) itemType = 'MB';
+                            else if (desc.includes('Kuleboard') || desc.includes('KB')) itemType = 'KB';
+                            else if (desc.includes('LED') || desc.includes('LB')) itemType = 'LB';
+                        }
+                    }
 
                     let network = '';
                     const netMatch = desc.match(/Network\s*(\d+|BLD)/i);
@@ -390,6 +411,7 @@ export default function SalesPage() {
     const [startMonth, setStartMonth] = useState(1)
     const [startWeek, setStartWeek] = useState(1)
     const [durationWeeks, setDurationWeeks] = useState(1)
+    const [blockOperationQuantity, setBlockOperationQuantity] = useState(1)
 
     // Örnek müşteriler
     const [customers, setCustomers] = useState<Customer[]>([
@@ -685,8 +707,8 @@ export default function SalesPage() {
 
     const calculateOperationTotal = () => {
         if (isBlockList) {
-            // Blok listede operasyon maliyeti tek sefer alınır
-            return proposalItems.reduce((sum, item) => sum + item.operationCost, 0)
+            // Blok listede operasyon maliyeti (ürünlerin birim op. maliyetleri toplamı) * operasyon adeti
+            return proposalItems.reduce((sum, item) => sum + item.operationCost, 0) * blockOperationQuantity
         }
         // Normal listede adet başına operasyon maliyeti
         return proposalItems.reduce((sum, item) => sum + (item.quantity * item.operationCost), 0)
@@ -772,10 +794,10 @@ export default function SalesPage() {
                 }));
 
                 if (isBlockList) {
-                    const totalOpCost = proposalItems.reduce((sum, item) => sum + item.operationCost, 0);
+                    const totalOpCost = proposalItems.reduce((sum, item) => sum + item.operationCost, 0) * blockOperationQuantity;
                     if (totalOpCost > 0) {
                         finalItems.push({
-                            description: 'Operasyon Maliyeti (Blok Liste)',
+                            description: `Operasyon Maliyeti (Blok Liste - ${blockOperationQuantity} Adet)`,
                             quantity: 1,
                             unit_price: totalOpCost
                         });
@@ -884,6 +906,15 @@ export default function SalesPage() {
             setProposalItems([...proposal.items]);
             setIsBlockList(proposal.isBlockList);
 
+            // Blok liste operasyon adetini ayıkla (eğer açıklamada varsa)
+            const opItem = proposal.items.find(item => item.description?.includes('Operasyon Maliyeti (Blok Liste'));
+            if (opItem) {
+                const qMatch = opItem.description.match(/- (\d+) Adet/);
+                if (qMatch) setBlockOperationQuantity(parseInt(qMatch[1]));
+            } else {
+                setBlockOperationQuantity(1);
+            }
+
             // Süreyi ayıkla (Örn: "2 Hafta" -> 2)
             const duration = parseInt(proposal.usagePeriod || '1');
             setDurationWeeks(isNaN(duration) ? 1 : duration);
@@ -957,10 +988,10 @@ export default function SalesPage() {
             }));
 
             if (isBlockList) {
-                const totalOpCost = proposalItems.reduce((sum, item) => sum + item.operationCost, 0);
+                const totalOpCost = proposalItems.reduce((sum, item) => sum + item.operationCost, 0) * blockOperationQuantity;
                 if (totalOpCost > 0) {
                     finalItems.push({
-                        description: 'Operasyon Maliyeti (Blok Liste)',
+                        description: `Operasyon Maliyeti (Blok Liste - ${blockOperationQuantity} Adet)`,
                         quantity: 1,
                         unit_price: totalOpCost
                     });
@@ -1137,7 +1168,7 @@ export default function SalesPage() {
             {/* Tab Content */}
             {activeTab === 'customers' && (
                 <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row gap-4 justify-between">
+                    <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-2 rounded-xl border border-gray-100 shadow-sm">
                         <div className="relative flex-1 max-w-md">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                             <input
@@ -1146,102 +1177,223 @@ export default function SalesPage() {
                                 className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                             />
                         </div>
-                        <button
-                            onClick={() => setShowCustomerModal(true)}
-                            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-bold rounded-xl hover:shadow-xl hover:shadow-primary-500/20 active:scale-95 transition-all"
-                        >
-                            <UserPlus className="w-5 h-5" />
-                            Yeni Müşteri Kartı
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <div className="flex bg-gray-100 p-1 rounded-xl">
+                                <button
+                                    onClick={() => setCustomerViewType('grid')}
+                                    className={`p-2 rounded-lg transition-all ${customerViewType === 'grid' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    title="Kart Görünümü"
+                                >
+                                    <LayoutGrid className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={() => setCustomerViewType('table')}
+                                    className={`p-2 rounded-lg transition-all ${customerViewType === 'table' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    title="Tablo Görünümü"
+                                >
+                                    <List className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <button
+                                onClick={() => setShowCustomerModal(true)}
+                                className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-bold rounded-xl hover:shadow-xl hover:shadow-primary-500/20 active:scale-95 transition-all"
+                            >
+                                <UserPlus className="w-5 h-5" />
+                                <span className="hidden sm:inline">Yeni Müşteri Kartı</span>
+                                <span className="sm:hidden">Yeni</span>
+                            </button>
+                        </div>
                     </div>
 
-                    {/* Customers Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {customers.map((customer) => (
-                            <div key={customer.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center">
-                                        <Building2 className="w-6 h-6 text-white" />
-                                    </div>
-                                    <span className="text-xs text-gray-500">{customer.createdAt}</span>
-                                </div>
-                                <h3 className="font-semibold text-gray-900 mb-1">{customer.companyName}</h3>
-                                <p className="text-sm text-gray-600 mb-3">{customer.contactPerson}</p>
-                                <div className="space-y-3 text-sm">
-                                    <div className="flex items-center gap-3 text-gray-600 hover:text-primary-600 transition-colors">
-                                        <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
-                                            <Mail className="w-4 h-4" />
+                    {/* Customers Content */}
+                    {customerViewType === 'grid' ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {customers.map((customer) => (
+                                <div key={customer.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center">
+                                            <Building2 className="w-6 h-6 text-white" />
                                         </div>
-                                        <span className="font-medium">{customer.email}</span>
+                                        <span className="text-xs text-gray-500">{customer.createdAt}</span>
                                     </div>
-                                    <div className="flex items-center gap-3 text-gray-600 hover:text-primary-600 transition-colors">
-                                        <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
-                                            <Phone className="w-4 h-4" />
+                                    <h3 className="font-semibold text-gray-900 mb-1">{customer.companyName}</h3>
+                                    <p className="text-sm text-gray-600 mb-3">{customer.contactPerson}</p>
+                                    <div className="space-y-3 text-sm">
+                                        <div className="flex items-center gap-3 text-gray-600 hover:text-primary-600 transition-colors">
+                                            <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
+                                                <Mail className="w-4 h-4" />
+                                            </div>
+                                            <span className="font-medium">{customer.email}</span>
                                         </div>
-                                        <span className="font-medium">{customer.phone}</span>
+                                        <div className="flex items-center gap-3 text-gray-600 hover:text-primary-600 transition-colors">
+                                            <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
+                                                <Phone className="w-4 h-4" />
+                                            </div>
+                                            <span className="font-medium">{customer.phone}</span>
+                                        </div>
+                                        <div className="flex items-center gap-3 text-gray-600 hover:text-primary-600 transition-colors">
+                                            <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
+                                                <MapPin className="w-4 h-4" />
+                                            </div>
+                                            <span className="font-medium truncate block max-w-[200px]" title={customer.address}>{customer.address}</span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-3 text-gray-600 hover:text-primary-600 transition-colors">
-                                        <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
-                                            <MapPin className="w-4 h-4" />
-                                        </div>
-                                        <span className="font-medium">{customer.address}</span>
+                                    <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
+                                        <button
+                                            onClick={() => {
+                                                setSelectedCustomer(customer)
+                                                setSelectedProposal(null)
+                                                setProposalItems([{ type: 'BB', code: 'Billboard', quantity: 0, unitPrice: 3500, operationCost: 400, network: '' }])
+                                                setShowProposalModal(true)
+                                            }}
+                                            className="flex-1 px-3 py-2 text-sm font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
+                                        >
+                                            Teklif Hazırla
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setSelectedCustomer(customer)
+                                                setCustomerForm({
+                                                    companyName: customer.companyName,
+                                                    tradeName: (customer as any).tradeName || '',
+                                                    sector: (customer as any).sector || '',
+                                                    taxOffice: (customer as any).taxOffice || '',
+                                                    taxNumber: (customer as any).taxNumber || '',
+                                                    status: (customer as any).status || 'Potansiyel',
+                                                    address: customer.address || '',
+                                                    city: (customer as any).city || '',
+                                                    district: (customer as any).district || '',
+                                                    postalCode: (customer as any).postalCode || '',
+                                                    contactPerson: customer.contactPerson,
+                                                    email: customer.email,
+                                                    phone: customer.phone,
+                                                    mobile: (customer as any).mobile || '',
+                                                    website: (customer as any).website || '',
+                                                    notes: (customer as any).notes || '',
+                                                    requestDetail: customer.requestDetail || '',
+                                                    calledPhone: customer.calledPhone || '',
+                                                    leadSource: customer.leadSource || '',
+                                                    leadStage: customer.leadStage || 'Aday'
+                                                })
+                                                setShowCustomerModal(true)
+                                            }}
+                                            className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                                            title="Güncelle"
+                                        >
+                                            Revize
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteCustomer(customer.id)}
+                                            className="px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                                            title="Sil"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
-                                    <button
-                                        onClick={() => {
-                                            setSelectedCustomer(customer)
-                                            setSelectedProposal(null)
-                                            setProposalItems([{ type: 'BB', code: 'Billboard', quantity: 0, unitPrice: 3500, operationCost: 400, network: '' }])
-                                            setShowProposalModal(true)
-                                        }}
-                                        className="flex-1 px-3 py-2 text-sm font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
-                                    >
-                                        Teklif Hazırla
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setSelectedCustomer(customer)
-                                            setCustomerForm({
-                                                companyName: customer.companyName,
-                                                tradeName: (customer as any).tradeName || '',
-                                                sector: (customer as any).sector || '',
-                                                taxOffice: (customer as any).taxOffice || '',
-                                                taxNumber: (customer as any).taxNumber || '',
-                                                status: (customer as any).status || 'Potansiyel',
-                                                address: customer.address || '',
-                                                city: (customer as any).city || '',
-                                                district: (customer as any).district || '',
-                                                postalCode: (customer as any).postalCode || '',
-                                                contactPerson: customer.contactPerson,
-                                                email: customer.email,
-                                                phone: customer.phone,
-                                                mobile: (customer as any).mobile || '',
-                                                website: (customer as any).website || '',
-                                                notes: (customer as any).notes || '',
-                                                requestDetail: customer.requestDetail || '',
-                                                calledPhone: customer.calledPhone || '',
-                                                leadSource: customer.leadSource || '',
-                                                leadStage: customer.leadStage || 'Aday'
-                                            })
-                                            setShowCustomerModal(true)
-                                        }}
-                                        className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                                        title="Güncelle"
-                                    >
-                                        Revize
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteCustomer(customer.id)}
-                                        className="px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                                        title="Sil"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-gray-50 border-b border-gray-100">
+                                    <tr>
+                                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Şirket</th>
+                                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Yetkili</th>
+                                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">İletişim</th>
+                                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Şehir/İlçe</th>
+                                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Kayıt Tarihi</th>
+                                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {customers.map((customer) => (
+                                        <tr key={customer.id} className="hover:bg-gray-50 transition-colors group">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center text-primary-600 font-bold text-xs">
+                                                        {customer.companyName.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-semibold text-gray-900 line-clamp-1">{customer.companyName}</div>
+                                                        <div className="text-xs text-gray-500">{customer.tradeName || 'Ticari Unvan Belirtilmedi'}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm font-medium text-gray-900">{customer.contactPerson}</div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm text-gray-600">{customer.email}</div>
+                                                <div className="text-xs text-gray-400">{customer.phone}</div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm text-gray-600">{customer.city || '-'} / {customer.district || '-'}</div>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-500">
+                                                {customer.createdAt}
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedCustomer(customer)
+                                                            setSelectedProposal(null)
+                                                            setProposalItems([{ type: 'BB', code: 'Billboard', quantity: 0, unitPrice: 3500, operationCost: 400, network: '' }])
+                                                            setShowProposalModal(true)
+                                                        }}
+                                                        className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                                                        title="Teklif Hazırla"
+                                                    >
+                                                        <FileText className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedCustomer(customer)
+                                                            setCustomerForm({
+                                                                companyName: customer.companyName,
+                                                                tradeName: (customer as any).tradeName || '',
+                                                                sector: (customer as any).sector || '',
+                                                                taxOffice: (customer as any).taxOffice || '',
+                                                                taxNumber: (customer as any).taxNumber || '',
+                                                                status: (customer as any).status || 'Potansiyel',
+                                                                address: customer.address || '',
+                                                                city: (customer as any).city || '',
+                                                                district: (customer as any).district || '',
+                                                                postalCode: (customer as any).postalCode || '',
+                                                                contactPerson: customer.contactPerson,
+                                                                email: customer.email,
+                                                                phone: customer.phone,
+                                                                mobile: (customer as any).mobile || '',
+                                                                website: (customer as any).website || '',
+                                                                notes: (customer as any).notes || '',
+                                                                requestDetail: customer.requestDetail || '',
+                                                                calledPhone: customer.calledPhone || '',
+                                                                leadSource: customer.leadSource || '',
+                                                                leadStage: customer.leadStage || 'Aday'
+                                                            })
+                                                            setShowCustomerModal(true)
+                                                        }}
+                                                        className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                                                        title="Güncelle"
+                                                    >
+                                                        <RefreshCw className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteCustomer(customer.id)}
+                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Sil"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -1914,17 +2066,38 @@ export default function SalesPage() {
                                 </div>
 
                                 {/* Blok Liste Seçeneği */}
-                                <div className="flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                                    <input
-                                        type="checkbox"
-                                        id="blockList"
-                                        checked={isBlockList}
-                                        onChange={(e) => setIsBlockList(e.target.checked)}
-                                        className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                                    />
-                                    <label htmlFor="blockList" className="text-sm text-gray-700">
-                                        <strong>Blok Liste</strong> - Operasyon maliyeti tek sefer alınır
-                                    </label>
+                                <div className="space-y-3 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="checkbox"
+                                            id="blockList"
+                                            checked={isBlockList}
+                                            onChange={(e) => setIsBlockList(e.target.checked)}
+                                            className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                                        />
+                                        <label htmlFor="blockList" className="text-sm text-gray-700 font-bold">
+                                            Blok Liste Uygula
+                                        </label>
+                                    </div>
+
+                                    {isBlockList && (
+                                        <div className="flex items-center gap-4 pl-7 pt-2 border-t border-yellow-200">
+                                            <div className="flex-1">
+                                                <p className="text-xs text-yellow-800 mb-1">Operasyon maliyeti tüm ürünlerin birim operasyon bedellerinin toplamı üzerinden hesaplanır.</p>
+                                                <p className="text-sm font-medium text-yellow-900">Operasyon Adeti:</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    value={blockOperationQuantity}
+                                                    onChange={(e) => setBlockOperationQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                                                    className="w-20 px-3 py-1.5 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 bg-white"
+                                                />
+                                                <span className="text-sm text-yellow-800 font-medium">Kez</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Hafta Bazlı Tarih Seçimi */}

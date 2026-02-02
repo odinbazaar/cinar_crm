@@ -1997,7 +1997,7 @@ export default function ReservationsPage() {
                             </button>
                             <button
                                 onClick={handleConfirmProcessRequest}
-                                disabled={isCheckingAvailability || isLoadingRequests || processAvailability.available.length === 0}
+                                disabled={isCheckingAvailability || isLoadingRequests || (processAvailability.available.length === 0 && processAvailability.options.length === 0)}
                                 className="px-8 py-2.5 text-sm font-bold text-white bg-primary-600 rounded-xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-500/30 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isLoadingRequests ? (

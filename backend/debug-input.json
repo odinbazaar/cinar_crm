@@ -1,12 +1,27 @@
 {
-  "title": "Folkart Yapı Sanayi A.Ş. - Bütçe Teklifi",
-  "client_id": "c3b9fc89-55cd-492f-b753-cff8a9b5d89b",
-  "created_by_id": "89b8aaf7-cbd8-47ee-90bd-1ad0188dde87",
+  "title": "MOİFİT SAĞLIK VE SPOR TESİSLERİ - Bütçe Teklifi",
+  "description": "Mayıs 1.Hafta - 2 Hafta",
+  "client_id": "7cb5d85e-3127-40d2-abe5-98d5429195cc",
+  "created_by_id": "052fb95b-9139-431b-8d41-78d975f49e5a",
+  "subtotal": 154800,
+  "tax_rate": 20,
+  "tax_amount": 30960,
+  "total": 185760,
   "items": [
     {
-      "description": "CLP Raket",
+      "description": "Billboard (2 Hafta)",
       "quantity": 10,
-      "unit_price": 1200
+      "unit_price": 7400
+    },
+    {
+      "description": "Kuleboard (2 Hafta)",
+      "quantity": 2,
+      "unit_price": 24800
+    },
+    {
+      "description": "Giantboard (2 Hafta)",
+      "quantity": 2,
+      "unit_price": 15600
     }
   ]
 }
