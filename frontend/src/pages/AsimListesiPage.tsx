@@ -125,6 +125,7 @@ const AsimListesiPage = () => {
     const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set([2026]));
     const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set(['2026-Ocak', '2026-Şubat', '2026-Nisan', '2026-Mayıs']));
     const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
+    const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
     const [columnFilters, setColumnFilters] = useState({
         client: '',
         kod: '',
