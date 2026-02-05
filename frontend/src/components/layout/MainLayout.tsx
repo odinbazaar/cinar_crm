@@ -17,8 +17,9 @@ import {
     Calculator,
     FileSignature
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import NotificationsPanel from './NotificationsPanel'
+import apiClient from '../../services/api'
 
 interface MainLayoutProps {
     onLogout: () => void
@@ -27,7 +28,7 @@ interface MainLayoutProps {
 const navigation = [
     { id: 'dashboard', name: 'Genel Bakış', href: '/dashboard', icon: LayoutDashboard },
     { id: 'sales', name: 'Satış', href: '/sales', icon: ShoppingBag },
-    { id: 'reservations', name: 'Rezervasyon', href: '/reservations', icon: CalendarDays },
+    { id: 'reservations', name: 'Revizyon', href: '/reservations', icon: CalendarDays },
     { id: 'cost-settings', name: 'Maliyet Ayarları', href: '/cost-settings', icon: Calculator },
     { id: 'inventory', name: 'Envanter', href: '/inventory', icon: MapPin },
     { id: 'asim-listesi', name: 'Asım Listesi', href: '/asim-listesi', icon: Calendar },
@@ -43,6 +44,25 @@ export default function MainLayout({ onLogout }: MainLayoutProps) {
     const navigate = useNavigate()
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [notificationsPanelOpen, setNotificationsPanelOpen] = useState(false)
+
+    // Hatırlatıcı kontrolü
+    useEffect(() => {
+        const checkReminders = async () => {
+            try {
+                // Sadece veritabanındaki notlardan vadesi gelenler için bildirim oluşturur
+                await apiClient.post('/clients/check-reminders');
+            } catch (error) {
+                console.error('Hatırlatıcı kontrolü hatası:', error);
+            }
+        };
+
+        // Oturum açıldığında bir kez kontrol et
+        checkReminders();
+
+        // Her 10 dakikada bir kontrol et
+        const interval = setInterval(checkReminders, 10 * 60 * 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     // Kullanıcı bilgilerini ve yetkilerini al
     const userStr = localStorage.getItem('user')

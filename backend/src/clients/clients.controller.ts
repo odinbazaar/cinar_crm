@@ -51,4 +51,9 @@ export class ClientsController {
     async delete(@Param('id') id: string) {
         return this.clientsService.delete(id);
     }
+
+    @Post('check-reminders')
+    async checkReminders() {
+        return this.clientsService.checkReminders();
+    }
 }

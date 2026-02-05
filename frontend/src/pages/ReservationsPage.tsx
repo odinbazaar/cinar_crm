@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { FileSpreadsheet, MapPin, Search, Filter, Calendar, Clock, Check, X, CheckCircle, Smartphone, RefreshCw, ChevronRight, ChevronLeft, Download, Plus, Trash2, AlertCircle, CalendarDays, Send } from 'lucide-react'
+import { FileSpreadsheet, MapPin, Search, Filter, Calendar, Clock, Check, X, CheckCircle, Smartphone, RefreshCw, ChevronRight, ChevronLeft, Download, Plus, Trash2, AlertCircle, CalendarDays, Send, Mail } from 'lucide-react'
 import { reservationsData } from '../data/reservations'
 import { useToast } from '../hooks/useToast'
 import { inventoryService, bookingsService, customerRequestsService, proposalsService, clientsService } from '../services'
@@ -63,8 +63,8 @@ export default function ReservationsPage() {
     const [reviseSlot, setReviseSlot] = useState<1 | 2 | 3 | 4>(1)
     const [reviseTargetId, setReviseTargetId] = useState('')
 
-    // Müşteri listesi (Ticari Ünvan dropdown için)
-    const [customers, setCustomers] = useState<{ id: string, companyName: string }[]>([])
+    // Müşteri listesi (Ticari Ünvan dropdown ve mail için)
+    const [customers, setCustomers] = useState<{ id: string, companyName: string, email?: string }[]>([])
 
     // Dinamik network listesi
     const [availableNetworks, setAvailableNetworks] = useState<string[]>(['Tümü', '1', '2', '3', '4', 'BLD'])
@@ -138,6 +138,21 @@ export default function ReservationsPage() {
     const [processAvailability, setProcessAvailability] = useState<{ available: any[], options: any[], occupied: any[] }>({ available: [], options: [], occupied: [] })
     const [isCheckingAvailability, setIsCheckingAvailability] = useState(false)
 
+    const [showEmailModal, setShowEmailModal] = useState(false)
+    const [selectedEmails, setSelectedEmails] = useState<string[]>([])
+    const [customEmail, setCustomEmail] = useState('')
+    const [emailMessage, setEmailMessage] = useState('')
+    const [selectedSenderEmail, setSelectedSenderEmail] = useState('pazarlama@izmiracikhavareklam.com')
+
+    // Tanımlı e-posta hesapları
+    const emailAccounts = [
+        { value: 'pazarlama@izmiracikhavareklam.com', label: 'Pazarlama', color: 'green' },
+        { value: 'rezervasyon@izmiracikhavareklam.com', label: 'Rezervasyon', color: 'blue' },
+        { value: 'simge@izmiracikhavareklam.com', label: 'Simge', color: 'purple' },
+        { value: 'ali@izmiracikhavareklam.com', label: 'Ali Çınar', color: 'orange' },
+        { value: 'ayse@izmiracikhavareklam.com', label: 'Ayşe', color: 'pink' }
+    ]
+
     const { success: toastSuccess, info: toastInfo } = useToast()
 
     // Helper function to normalize date formats for comparison
@@ -204,7 +219,8 @@ export default function ReservationsPage() {
             // Müşteri listesini güncelle (Ticari Ünvan dropdown için)
             const customerList = clientsData.map((c: any) => ({
                 id: c.id,
-                companyName: c.company_name || c.name || ''
+                companyName: c.company_name || c.name || '',
+                email: c.email || c.contact_email || ''
             })).filter((c: any) => c.companyName);
             setCustomers(customerList);
 
@@ -813,10 +829,46 @@ export default function ReservationsPage() {
         XLSX.writeFile(workbook, filename)
     }
 
-    // Mail gönder
+    // Mail gönder modalını aç
     const handleSendEmail = () => {
+        const isSelected = selectedRows.length > 0
+        const items = isSelected
+            ? locations.filter(l => selectedRows.includes(l.id))
+            : filteredLocations
+
+        const codes = items.map(l => l.kod).join(', ')
+        const selectedCount = items.length
+
+        setSelectedEmails(['satis@izmiracikhavareklam.com'])
+
+        let message = `Sayın Yetkili, \n\n`
+        if (isSelected) {
+            message += `Seçilen ${selectedCount} adet lokasyon (Kodlar: ${codes}) için revizyon listesini aşağıda bulabilirsiniz.\n\n`
+        } else {
+            message += `Filtrelenen ${selectedCount} adet lokasyon bilgisini içeren yer listesini aşağıda bulabilirsiniz.\n\n`
+        }
+        message += `Saygılarımızla, \nİzmir Açıkhava Reklam Ajansı`
+
+        setEmailMessage(message)
+        setShowEmailModal(true)
+    }
+
+    const confirmSendEmail = () => {
+        const recipients = [...selectedEmails]
+        if (customEmail && customEmail.includes('@')) {
+            recipients.push(customEmail)
+        }
+
+        if (recipients.length === 0) {
+            toastInfo('Lütfen en az bir alıcı e-posta adresi seçin.')
+            return
+        }
+
         const selectedCount = selectedRows.length > 0 ? selectedRows.length : filteredLocations.length
-        alert(`${selectedCount} adet lokasyon bilgisi satış temsilcisine mail olarak gönderildi!\n\nAlıcı: satis @izmiracikhavareklam.com`)
+        alert(`${selectedCount} adet lokasyon bilgisi ${selectedSenderEmail} hesabı üzerinden seçilen adreslere (${recipients.join(', ')}) mail olarak gönderildi!`)
+        setShowEmailModal(false)
+        setCustomEmail('')
+        toastSuccess('Mail başarıyla gönderildi.')
     }
 
     // Opsiyonu Kesine çevir
@@ -981,7 +1033,7 @@ export default function ReservationsPage() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Rezervasyon Yönetimi</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Revizyon & Rezervasyon Yönetimi</h1>
                     <p className="text-gray-500">Hafta ve network bazlı lokasyon ataması ve liste yönetimi</p>
                 </div>
             </div>
@@ -1229,16 +1281,16 @@ export default function ReservationsPage() {
                         </button>
                         <button
                             onClick={handleExportExcel}
-                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors shadow-lg"
                         >
                             <FileSpreadsheet className="w-5 h-5" />
                             Excel Dışa Aktar
                         </button>
                         <button
                             onClick={handleSendEmail}
-                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
                         >
-                            <Send className="w-5 h-5" />
+                            <Mail className="w-5 h-5" />
                             Mail Gönder
                         </button>
                         <button
@@ -1635,28 +1687,42 @@ export default function ReservationsPage() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedProposal({
-                                                        ...proposal,
-                                                        customerName: proposal.client?.company_name || proposal.customerName,
-                                                        proposalNumber: proposal.proposal_number || proposal.id,
-                                                        grandTotal: proposal.total || proposal.totalAmount,
-                                                        kdvAmount: proposal.tax_amount || proposal.kdvAmount,
-                                                        createdAt: proposal.created_at,
-                                                        items: (proposal.items || []).map((item: any) => ({
-                                                            code: item.description,
-                                                            quantity: item.quantity,
-                                                            unitPrice: item.unit_price
-                                                        }))
-                                                    });
-                                                    setIsLocationModalOpen(true);
-                                                }}
-                                                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
-                                            >
-                                                <MapPin className="w-5 h-5" />
-                                                Yer Talebi Oluştur
-                                            </button>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedProposal({
+                                                            ...proposal,
+                                                            customerName: proposal.client?.company_name || proposal.customerName,
+                                                            proposalNumber: proposal.proposal_number || proposal.id,
+                                                            grandTotal: proposal.total || proposal.totalAmount,
+                                                            kdvAmount: proposal.tax_amount || proposal.kdvAmount,
+                                                            createdAt: proposal.created_at,
+                                                            items: (proposal.items || []).map((item: any) => ({
+                                                                code: item.description,
+                                                                quantity: item.quantity,
+                                                                unitPrice: item.unit_price
+                                                            }))
+                                                        });
+                                                        setIsLocationModalOpen(true);
+                                                    }}
+                                                    className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
+                                                >
+                                                    <MapPin className="w-5 h-5" />
+                                                    Yer Talebi Oluştur
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        const customer = customers.find(c => c.id === proposal.client_id)
+                                                        setSelectedEmails(customer?.email ? [customer.email] : [])
+                                                        setEmailMessage(`Sayın ${proposal.client?.company_name || 'Yetkili'}, \n\n${proposal.proposal_number || 'Teklifler'} hakkında hazırladığımız revizyon listesini bulabilirsiniz.\n\nSaygılarımızla, \nİzmir Açıkhava Reklam Ajansı`)
+                                                        setShowEmailModal(true)
+                                                    }}
+                                                    className="p-3 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all shadow-sm"
+                                                    title="Mail Gönder"
+                                                >
+                                                    <Send className="w-5 h-5" />
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))
@@ -2011,6 +2077,124 @@ export default function ReservationsPage() {
                                         Talebi Onayla ve İşle
                                     </>
                                 )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Mail Gönder Modalı (SalesPage Stilinde) */}
+            {showEmailModal && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100">
+                        <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-between text-white">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-white/20 rounded-xl">
+                                    <Send className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold">Mail Gönder</h2>
+                                    <p className="text-xs text-blue-100 opacity-80">Müşteriye e-posta ile bilgilendirme gönder</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowEmailModal(false)} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-5">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Gönderici Hesap</label>
+                                <select
+                                    value={selectedSenderEmail}
+                                    onChange={(e) => setSelectedSenderEmail(e.target.value)}
+                                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-sm border-gray-100"
+                                >
+                                    {emailAccounts.map(account => (
+                                        <option key={account.value} value={account.value}>
+                                            {account.label} - {account.value}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Alıcı Seçin</label>
+                                <div className="max-h-40 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                                    {/* Sabit Adres */}
+                                    <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors border border-transparent hover:border-blue-200">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedEmails.includes('satis@izmiracikhavareklam.com')}
+                                            onChange={(e) => {
+                                                if (e.target.checked) setSelectedEmails([...selectedEmails, 'satis@izmiracikhavareklam.com'])
+                                                else setSelectedEmails(selectedEmails.filter(m => m !== 'satis@izmiracikhavareklam.com'))
+                                            }}
+                                            className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        <div>
+                                            <p className="text-sm font-bold text-gray-900">Satış Departmanı</p>
+                                            <p className="text-xs text-gray-500">satis@izmiracikhavareklam.com</p>
+                                        </div>
+                                    </label>
+
+                                    {/* Müşteri Adresleri */}
+                                    {customers.filter(c => c.email).map(customer => (
+                                        <label key={customer.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors border border-transparent hover:border-blue-200">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedEmails.includes(customer.email!)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) setSelectedEmails([...selectedEmails, customer.email!])
+                                                    else setSelectedEmails(selectedEmails.filter(m => m !== customer.email))
+                                                }}
+                                                className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <div>
+                                                <p className="text-sm font-bold text-gray-900">{customer.companyName}</p>
+                                                <p className="text-xs text-gray-500">{customer.email}</p>
+                                            </div>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-bold text-gray-700">Manuel E-posta (Opsiyonel)</label>
+                                <div className="relative">
+                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <input
+                                        type="email"
+                                        value={customEmail}
+                                        onChange={(e) => setCustomEmail(e.target.value)}
+                                        placeholder="ornek@mail.com"
+                                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-bold text-gray-700">E-posta İçeriği</label>
+                                <textarea
+                                    value={emailMessage}
+                                    onChange={(e) => setEmailMessage(e.target.value)}
+                                    rows={4}
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm resize-none"
+                                    placeholder="Müşteriye iletilecek mesaj..."
+                                />
+                            </div>
+                        </div>
+                        <div className="p-6 border-t border-gray-100 bg-gray-50 flex gap-3">
+                            <button
+                                onClick={() => setShowEmailModal(false)}
+                                className="flex-1 px-4 py-3 text-gray-700 font-bold bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                            >
+                                İptal
+                            </button>
+                            <button
+                                onClick={confirmSendEmail}
+                                className="flex-[2] px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2"
+                            >
+                                <Send className="w-5 h-5" />
+                                Gönder
                             </button>
                         </div>
                     </div>

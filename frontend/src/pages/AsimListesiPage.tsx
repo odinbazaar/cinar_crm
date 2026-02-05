@@ -7,7 +7,10 @@ import {
     ChevronDown,
     ChevronUp,
     Filter,
-    RefreshCw
+    RefreshCw,
+    FileText,
+    X,
+    Package
 } from 'lucide-react';
 import { bookingsService, inventoryService } from '../services';
 import * as XLSX from 'xlsx';
@@ -133,6 +136,7 @@ const AsimListesiPage = () => {
 
     const [asimData, setAsimData] = useState<AsimData[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showSummaryModal, setShowSummaryModal] = useState(false);
 
     const weekOptions = useMemo(() => generateWeekOptions(selectedYear), [selectedYear]);
     const networks = ['1', '2', '3', 'BELEDİYE'];
@@ -302,7 +306,153 @@ const AsimListesiPage = () => {
         setExpandedWeeks(newExpanded);
     };
 
+    const toggleProduct = (productKey: string) => {
+        const newExpanded = new Set(expandedProducts);
+        if (newExpanded.has(productKey)) {
+            newExpanded.delete(productKey);
+        } else {
+            newExpanded.add(productKey);
+        }
+        setExpandedProducts(newExpanded);
+    };
+
     const grandTotal = groupedData.reduce((sum, y) => sum + y.yearTotal, 0);
+
+    // Group data by product type for Products tab
+    const productGroupedData = useMemo(() => {
+        const productGroups: Record<string, { type: string; name: string; rows: AsimData[]; total: number }> = {};
+
+        filteredData.forEach(item => {
+            const type = item.type?.toUpperCase() || 'DİĞER';
+            const productName = productTypes.find(pt => pt.code === type)?.name || type;
+
+            if (!productGroups[type]) {
+                productGroups[type] = {
+                    type,
+                    name: productName,
+                    rows: [],
+                    total: 0
+                };
+            }
+            productGroups[type].rows.push(item);
+            productGroups[type].total += item.adet;
+        });
+
+        return Object.values(productGroups).sort((a, b) => b.total - a.total);
+    }, [filteredData]);
+
+    // Calculate summary statistics with detailed company breakdown
+    const summaryStats = useMemo(() => {
+        const uniqueClients = new Set(filteredData.map(d => d.client)).size;
+        const uniqueNetworks = new Set(filteredData.map(d => d.network).filter(Boolean)).size;
+        const uniqueDistricts = new Set(filteredData.map(d => d.ilce).filter(Boolean)).size;
+        const uniqueWeeks = new Set(filteredData.map(d => d.weekStart)).size;
+        const uniqueMonths = new Set(filteredData.map(d => `${d.year}-${d.monthNumber}`)).size;
+
+        // Product type breakdown
+        const productBreakdown: Record<string, number> = {};
+        filteredData.forEach(item => {
+            const type = item.type?.toUpperCase() || 'DİĞER';
+            productBreakdown[type] = (productBreakdown[type] || 0) + item.adet;
+        });
+
+        // Network breakdown
+        const networkBreakdown: Record<string, number> = {};
+        filteredData.forEach(item => {
+            const network = item.network || 'Belirtilmemiş';
+            networkBreakdown[network] = (networkBreakdown[network] || 0) + item.adet;
+        });
+
+        // Detailed Company/Client breakdown with products, dates, networks
+        interface ClientDetail {
+            client: string;
+            totalAdet: number;
+            products: Record<string, number>;
+            networks: Set<string>;
+            districts: Set<string>;
+            weekStarts: string[];
+            dateRange: { start: string; end: string };
+            locations: number;
+        }
+
+        const clientDetails: Record<string, ClientDetail> = {};
+
+        filteredData.forEach(item => {
+            const client = item.client || '(boş)';
+
+            if (!clientDetails[client]) {
+                clientDetails[client] = {
+                    client,
+                    totalAdet: 0,
+                    products: {},
+                    networks: new Set(),
+                    districts: new Set(),
+                    weekStarts: [],
+                    dateRange: { start: '', end: '' },
+                    locations: 0
+                };
+            }
+
+            const detail = clientDetails[client];
+            detail.totalAdet += item.adet;
+            detail.locations += 1;
+
+            // Products breakdown
+            const productType = item.type?.toUpperCase() || 'DİĞER';
+            detail.products[productType] = (detail.products[productType] || 0) + item.adet;
+
+            // Networks
+            if (item.network) {
+                detail.networks.add(item.network);
+            }
+
+            // Districts
+            if (item.ilce) {
+                detail.districts.add(item.ilce);
+            }
+
+            // Week starts for date range
+            if (item.weekStart) {
+                detail.weekStarts.push(item.weekStart);
+            }
+        });
+
+        // Calculate date ranges for each client
+        Object.values(clientDetails).forEach(detail => {
+            if (detail.weekStarts.length > 0) {
+                // Parse dates and sort
+                const parsedDates = detail.weekStarts.map(ws => {
+                    const parts = ws.split('.');
+                    return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+                }).sort((a, b) => a.getTime() - b.getTime());
+
+                const formatDate = (d: Date) => {
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    return `${day}.${month}.${d.getFullYear()}`;
+                };
+
+                detail.dateRange.start = formatDate(parsedDates[0]);
+                detail.dateRange.end = formatDate(parsedDates[parsedDates.length - 1]);
+            }
+        });
+
+        // Sort clients by total adet
+        const sortedClientDetails = Object.values(clientDetails)
+            .sort((a, b) => b.totalAdet - a.totalAdet);
+
+        return {
+            totalItems: grandTotal,
+            uniqueClients,
+            uniqueNetworks,
+            uniqueDistricts,
+            uniqueWeeks,
+            uniqueMonths,
+            productBreakdown,
+            networkBreakdown,
+            clientDetails: sortedClientDetails
+        };
+    }, [filteredData, grandTotal]);
 
     // Export to Excel
     const handleExportExcel = () => {
@@ -423,6 +573,13 @@ const AsimListesiPage = () => {
                 </div>
 
                 <div className="flex gap-3">
+                    <button
+                        onClick={() => setShowSummaryModal(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all shadow-sm"
+                    >
+                        <FileText className="w-4 h-4" />
+                        <span>Özet Liste</span>
+                    </button>
                     <button
                         onClick={fetchData}
                         className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
@@ -551,6 +708,7 @@ const AsimListesiPage = () => {
                                     <th className="px-3 py-3 text-left font-semibold border-r border-primary-600 w-24">Ay</th>
                                     <th className="px-3 py-3 text-left font-semibold border-r border-primary-600 w-32">Hafta</th>
                                     <th className="px-3 py-3 text-left font-semibold border-r border-primary-600 min-w-[150px]">Müşteri / Marka</th>
+                                    <th className="px-3 py-3 text-center font-semibold border-r border-primary-600 w-24">Ürün Tipi</th>
                                     <th className="px-3 py-3 text-left font-semibold border-r border-primary-600">Koordinat</th>
                                     <th className="px-3 py-3 text-left font-semibold border-r border-primary-600">İlçe</th>
                                     <th className="px-3 py-3 text-left font-semibold border-r border-primary-600">Semt</th>
@@ -573,6 +731,7 @@ const AsimListesiPage = () => {
                                             onChange={(e) => setColumnFilters({ ...columnFilters, client: e.target.value })}
                                         />
                                     </th>
+                                    <th className="px-1 py-1 border-r border-gray-100"></th>
                                     <th className="px-1 py-1 border-r border-gray-100"></th>
                                     <th className="px-1 py-1 border-r border-gray-100">
                                         <input
@@ -626,7 +785,7 @@ const AsimListesiPage = () => {
                             <tbody>
                                 {groupedData.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
+                                        <td colSpan={13} className="px-4 py-12 text-center text-gray-500">
                                             <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                                             <p className="font-medium">Veri bulunamadı</p>
                                             <p className="text-sm mt-1">Seçili filtrelere uygun rezervasyon bulunmuyor</p>
@@ -647,7 +806,7 @@ const AsimListesiPage = () => {
                                                         {yearGroup.year}
                                                     </div>
                                                 </td>
-                                                <td colSpan={4} className="px-3 py-2 font-semibold text-blue-700 border-r border-gray-200"></td>
+                                                <td colSpan={11} className="px-3 py-2 font-semibold text-blue-700 border-r border-gray-200"></td>
                                                 <td className="px-3 py-2 text-center font-bold text-blue-800 bg-blue-100">{yearGroup.yearTotal}</td>
                                             </tr>
 
@@ -666,7 +825,7 @@ const AsimListesiPage = () => {
                                                                 {monthGroup.month}
                                                             </div>
                                                         </td>
-                                                        <td colSpan={3} className="px-3 py-2 border-r border-gray-200"></td>
+                                                        <td colSpan={10} className="px-3 py-2 border-r border-gray-200"></td>
                                                         <td className="px-3 py-2 text-center font-semibold text-purple-700 bg-purple-100">{monthGroup.monthTotal}</td>
                                                     </tr>
 
@@ -688,8 +847,7 @@ const AsimListesiPage = () => {
                                                                             {weekGroup.weekStart}
                                                                         </div>
                                                                     </td>
-                                                                    <td className="px-3 py-2 border-r border-gray-200"></td>
-                                                                    <td className="px-3 py-2 text-center border-r border-gray-200"></td>
+                                                                    <td colSpan={9} className="px-3 py-2 border-r border-gray-200"></td>
                                                                     <td className="px-3 py-2 text-center font-bold bg-amber-100">{weekGroup.weekTotal}</td>
                                                                 </tr>
 
@@ -710,6 +868,9 @@ const AsimListesiPage = () => {
                                                                             ) : (
                                                                                 <span className="text-primary-700">{row.client}</span>
                                                                             )}
+                                                                        </td>
+                                                                        <td className="px-3 py-2 text-center border-r border-gray-200">
+                                                                            <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">{row.type || '-'}</span>
                                                                         </td>
                                                                         <td className="px-3 py-2 border-r border-gray-200 text-gray-600 text-[10px]">{row.koordinat}</td>
                                                                         <td className="px-3 py-2 border-r border-gray-200 text-gray-600">{row.ilce}</td>
@@ -741,7 +902,7 @@ const AsimListesiPage = () => {
                                 {/* Grand Total Row */}
                                 {groupedData.length > 0 && (
                                     <tr className="bg-gradient-to-r from-primary-800 to-secondary-800 text-white font-bold border-t-2 border-primary-600">
-                                        <td colSpan={11} className="px-4 py-3 text-left">
+                                        <td colSpan={12} className="px-4 py-3 text-left">
                                             Genel Toplam
                                         </td>
                                         <td className="px-4 py-3 text-center text-lg bg-yellow-500 text-yellow-900">
@@ -781,6 +942,264 @@ const AsimListesiPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Summary Modal */}
+            {showSummaryModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden">
+                        {/* Modal Header */}
+                        <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-6 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <FileText className="w-8 h-8" />
+                                <div>
+                                    <h2 className="text-xl font-bold">Özet Rapor</h2>
+                                    <p className="text-green-100 text-sm">Asım Listesi Genel Özeti</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowSummaryModal(false)}
+                                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                            {/* Stats Grid */}
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+                                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center">
+                                    <div className="text-3xl font-bold text-blue-700">{summaryStats.totalItems}</div>
+                                    <div className="text-sm text-blue-600">Toplam Adet</div>
+                                </div>
+                                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 text-center">
+                                    <div className="text-3xl font-bold text-purple-700">{summaryStats.uniqueClients}</div>
+                                    <div className="text-sm text-purple-600">Firma</div>
+                                </div>
+                                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 text-center">
+                                    <div className="text-3xl font-bold text-green-700">{summaryStats.uniqueNetworks}</div>
+                                    <div className="text-sm text-green-600">Network</div>
+                                </div>
+                                <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 text-center">
+                                    <div className="text-3xl font-bold text-amber-700">{summaryStats.uniqueDistricts}</div>
+                                    <div className="text-sm text-amber-600">İlçe</div>
+                                </div>
+                                <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-xl p-4 text-center">
+                                    <div className="text-3xl font-bold text-pink-700">{summaryStats.uniqueWeeks}</div>
+                                    <div className="text-sm text-pink-600">Hafta</div>
+                                </div>
+                                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-4 text-center">
+                                    <div className="text-3xl font-bold text-indigo-700">{summaryStats.uniqueMonths}</div>
+                                    <div className="text-sm text-indigo-600">Ay</div>
+                                </div>
+                            </div>
+
+                            {/* Detailed Company Table */}
+                            <div className="bg-gray-50 rounded-xl p-4">
+                                <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2 text-lg">
+                                    <FileText className="w-5 h-5" />
+                                    Firma Bazlı Asım Durumu
+                                </h3>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm border-collapse">
+                                        <thead>
+                                            <tr className="bg-gradient-to-r from-gray-700 to-gray-800 text-white">
+                                                <th className="px-3 py-3 text-left font-semibold border-r border-gray-600">#</th>
+                                                <th className="px-3 py-3 text-left font-semibold border-r border-gray-600 min-w-[180px]">Firma / Marka</th>
+                                                <th className="px-3 py-3 text-left font-semibold border-r border-gray-600 min-w-[200px]">Ürünler</th>
+                                                <th className="px-3 py-3 text-center font-semibold border-r border-gray-600">Toplam Adet</th>
+                                                <th className="px-3 py-3 text-center font-semibold border-r border-gray-600">Lokasyon</th>
+                                                <th className="px-3 py-3 text-left font-semibold border-r border-gray-600 min-w-[180px]">Asım Tarihleri</th>
+                                                <th className="px-3 py-3 text-left font-semibold border-r border-gray-600">Networkler</th>
+                                                <th className="px-3 py-3 text-left font-semibold">İlçeler</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {summaryStats.clientDetails.map((detail, index) => (
+                                                <tr
+                                                    key={detail.client}
+                                                    className={`border-b border-gray-200 hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                                                >
+                                                    <td className="px-3 py-3 border-r border-gray-200 text-gray-500 font-medium">
+                                                        {index + 1}
+                                                    </td>
+                                                    <td className="px-3 py-3 border-r border-gray-200">
+                                                        <div className="font-semibold text-gray-800">
+                                                            {detail.client === '(boş)' ? (
+                                                                <span className="text-gray-400 italic">Belirtilmemiş</span>
+                                                            ) : detail.client}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-3 py-3 border-r border-gray-200">
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {Object.entries(detail.products)
+                                                                .sort((a, b) => b[1] - a[1])
+                                                                .map(([type, count]) => {
+                                                                    const productName = productTypes.find(pt => pt.code === type)?.name || type;
+                                                                    return (
+                                                                        <span
+                                                                            key={type}
+                                                                            className="inline-flex items-center gap-1 px-2 py-1 bg-primary-100 text-primary-700 rounded text-xs font-medium"
+                                                                            title={productName}
+                                                                        >
+                                                                            {type}: <span className="font-bold">{count}</span>
+                                                                        </span>
+                                                                    );
+                                                                })}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-3 py-3 border-r border-gray-200 text-center">
+                                                        <span className="inline-flex items-center justify-center w-10 h-10 bg-yellow-100 text-yellow-800 rounded-full font-bold text-lg">
+                                                            {detail.totalAdet}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-3 py-3 border-r border-gray-200 text-center">
+                                                        <span className="text-gray-600 font-medium">{detail.locations}</span>
+                                                    </td>
+                                                    <td className="px-3 py-3 border-r border-gray-200">
+                                                        {detail.dateRange.start ? (
+                                                            <div className="text-xs">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-gray-500">Başlangıç:</span>
+                                                                    <span className="font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded">{detail.dateRange.start}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 mt-1">
+                                                                    <span className="text-gray-500">Bitiş:</span>
+                                                                    <span className="font-medium text-red-700 bg-red-50 px-2 py-0.5 rounded">{detail.dateRange.end}</span>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-400">-</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-3 py-3 border-r border-gray-200">
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {Array.from(detail.networks).map(network => (
+                                                                <span
+                                                                    key={network}
+                                                                    className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium"
+                                                                >
+                                                                    {network}
+                                                                </span>
+                                                            ))}
+                                                            {detail.networks.size === 0 && <span className="text-gray-400">-</span>}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-3 py-3">
+                                                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                                            {Array.from(detail.districts).slice(0, 3).map(district => (
+                                                                <span
+                                                                    key={district}
+                                                                    className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-medium"
+                                                                >
+                                                                    {district}
+                                                                </span>
+                                                            ))}
+                                                            {detail.districts.size > 3 && (
+                                                                <span className="px-2 py-1 bg-gray-200 text-gray-600 rounded text-xs font-medium">
+                                                                    +{detail.districts.size - 3} daha
+                                                                </span>
+                                                            )}
+                                                            {detail.districts.size === 0 && <span className="text-gray-400">-</span>}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr className="bg-gradient-to-r from-gray-800 to-gray-900 text-white font-bold">
+                                                <td colSpan={3} className="px-3 py-3 text-right">
+                                                    GENEL TOPLAM
+                                                </td>
+                                                <td className="px-3 py-3 text-center">
+                                                    <span className="inline-flex items-center justify-center w-12 h-12 bg-yellow-400 text-yellow-900 rounded-full font-bold text-xl">
+                                                        {summaryStats.totalItems}
+                                                    </span>
+                                                </td>
+                                                <td className="px-3 py-3 text-center">
+                                                    {summaryStats.clientDetails.reduce((sum, d) => sum + d.locations, 0)}
+                                                </td>
+                                                <td colSpan={3} className="px-3 py-3">
+                                                    <span className="text-gray-300">
+                                                        {summaryStats.uniqueClients} firma • {summaryStats.uniqueNetworks} network • {summaryStats.uniqueDistricts} ilçe
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* Product & Network Summary Row */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                                {/* Product Breakdown */}
+                                <div className="bg-gray-50 rounded-xl p-4">
+                                    <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                        <Package className="w-4 h-4" />
+                                        Ürün Tipi Özeti
+                                    </h3>
+                                    <div className="space-y-2">
+                                        {Object.entries(summaryStats.productBreakdown)
+                                            .sort((a, b) => b[1] - a[1])
+                                            .map(([type, count]) => {
+                                                const productName = productTypes.find(pt => pt.code === type)?.name || type;
+                                                const percentage = ((count / summaryStats.totalItems) * 100).toFixed(1);
+                                                return (
+                                                    <div key={type} className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="px-2 py-1 bg-primary-100 text-primary-700 rounded text-xs font-medium">{type}</span>
+                                                            <span className="text-sm text-gray-600">{productName}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                                <div
+                                                                    className="h-full bg-primary-500 rounded-full"
+                                                                    style={{ width: `${percentage}%` }}
+                                                                />
+                                                            </div>
+                                                            <span className="text-sm font-medium text-gray-700 min-w-[40px] text-right">{count}</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                    </div>
+                                </div>
+
+                                {/* Network Breakdown */}
+                                <div className="bg-gray-50 rounded-xl p-4">
+                                    <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                        <Filter className="w-4 h-4" />
+                                        Network Özeti
+                                    </h3>
+                                    <div className="space-y-2">
+                                        {Object.entries(summaryStats.networkBreakdown)
+                                            .sort((a, b) => b[1] - a[1])
+                                            .map(([network, count]) => {
+                                                const percentage = ((count / summaryStats.totalItems) * 100).toFixed(1);
+                                                return (
+                                                    <div key={network} className="flex items-center justify-between">
+                                                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+                                                            Network {network}
+                                                        </span>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                                <div
+                                                                    className="h-full bg-blue-500 rounded-full"
+                                                                    style={{ width: `${percentage}%` }}
+                                                                />
+                                                            </div>
+                                                            <span className="text-sm font-medium text-gray-700 min-w-[40px] text-right">{count}</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

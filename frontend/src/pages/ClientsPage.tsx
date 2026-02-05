@@ -19,7 +19,11 @@ import {
     Users,
     DollarSign,
     Calendar,
-    Loader2
+    Loader2,
+    StickyNote,
+    Bell,
+    Clock,
+    List
 } from 'lucide-react'
 import { clientsService } from '../services/clientsService'
 import type { Client, CreateClientDto } from '../services/clientsService'
@@ -59,6 +63,16 @@ function ClientFormModal({ isOpen, onClose, onSave, initialData, loading }: Clie
 
     const [activeTab, setActiveTab] = useState<'company' | 'address' | 'contact' | 'notes'>('company')
     const [saving, setSaving] = useState(false)
+
+    // Note states
+    const [noteInput, setNoteInput] = useState({
+        content: '',
+        date: new Date().toISOString().split('T')[0],
+        reminderDate: '',
+        reminderTime: '10:00',
+        repeat: false
+    })
+    const [noteFilterDate, setNoteFilterDate] = useState('')
 
     useEffect(() => {
         if (initialData) {
@@ -206,6 +220,11 @@ function ClientFormModal({ isOpen, onClose, onSave, initialData, loading }: Clie
                                         onChange={(e) => setFormData({ ...formData, sector: e.target.value })}
                                     >
                                         <option value="">Seçiniz</option>
+                                        <option value="Reklam">Reklam</option>
+                                        <option value="Retail">Retail</option>
+                                        <option value="FMCG">FMCG</option>
+                                        <option value="Aksesuar">Aksesuar</option>
+                                        <option value="Dayanıklı Tüketim">Dayanıklı Tüketim</option>
                                         <option value="Perakende">Perakende</option>
                                         <option value="Teknoloji">Teknoloji</option>
                                         <option value="Otomotiv">Otomotiv</option>
@@ -213,9 +232,14 @@ function ClientFormModal({ isOpen, onClose, onSave, initialData, loading }: Clie
                                         <option value="Tekstil">Tekstil</option>
                                         <option value="İnşaat">İnşaat</option>
                                         <option value="Sağlık">Sağlık</option>
+                                        <option value="Medya">Medya</option>
                                         <option value="Finans">Finans</option>
+                                        <option value="Mobilya">Mobilya</option>
+                                        <option value="Sanayi">Sanayi</option>
                                         <option value="Eğitim">Eğitim</option>
                                         <option value="Turizm">Turizm</option>
+                                        <option value="Hizmet">Hizmet</option>
+                                        <option value="Üretim">Üretim</option>
                                         <option value="Diğer">Diğer</option>
                                     </select>
                                 </div>
@@ -450,16 +474,188 @@ function ClientFormModal({ isOpen, onClose, onSave, initialData, loading }: Clie
 
                         {/* Notes Tab */}
                         {activeTab === 'notes' && (
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Notlar
-                                </label>
-                                <textarea
-                                    className="input min-h-[200px]"
-                                    placeholder="Müşteri hakkında önemli notlar, özel istekler, dikkat edilecek hususlar..."
-                                    value={formData.notes || ''}
-                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                />
+                            <div className="space-y-6">
+                                {/* Yeni Not Ekleme Formu */}
+                                <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100 space-y-4">
+                                    <div className="flex items-center gap-2 text-amber-800 font-semibold mb-1">
+                                        <StickyNote className="w-5 h-5" />
+                                        <h4>Yeni Not Ekle</h4>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-amber-700 mb-1">Not Tarihi (Otomatik)</label>
+                                            <div className="relative">
+                                                <Calendar className="absolute left-3 top-2.5 w-4 h-4 text-amber-500" />
+                                                <input
+                                                    type="date"
+                                                    value={noteInput.date}
+                                                    onChange={(e) => setNoteInput({ ...noteInput, date: e.target.value })}
+                                                    className="w-full pl-10 pr-4 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-amber-700 mb-1">Hatırlatıcı (Opsiyonel)</label>
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <Bell className="absolute left-3 top-2.5 w-4 h-4 text-amber-500" />
+                                                    <input
+                                                        type="date"
+                                                        value={noteInput.reminderDate}
+                                                        onChange={(e) => setNoteInput({ ...noteInput, reminderDate: e.target.value })}
+                                                        className="w-full pl-10 pr-4 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
+                                                    />
+                                                </div>
+                                                <div className="relative w-32">
+                                                    <Clock className="absolute left-3 top-2.5 w-4 h-4 text-amber-500" />
+                                                    <input
+                                                        type="time"
+                                                        value={noteInput.reminderTime}
+                                                        onChange={(e) => setNoteInput({ ...noteInput, reminderTime: e.target.value })}
+                                                        className="w-full pl-10 pr-4 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <textarea
+                                            className="w-full px-4 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 min-h-[100px]"
+                                            placeholder="Notunuzu buraya yazın..."
+                                            value={noteInput.content}
+                                            onChange={(e) => setNoteInput({ ...noteInput, content: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <div className="flex justify-between items-center">
+                                        <label className="flex items-center gap-2 cursor-pointer group">
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
+                                                checked={noteInput.repeat}
+                                                onChange={(e) => setNoteInput({ ...noteInput, repeat: e.target.checked })}
+                                            />
+                                            <span className="text-xs text-amber-700 group-hover:text-amber-800 transition-colors">Tekrarlı Uyarı</span>
+                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!noteInput.content.trim()) return;
+                                                const notesStr = formData.notes || '[]';
+                                                let notesArr = [];
+                                                try {
+                                                    notesArr = notesStr.startsWith('[') ? JSON.parse(notesStr) : (notesStr ? [{ id: 'old', content: notesStr, date: 'Eski' }] : []);
+                                                } catch (e) {
+                                                    notesArr = notesStr ? [{ id: 'old', content: notesStr, date: 'Eski' }] : [];
+                                                }
+
+                                                const newNoteObj = {
+                                                    id: Date.now().toString(),
+                                                    content: noteInput.content,
+                                                    date: noteInput.date,
+                                                    reminderDate: noteInput.reminderDate,
+                                                    reminderTime: noteInput.reminderTime,
+                                                    repeat: noteInput.repeat,
+                                                    isReminded: false,
+                                                    createdAt: new Date().toISOString()
+                                                };
+
+                                                const updatedNotes = JSON.stringify([...notesArr, newNoteObj]);
+                                                setFormData({ ...formData, notes: updatedNotes });
+                                                setNoteInput({
+                                                    content: '',
+                                                    date: new Date().toISOString().split('T')[0],
+                                                    reminderDate: '',
+                                                    reminderTime: '10:00',
+                                                    repeat: false
+                                                });
+                                            }}
+                                            className="flex items-center gap-1.5 px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all"
+                                        >
+                                            <Plus className="w-3.5 h-3.5" />
+                                            Notu Ekle
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Not Filtreleme ve Liste */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-gray-700 font-semibold">
+                                            <List className="w-4 h-4" />
+                                            <h4>Kayıtlı Notlar</h4>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-gray-500 font-medium">Tarihe Göre:</span>
+                                            <input
+                                                type="date"
+                                                value={noteFilterDate}
+                                                onChange={(e) => setNoteFilterDate(e.target.value)}
+                                                className="px-2 py-1 border border-gray-200 rounded text-xs focus:ring-2 focus:ring-primary-500"
+                                            />
+                                            {noteFilterDate && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setNoteFilterDate('')}
+                                                    className="text-xs text-primary-600 hover:underline ml-1"
+                                                >
+                                                    Temizle
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                        {(() => {
+                                            const notesStr = formData.notes || '[]';
+                                            let notesArr = [];
+                                            try {
+                                                notesArr = notesStr.startsWith('[') ? JSON.parse(notesStr) : (notesStr ? [{ id: 'old', content: notesStr, date: 'Eski' }] : []);
+                                            } catch (e) {
+                                                notesArr = notesStr ? [{ id: 'old', content: notesStr, date: 'Eski' }] : [];
+                                            }
+
+                                            const filteredNotes = noteFilterDate
+                                                ? notesArr.filter((n: any) => n.date === noteFilterDate)
+                                                : notesArr;
+
+                                            if (filteredNotes.length === 0) {
+                                                return <div className="text-center py-8 text-gray-400 text-sm">Bu tarihte kayıtlı bir not bulunamadı.</div>;
+                                            }
+
+                                            return [...filteredNotes].sort((a: any, b: any) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime()).map((note: any) => (
+                                                <div key={note.id} className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm hover:border-amber-200 transition-all group">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold rounded-full">
+                                                                {note.date || 'Belirtilmedi'}
+                                                            </span>
+                                                            {note.reminderDate && (
+                                                                <span className={`px-2 py-0.5 ${note.isReminded ? 'bg-gray-100 text-gray-400' : 'bg-red-50 text-red-600'} text-[10px] font-bold rounded-full flex items-center gap-1`}>
+                                                                    <Bell className="w-2.5 h-2.5" />
+                                                                    {note.reminderDate} {note.reminderTime}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const updatedNotes = JSON.stringify(notesArr.filter((n: any) => n.id !== note.id));
+                                                                setFormData({ ...formData, notes: updatedNotes });
+                                                            }}
+                                                            className="p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
+                                                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.content}</p>
+                                                </div>
+                                            ));
+                                        })()}
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>

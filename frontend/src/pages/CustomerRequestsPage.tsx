@@ -21,7 +21,10 @@ import {
     User,
     Hash,
     DollarSign,
-    ChevronDown
+    ChevronDown,
+    Bell,
+    StickyNote,
+    List
 } from 'lucide-react'
 import { customerRequestsService } from '../services/customerRequestsService'
 import type { CustomerRequest, CreateCustomerRequestDto, UpdateCustomerRequestDto } from '../services/customerRequestsService'
@@ -101,6 +104,15 @@ function RequestFormModal({ isOpen, onClose, onSave, initialData, clients, loadi
         priority: 'medium',
         notes: ''
     })
+
+    const [noteInput, setNoteInput] = useState({
+        content: '',
+        date: new Date().toISOString().split('T')[0],
+        reminderDate: '',
+        reminderTime: '10:00',
+        repeat: false
+    })
+    const [noteFilterDate, setNoteFilterDate] = useState('')
 
     const [taxSearch, setTaxSearch] = useState('')
 
@@ -328,18 +340,154 @@ function RequestFormModal({ isOpen, onClose, onSave, initialData, clients, loadi
                         {/* Right Column */}
                         <div className="space-y-5">
 
-                            {/* Notes */}
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">
-                                    Notlar
-                                </label>
-                                <textarea
-                                    value={formData.notes}
-                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all resize-none"
-                                    rows={4}
-                                    placeholder="Ek notlar..."
-                                />
+                            {/* Notlar Bölümü */}
+                            <div className="bg-slate-700/30 p-5 rounded-2xl border border-slate-600/50 space-y-4">
+                                <div className="flex items-center gap-2 text-violet-400 font-bold text-sm mb-2">
+                                    <StickyNote className="w-4 h-4" />
+                                    <h3>Notlar ve Hatırlatıcılar</h3>
+                                </div>
+
+                                {/* Yeni Not Girişi */}
+                                <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-600/50 space-y-3">
+                                    <textarea
+                                        value={noteInput.content}
+                                        onChange={(e) => setNoteInput({ ...noteInput, content: e.target.value })}
+                                        placeholder="Hatırlatma veya not yazın..."
+                                        className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500 min-h-[80px]"
+                                    />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Hatırlatma Tarihi</label>
+                                            <div className="relative">
+                                                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                                <input
+                                                    type="date"
+                                                    value={noteInput.reminderDate}
+                                                    onChange={(e) => setNoteInput({ ...noteInput, reminderDate: e.target.value })}
+                                                    className="w-full pl-9 pr-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-xs text-white focus:ring-2 focus:ring-violet-500"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Saat</label>
+                                            <div className="relative">
+                                                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                                <input
+                                                    type="time"
+                                                    value={noteInput.reminderTime}
+                                                    onChange={(e) => setNoteInput({ ...noteInput, reminderTime: e.target.value })}
+                                                    className="w-full pl-9 pr-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-xs text-white focus:ring-2 focus:ring-violet-500"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <label className="flex items-center gap-2 cursor-pointer group">
+                                            <div className="relative">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={noteInput.repeat}
+                                                    onChange={(e) => setNoteInput({ ...noteInput, repeat: e.target.checked })}
+                                                    className="sr-only"
+                                                />
+                                                <div className={`w-8 h-4 rounded-full transition-colors ${noteInput.repeat ? 'bg-violet-600' : 'bg-slate-700'}`}></div>
+                                                <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${noteInput.repeat ? 'translate-x-4' : ''}`}></div>
+                                            </div>
+                                            <span className="text-xs text-slate-400 group-hover:text-slate-300">Tekrarlı Uyarı</span>
+                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!noteInput.content) return;
+                                                const newNote = {
+                                                    id: Date.now().toString(),
+                                                    content: noteInput.content,
+                                                    date: noteInput.date,
+                                                    reminderDate: noteInput.reminderDate,
+                                                    reminderTime: noteInput.reminderTime,
+                                                    repeat: noteInput.repeat,
+                                                    isReminded: false,
+                                                    createdAt: new Date().toISOString()
+                                                };
+                                                const currentNotes = formData.notes ? (formData.notes.startsWith('[') ? JSON.parse(formData.notes) : []) : [];
+                                                const updatedNotes = JSON.stringify([...currentNotes, newNote]);
+                                                setFormData({ ...formData, notes: updatedNotes });
+                                                setNoteInput({ ...noteInput, content: '', reminderDate: '', repeat: false });
+                                            }
+                                            }
+                                            className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-2"
+                                        >
+                                            <Plus className="w-3.5 h-3.5" />
+                                            Notu Ekle
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Kayıtlı Notlar */}
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-slate-300 font-bold text-xs uppercase tracking-wider">
+                                            <List className="w-3.5 h-3.5 text-slate-500" />
+                                            Kayıtlı Notlar
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="date"
+                                                value={noteFilterDate}
+                                                onChange={(e) => setNoteFilterDate(e.target.value)}
+                                                className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-[10px] text-slate-300"
+                                            />
+                                            {noteFilterDate && (
+                                                <button onClick={() => setNoteFilterDate('')} className="text-[10px] text-violet-400 hover:underline">Temizle</button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="max-h-[200px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                                        {(() => {
+                                            const notesStr = formData.notes || '[]';
+                                            let notesArr = [];
+                                            try {
+                                                notesArr = notesStr.startsWith('[') ? JSON.parse(notesStr) : (notesStr ? [{ id: 'old', content: notesStr, date: 'Legacy' }] : []);
+                                            } catch (e) {
+                                                notesArr = [];
+                                            }
+
+                                            const filtered = noteFilterDate ? notesArr.filter((n: any) => n.date === noteFilterDate) : notesArr;
+
+                                            if (filtered.length === 0) {
+                                                return <div className="text-center py-6 text-slate-500 text-xs italic">Not bulunamadı.</div>;
+                                            }
+
+                                            return [...filtered].sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).map((note: any) => (
+                                                <div key={note.id} className="p-3 bg-slate-800/50 border border-slate-700/50 rounded-xl group relative">
+                                                    <div className="flex items-center gap-2 mb-1.5">
+                                                        <span className="px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[9px] font-bold rounded uppercase">
+                                                            {note.date}
+                                                        </span>
+                                                        {note.reminderDate && (
+                                                            <span className={`px-1.5 py-0.5 ${note.isReminded ? 'bg-slate-900 text-slate-600' : 'bg-red-500/10 text-red-400'} text-[9px] font-bold rounded flex items-center gap-1`}>
+                                                                <Bell className="w-2.5 h-2.5" />
+                                                                {note.reminderDate} {note.reminderTime}
+                                                            </span>
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const updated = JSON.stringify(notesArr.filter((n: any) => n.id !== note.id));
+                                                                setFormData({ ...formData, notes: updated });
+                                                            }}
+                                                            className="absolute right-2 top-2 p-1 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                                                        >
+                                                            <Trash2 className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                    <p className="text-xs text-slate-300 leading-relaxed">{note.content}</p>
+                                                </div>
+                                            ));
+                                        })()}
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Budget Category */}

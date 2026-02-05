@@ -2,7 +2,7 @@ import apiClient from './api';
 
 export interface Notification {
     id: string;
-    type: 'reservation' | 'payment' | 'client' | 'inventory' | 'system' | 'proposal';
+    type: 'reservation' | 'payment' | 'client' | 'inventory' | 'system' | 'proposal' | 'note';
     title: string;
     message: string;
     user_id?: string;

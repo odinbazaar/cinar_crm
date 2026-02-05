@@ -1,4 +1,4 @@
-import { X, Bell, Calendar, DollarSign, Users, Package, CheckCircle, Info, FileText, Loader2 } from 'lucide-react'
+import { X, Bell, Calendar, DollarSign, Users, Package, CheckCircle, Info, FileText, Loader2, StickyNote } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { notificationsService } from '../../services/notificationsService'
 import type { Notification } from '../../services/notificationsService'
@@ -20,6 +20,8 @@ const getNotificationIcon = (type: Notification['type']) => {
             return <Package className="w-5 h-5 text-orange-600" />
         case 'proposal':
             return <FileText className="w-5 h-5 text-indigo-600" />
+        case 'note':
+            return <StickyNote className="w-5 h-5 text-amber-600" />
         case 'system':
             return <Info className="w-5 h-5 text-gray-600" />
         default:
@@ -39,6 +41,8 @@ const getNotificationBgColor = (type: Notification['type']) => {
             return 'bg-orange-100'
         case 'proposal':
             return 'bg-indigo-100'
+        case 'note':
+            return 'bg-amber-100'
         case 'system':
             return 'bg-gray-100'
         default:

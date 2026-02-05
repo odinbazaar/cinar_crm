@@ -112,6 +112,78 @@ export class ClientsService {
         if (error) throw new Error(error.message);
     }
 
+    async checkReminders(): Promise<any> {
+        console.log('Checking all tables for note reminders...');
+        const now = new Date();
+        const results: any[] = [];
+
+        const tables = [
+            { name: 'clients', labelField: 'company_name' },
+            { name: 'customer_requests', labelField: 'request_number' },
+            { name: 'incoming_calls', labelField: 'company_name' }
+        ];
+
+        for (const table of tables) {
+            const { data, error } = await supabase
+                .from(table.name)
+                .select(`id, ${table.labelField}, notes`)
+                .not('notes', 'is', null) as { data: any[], error: any };
+
+            if (error) {
+                console.error(`Error fetching ${table.name} for reminders:`, error);
+                continue;
+            }
+
+            for (const item of data) {
+                if (!item.notes || !item.notes.startsWith('[')) continue;
+
+                let notesArr;
+                try {
+                    notesArr = JSON.parse(item.notes);
+                } catch (e) { continue; }
+
+                let changed = false;
+                for (const note of notesArr) {
+                    if (note.reminderDate && !note.isReminded) {
+                        const reminderDateTime = new Date(`${note.reminderDate}T${note.reminderTime || '09:00'}`);
+                        if (reminderDateTime <= now) {
+                            try {
+                                const label = item[table.labelField] || 'İsimsiz Kayıt';
+                                await supabase.from('notifications').insert([{
+                                    type: 'note',
+                                    title: `Hatırlatıcı: ${label}`,
+                                    message: note.content,
+                                    related_id: item.id,
+                                    related_type: table.name
+                                }]);
+
+                                note.isReminded = true;
+
+                                if (note.repeat) {
+                                    const nextDate = new Date(reminderDateTime);
+                                    nextDate.setDate(nextDate.getDate() + 1);
+                                    note.reminderDate = nextDate.toISOString().split('T')[0];
+                                    note.isReminded = false;
+                                }
+
+                                changed = true;
+                                results.push({ table: table.name, label, note: note.content });
+                            } catch (notifErr) {
+                                console.error('Failed to create reminder notification:', notifErr);
+                            }
+                        }
+                    }
+                }
+
+                if (changed) {
+                    await supabase.from(table.name).update({ notes: JSON.stringify(notesArr) }).eq('id', item.id);
+                }
+            }
+        }
+
+        return { status: 'ok', sent: results.length, details: results };
+    }
+
     async getByLeadStage(stage: string): Promise<Client[]> {
         const { data, error } = await supabase
             .from('clients')

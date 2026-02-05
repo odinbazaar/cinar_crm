@@ -5,10 +5,15 @@ import {
     ArrowDown,
     MapPin,
     Calendar,
-    Loader2
+    Loader2,
+    Bell,
+    StickyNote,
+    Clock
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { dashboardService } from '../services'
+import { notificationsService } from '../services/notificationsService'
+import type { Notification } from '../services/notificationsService'
 
 const iconMap: Record<string, any> = {
     DollarSign,
@@ -21,6 +26,11 @@ export default function DashboardPage() {
     const { data: dashboardData, isLoading } = useQuery({
         queryKey: ['dashboard-stats'],
         queryFn: dashboardService.getStats
+    });
+
+    const { data: notifications } = useQuery({
+        queryKey: ['recent-reminders'],
+        queryFn: () => notificationsService.getAll()
     });
 
     if (isLoading) {
@@ -43,6 +53,59 @@ export default function DashboardPage() {
             <div>
                 <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
                 <p className="text-gray-600 mt-1">İzmir Açıkhava Reklam Ajansı genel performans özeti</p>
+            </div>
+
+            {/* Announcements & Reminders */}
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-200">
+                            <Bell className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-amber-900">Duyurular ve Hatırlatıcılar</h2>
+                            <p className="text-sm text-amber-700/70">Müşteri notlarından otomatik oluşturulan hatırlatıcılar</p>
+                        </div>
+                    </div>
+                    <a href="/notifications" className="text-sm text-amber-700 hover:text-amber-900 font-bold bg-white/50 px-4 py-2 rounded-lg border border-amber-200 transition-all">
+                        Tüm Bildirimler
+                    </a>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {(() => {
+                        const reminders = notifications?.filter(n => n.type === 'note' || n.type === 'system').slice(0, 3) || [];
+
+                        if (reminders.length === 0) {
+                            return (
+                                <div className="col-span-full py-8 text-center bg-white/50 rounded-xl border border-dashed border-amber-200">
+                                    <StickyNote className="w-8 h-8 text-amber-300 mx-auto mb-2" />
+                                    <p className="text-amber-600 text-sm font-medium">Şu an aktif bir duyuru veya hatırlatıcı bulunmuyor.</p>
+                                </div>
+                            );
+                        }
+
+                        return reminders.map(reminder => (
+                            <div key={reminder.id} className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm flex gap-3 group hover:border-amber-300 transition-all cursor-pointer">
+                                <div className="mt-1">
+                                    <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600">
+                                        <Clock className="w-4 h-4" />
+                                    </div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                        <h3 className="font-bold text-amber-900 text-sm truncate">{reminder.title}</h3>
+                                        {!reminder.read && <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>}
+                                    </div>
+                                    <p className="text-xs text-amber-800 line-clamp-2 leading-relaxed mb-2">{reminder.message}</p>
+                                    <div className="text-[10px] text-amber-600/60 font-medium">
+                                        {new Date(reminder.created_at).toLocaleString('tr-TR')}
+                                    </div>
+                                </div>
+                            </div>
+                        ));
+                    })()}
+                </div>
             </div>
 
             {/* Stats Grid */}
