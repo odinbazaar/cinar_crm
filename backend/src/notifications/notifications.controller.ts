@@ -38,4 +38,10 @@ export class NotificationsController {
         await this.notificationsService.delete(id);
         return { success: true };
     }
+
+    @Delete()
+    async clearAll(@Query('userId') userId?: string) {
+        await this.notificationsService.deleteAll(userId);
+        return { success: true };
+    }
 }

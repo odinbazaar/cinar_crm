@@ -53,6 +53,10 @@ export const notificationsService = {
     async delete(id: string): Promise<void> {
         await apiClient.delete<{ success: boolean }>(`/notifications/${id}`);
     },
+    async clearAll(userId?: string): Promise<void> {
+        const url = userId ? `/notifications?userId=${userId}` : '/notifications';
+        await apiClient.delete<{ success: boolean }>(url);
+    },
 };
 
 export default notificationsService;

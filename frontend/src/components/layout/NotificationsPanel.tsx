@@ -1,4 +1,4 @@
-import { X, Bell, Calendar, DollarSign, Users, Package, CheckCircle, Info, FileText, Loader2, StickyNote } from 'lucide-react'
+import { X, Bell, Calendar, DollarSign, Users, Package, CheckCircle, Info, FileText, Loader2, StickyNote, RefreshCw } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { notificationsService } from '../../services/notificationsService'
 import type { Notification } from '../../services/notificationsService'
@@ -120,6 +120,16 @@ export default function NotificationsPanel({ isOpen, onClose }: NotificationsPan
         }
     }
 
+    const clearAll = async () => {
+        if (!window.confirm('Tüm bildirimleri silmek istediğinize emin misiniz?')) return
+        try {
+            await notificationsService.clearAll()
+            setNotifications([])
+        } catch (error) {
+            console.error('Error clearing notifications:', error)
+        }
+    }
+
     if (!isOpen) return null
 
     return (
@@ -236,17 +246,26 @@ export default function NotificationsPanel({ isOpen, onClose }: NotificationsPan
 
                 {/* Footer */}
                 <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-                    <button
-                        onClick={markAllAsRead}
-                        className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
-                    >
-                        Tümünü okundu işaretle
-                    </button>
+                    <div className="flex gap-4">
+                        <button
+                            onClick={markAllAsRead}
+                            className="text-xs font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+                        >
+                            Tümünü Oku
+                        </button>
+                        <button
+                            onClick={clearAll}
+                            className="text-xs font-semibold text-red-600 hover:text-red-700 transition-colors"
+                        >
+                            Temizle
+                        </button>
+                    </div>
                     <button
                         onClick={fetchNotifications}
-                        className="text-sm font-medium text-gray-600 hover:text-gray-700 transition-colors"
+                        className="text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors flex items-center gap-1"
                     >
-                        Yenile ↻
+                        <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+                        Yenile
                     </button>
                 </div>
             </div>

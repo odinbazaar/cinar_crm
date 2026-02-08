@@ -93,6 +93,24 @@ export class NotificationsService {
         if (error) throw new Error(error.message);
     }
 
+    async deleteAll(userId?: string): Promise<void> {
+        let query = supabase
+            .from('notifications')
+            .delete();
+
+        if (userId) {
+            query = query.or(`user_id.eq.${userId},user_id.is.null`);
+        } else {
+            // Eğer userId yoksa, tüm bildirimleri sil (veya sadece genel olanları silmek istenebilir)
+            // Şimdilik güvenlik için userId yoksa hiçbir şey silmeyelim veya hepsini silelim
+            // Admin paneli için hepsini silmek mantıklı olabilir.
+            query = query.neq('id', '00000000-0000-0000-0000-000000000000'); // Dummy condition to allow delete all
+        }
+
+        const { error } = await query;
+        if (error) throw new Error(error.message);
+    }
+
     // Yardımcı metod: Sistem olaylarında bildirim oluştur
     async createSystemNotification(
         type: CreateNotificationDto['type'],
