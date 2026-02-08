@@ -35,6 +35,7 @@ import {
     Clock
 } from 'lucide-react'
 import LocationRequestModal from '../components/proposals/LocationRequestModal'
+import ProposalContractModal from '../components/proposals/ProposalContractModal'
 import { useToast } from '../hooks/useToast'
 import { clientsService } from '../services/clientsService'
 import { proposalsService } from '../services/proposalsService'
@@ -168,6 +169,7 @@ export default function SalesPage() {
     const [showLocationListModal, setShowLocationListModal] = useState(false)
     const [showRequestModal, setShowRequestModal] = useState(false)
     const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
+    const [isContractModalOpen, setIsContractModalOpen] = useState(false)
     const { success, info } = useToast()
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
     const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null)
@@ -1527,6 +1529,15 @@ export default function SalesPage() {
                                                 <p className="text-[10px] text-gray-400">KDV Dahil</p>
                                             </div>
                                             <div className="flex gap-2">
+                                                {proposal.status === 'sent' && (
+                                                    <button
+                                                        onClick={() => handleApproveProposal(proposal.id)}
+                                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                                                    >
+                                                        <CheckCircle className="w-4 h-4" />
+                                                        Onayla
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={() => {
                                                         const customer = customers.find(c => c.id === proposal.customerId)
@@ -1537,11 +1548,9 @@ export default function SalesPage() {
                                                         setProposalItems([...proposal.items])
                                                         setIsBlockList(proposal.isBlockList)
 
-                                                        // Süreyi ayıkla (Örn: "2 Hafta" -> 2)
                                                         const duration = parseInt(proposal.usagePeriod || '1')
                                                         setDurationWeeks(isNaN(duration) ? 1 : duration)
 
-                                                        // Dönemi ayıkla
                                                         if (proposal.weekInfo) {
                                                             const parts = proposal.weekInfo.split(' ')
                                                             if (parts.length >= 2) {
@@ -1646,21 +1655,37 @@ export default function SalesPage() {
                                                     <p className="text-[10px] text-gray-400">KDV Dahil</p>
                                                 </div>
                                                 <div className="flex gap-2">
+                                                    {proposal.status === 'sent' && (
+                                                        <button
+                                                            onClick={() => handleApproveProposal(proposal.id)}
+                                                            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                                                        >
+                                                            <CheckCircle className="w-4 h-4" />
+                                                            Onayla
+                                                        </button>
+                                                    )}
                                                     <button
                                                         onClick={() => {
-                                                            setSelectedProposalForContract(proposal)
-                                                            setShowContractModal(true)
+                                                            setSelectedProposal(proposal)
+                                                            setIsContractModalOpen(true)
                                                         }}
                                                         className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors shadow-sm"
                                                     >
                                                         <FileText className="w-4 h-4" />
-                                                        Sözleşme
+                                                        Teklif
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleReviseFromSent(proposal)}
+                                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors shadow-sm"
+                                                    >
+                                                        <RefreshCw className="w-4 h-4" />
+                                                        Revize Et
                                                     </button>
                                                     {proposal.status === 'sent' && (
                                                         <button
                                                             onClick={() => {
-                                                                setSelectedProposalForLocationRequest(proposal)
-                                                                setShowLocationRequestModal(true)
+                                                                setSelectedProposal(proposal)
+                                                                setIsLocationModalOpen(true)
                                                             }}
                                                             className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors"
                                                         >
@@ -2842,6 +2867,39 @@ export default function SalesPage() {
                         ))
                     }
                 }}
+            />
+
+            {/* Modal for Proposal Contract/View */}
+            <ProposalContractModal
+                isOpen={isContractModalOpen}
+                onClose={() => setIsContractModalOpen(false)}
+                proposal={selectedProposal ? {
+                    id: selectedProposal.id,
+                    proposal_number: selectedProposal.proposalNumber || selectedProposal.id,
+                    title: `Teklif - ${selectedProposal.customerName}`,
+                    client_id: selectedProposal.customerId,
+                    created_by_id: 'admin',
+                    client: { name: selectedProposal.customerName } as any,
+                    items: selectedProposal.items.map((item, i) => ({
+                        id: String(i),
+                        proposal_id: selectedProposal.id,
+                        description: item.code,
+                        quantity: item.quantity,
+                        unit_price: item.unitPrice,
+                        discounted_price: item.discountedPrice || item.unitPrice,
+                        printing_cost: item.printingCost,
+                        operation_cost: item.operationCost,
+                        total: item.quantity * item.unitPrice,
+                        order: i
+                    })),
+                    status: selectedProposal.status.toUpperCase(),
+                    subtotal: selectedProposal.totalAmount,
+                    tax_rate: 20,
+                    tax_amount: selectedProposal.kdvAmount,
+                    total: selectedProposal.grandTotal,
+                    created_at: selectedProposal.createdAt,
+                    updated_at: selectedProposal.createdAt
+                } as any : null}
             />
 
             {/* Email Modal */}
