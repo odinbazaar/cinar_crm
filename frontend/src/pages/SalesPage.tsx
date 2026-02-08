@@ -98,8 +98,11 @@ interface ProposalItem {
     description?: string
     quantity: number
     unitPrice: number
+    discountedPrice?: number
+    printingCost: number
     operationCost: number
     network?: string
+    weekLayout?: string
 }
 
 // Teklif tipi
@@ -136,20 +139,22 @@ interface CustomerRequest {
     createdAt: string
 }
 
+const STORAGE_KEY = 'productPrices_2026_v2'
+
 // Örnek ürün tipleri - Maliyet Ayarlarından alınır
 const getProductTypes = () => {
-    const saved = localStorage.getItem('productPrices')
+    const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
         return JSON.parse(saved)
     }
     return [
-        { code: 'BB', name: 'Billboard', duration: '1 Hafta', unitPrice: 3500, operationCost: 400 },
-        { code: 'CLP', name: 'CLP Raket', duration: '1 Hafta', unitPrice: 1200, operationCost: 150 },
-        { code: 'MGL', name: 'Megalight', duration: '1 Hafta', unitPrice: 5000, operationCost: 500 },
-        { code: 'LB', name: 'LED', duration: '1 Hafta', unitPrice: 8000, operationCost: 0 },
-        { code: 'GB', name: 'Giantboard', duration: '10 Gün', unitPrice: 7500, operationCost: 600 },
-        { code: 'MB', name: 'Megaboard', duration: '1 Ay', unitPrice: 15000, operationCost: 1000 },
-        { code: 'KB', name: 'Kuleboard', duration: '1 Ay', unitPrice: 12000, operationCost: 800 },
+        { code: 'BB', name: 'BILLBOARD', duration: '1 HAFTALIK', period: 'HAFTALIK', unitPrice: 6500, discountedPrice: 4250, printingCost: 400, operationCost: 500 },
+        { code: 'CLP', name: 'CLP RAKET', duration: '1 HAFTALIK', period: 'HAFTALIK', unitPrice: 3000, discountedPrice: 2000, printingCost: 300, operationCost: 250 },
+        { code: 'MGL', name: 'MEGALIGHT', duration: '1 HAFTALIK', period: 'HAFTALIK', unitPrice: 12000, discountedPrice: 7500, printingCost: 1750, operationCost: 1200 },
+        { code: 'LB', name: 'LED EKRAN', duration: '1 HAFTALIK', period: 'HAFTALIK', unitPrice: 15000, discountedPrice: 9000, printingCost: 0, operationCost: 0 },
+        { code: 'GB', name: 'GIANTBOARD', duration: '10 GÜN', period: '10 GÜNLÜK', unitPrice: 85000, discountedPrice: 55000, printingCost: 4500, operationCost: 2500 },
+        { code: 'KB', name: 'KULEBOARD', duration: '1 AY', period: 'AYLIK', unitPrice: 250000, discountedPrice: 180000, printingCost: 9600, operationCost: 15000 },
+        { code: 'MB', name: 'MEGABOARD', duration: '1 AY', period: 'AYLIK', unitPrice: 175000, discountedPrice: 100000, printingCost: 3500, operationCost: 1500 },
     ]
 }
 
@@ -417,7 +422,7 @@ export default function SalesPage() {
     const [noteFilterDate, setNoteFilterDate] = useState('')
 
     const [proposalItems, setProposalItems] = useState<ProposalItem[]>([
-        { type: 'BB', code: 'Billboard', quantity: 0, unitPrice: 3500, operationCost: 400, network: '' }
+        { type: 'BB', code: 'Billboard', quantity: 0, unitPrice: 6500, printingCost: 400, operationCost: 500, network: '' }
     ])
     const [isBlockList, setIsBlockList] = useState(false)
     const [kdvRate, setKdvRate] = useState<20 | 14>(20)
@@ -473,8 +478,8 @@ export default function SalesPage() {
             customerId: '1',
             customerName: 'ABC Reklam Ltd.',
             items: [
-                { type: 'BB', code: 'Billboard', quantity: 20, unitPrice: 3500, operationCost: 400 },
-                { type: 'GB', code: 'Giantboard', quantity: 4, unitPrice: 7500, operationCost: 600 },
+                { type: 'BB', code: 'Billboard', quantity: 20, unitPrice: 3500, operationCost: 400, printingCost: 400, weekLayout: '' },
+                { type: 'GB', code: 'Giantboard', quantity: 4, unitPrice: 7500, operationCost: 600, printingCost: 4500, weekLayout: '' },
             ],
             totalAmount: 100000,
             operationTotal: 10400,
@@ -490,8 +495,8 @@ export default function SalesPage() {
             customerId: '2',
             customerName: 'XYZ Medya A.Ş.',
             items: [
-                { type: 'CLP', code: 'CLP Raket', quantity: 15, unitPrice: 1200, operationCost: 150 },
-                { type: 'ML', code: 'Megalight', quantity: 3, unitPrice: 5000, operationCost: 500 }
+                { type: 'CLP', code: 'CLP Raket', quantity: 15, unitPrice: 1200, operationCost: 150, printingCost: 300, weekLayout: '' },
+                { type: 'ML', code: 'Megalight', quantity: 3, unitPrice: 5000, operationCost: 500, printingCost: 1750, weekLayout: '' }
             ],
             totalAmount: 33000,
             operationTotal: 3750,
@@ -523,8 +528,8 @@ export default function SalesPage() {
             proposalId: 'TKL-001',
             customerName: 'ABC Reklam Ltd.',
             items: [
-                { type: 'BB', code: 'Billboard', quantity: 20, unitPrice: 3500, operationCost: 400 },
-                { type: 'GB', code: 'Giantboard', quantity: 4, unitPrice: 7500, operationCost: 600 },
+                { type: 'BB', code: 'Billboard', quantity: 20, unitPrice: 3500, operationCost: 400, printingCost: 400, weekLayout: '' },
+                { type: 'GB', code: 'Giantboard', quantity: 4, unitPrice: 7500, operationCost: 600, printingCost: 4500, weekLayout: '' },
             ],
             usageWeekStart: { month: 1, week: 2 },
             usageWeekEnd: { month: 1, week: 4 },
@@ -538,7 +543,7 @@ export default function SalesPage() {
             proposalId: 'TKL-003',
             customerName: 'DEF Holding A.Ş.',
             items: [
-                { type: 'ML', code: 'Megalight', quantity: 10, unitPrice: 5000, operationCost: 500 },
+                { type: 'ML', code: 'Megalight', quantity: 10, unitPrice: 5000, operationCost: 500, printingCost: 1750, weekLayout: '' },
             ],
             usageWeekStart: { month: 2, week: 1 },
             usageWeekEnd: { month: 2, week: 3 },
@@ -559,7 +564,10 @@ export default function SalesPage() {
             code: defaultProduct.name,
             quantity: 0,
             unitPrice: defaultProduct.unitPrice,
-            operationCost: defaultProduct.operationCost
+            discountedPrice: defaultProduct.discountedPrice || 0,
+            printingCost: defaultProduct.printingCost,
+            operationCost: defaultProduct.operationCost,
+            weekLayout: ''
         }])
     }
 
@@ -578,17 +586,13 @@ export default function SalesPage() {
                     type: product.code,
                     code: product.name,
                     unitPrice: product.unitPrice,
+                    discountedPrice: product.discountedPrice || 0,
+                    printingCost: product.printingCost,
                     operationCost: product.operationCost,
+                    weekLayout: updated[index].weekLayout || '',
                     network: undefined,
                     quantity: (product.code === 'BB' || product.code === 'GB') ? 0 : updated[index].quantity
                 }
-            }
-        } else if (field === 'network') {
-            const count = (networkCounts[updated[index].type] || {})[value as string] || 0
-            updated[index] = {
-                ...updated[index],
-                network: value as string,
-                quantity: count
             }
         } else {
             updated[index] = { ...updated[index], [field]: value }
@@ -716,7 +720,10 @@ export default function SalesPage() {
 
     // Hesaplama fonksiyonları
     const calculateProductTotal = () => {
-        return proposalItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice * durationWeeks), 0)
+        return proposalItems.reduce((sum, item) => {
+            const price = (item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice
+            return sum + (item.quantity * price)
+        }, 0)
     }
 
     const calculateOperationTotal = () => {
@@ -728,8 +735,12 @@ export default function SalesPage() {
         return proposalItems.reduce((sum, item) => sum + (item.quantity * item.operationCost), 0)
     }
 
+    const calculatePrintingTotal = () => {
+        return proposalItems.reduce((sum, item) => sum + (item.quantity * item.printingCost), 0)
+    }
+
     const calculateSubtotal = () => {
-        return calculateProductTotal() + calculateOperationTotal()
+        return calculateProductTotal() + calculateOperationTotal() + calculatePrintingTotal()
     }
 
     const calculateKDV = () => {
@@ -1257,7 +1268,17 @@ export default function SalesPage() {
                                             onClick={() => {
                                                 setSelectedCustomer(customer)
                                                 setSelectedProposal(null)
-                                                setProposalItems([{ type: 'BB', code: 'Billboard', quantity: 0, unitPrice: 3500, operationCost: 400, network: '' }])
+                                                const defaultProduct = getProductTypes()[0]
+                                                setProposalItems([{ 
+                                                    type: defaultProduct.code, 
+                                                    code: defaultProduct.name, 
+                                                    quantity: 0, 
+                                                    unitPrice: defaultProduct.unitPrice, 
+                                                    discountedPrice: defaultProduct.discountedPrice || 0,
+                                                    printingCost: defaultProduct.printingCost,
+                                                    operationCost: defaultProduct.operationCost,
+                                                    weekLayout: '' 
+                                                }])
                                                 setShowProposalModal(true)
                                             }}
                                             className="flex-1 px-3 py-2 text-sm font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
@@ -1353,7 +1374,17 @@ export default function SalesPage() {
                                                         onClick={() => {
                                                             setSelectedCustomer(customer)
                                                             setSelectedProposal(null)
-                                                            setProposalItems([{ type: 'BB', code: 'Billboard', quantity: 0, unitPrice: 3500, operationCost: 400, network: '' }])
+                                                            const defaultProduct = getProductTypes()[0]
+                                                            setProposalItems([{ 
+                                                                type: defaultProduct.code, 
+                                                                code: defaultProduct.name, 
+                                                                quantity: 0, 
+                                                                unitPrice: defaultProduct.unitPrice, 
+                                                                discountedPrice: defaultProduct.discountedPrice || 0,
+                                                                printingCost: defaultProduct.printingCost,
+                                                                operationCost: defaultProduct.operationCost,
+                                                                weekLayout: '' 
+                                                            }])
                                                             setShowProposalModal(true)
                                                         }}
                                                         className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
@@ -2171,8 +2202,8 @@ export default function SalesPage() {
             {
                 showProposalModal && selectedCustomer && (
                     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                            <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+                            <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
                                 <div>
                                     <h2 className="text-xl font-semibold text-gray-900">Bütçe Teklifi Hazırla</h2>
                                     <p className="text-sm text-gray-500">{selectedCustomer.companyName}</p>
@@ -2200,44 +2231,44 @@ export default function SalesPage() {
                                         </button>
                                     </div>
 
+                                    {/* Column Headers */}
+                                    <div className="flex gap-3 px-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                        <div className="flex-1 min-w-[150px]">Ürün Tipi</div>
+                                        <div className="w-20">Dönem</div>
+                                        <div className="w-14">Adet</div>
+                                        <div className="w-20">Birim Fiyat</div>
+                                        <div className="w-20">İndirimli</div>
+                                        <div className="w-20">Baskı</div>
+                                        <div className="w-20">Op. Bedeli</div>
+                                        <div className="w-28 text-right">Toplam</div>
+                                        {proposalItems.length > 1 && <div className="w-8"></div>}
+                                    </div>
+
                                     {proposalItems.map((item, index) => (
                                         <div key={index} className="flex gap-3 items-center">
-                                            <div className="flex-1 flex gap-2">
+                                            <div className="flex-1 min-w-[150px]">
                                                 <select
                                                     value={item.type}
                                                     onChange={(e) => updateProposalItem(index, 'type', e.target.value)}
-                                                    className={`${(item.type === 'BB' || item.type === 'GB') ? 'w-1/2' : 'w-full'} px - 3 py - 2 border border - gray - 200 rounded - lg focus: ring - 2 focus: ring - primary - 500`}
+                                                    className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs"
                                                 >
                                                     {getProductTypes().map((pt: any) => (
                                                         <option key={pt.code} value={pt.code}>{pt.code} - {pt.name}</option>
                                                     ))}
                                                 </select>
-
-                                                {(item.type === 'BB' || item.type === 'GB') && (
-                                                    <div className="w-1/2">
-                                                        <select
-                                                            value={item.network || ''}
-                                                            onChange={(e) => updateProposalItem(index, 'network', e.target.value)}
-                                                            className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-blue-50 font-medium text-blue-700"
-                                                        >
-                                                            <option value="">-- Network Seçin --</option>
-                                                            {Object.keys(networkCounts[item.type] || {}).sort().map(net => (
-                                                                <option key={net} value={net}>
-                                                                    Network {net} ({networkCounts[item.type][net]} adet)
-                                                                </option>
-                                                            ))}
-                                                            {(!networkCounts[item.type] || Object.keys(networkCounts[item.type]).length === 0) && (
-                                                                <option disabled>Network Bulunamadı</option>
-                                                            )}
-                                                        </select>
-                                                    </div>
-                                                )}
                                             </div>
+                                            <input
+                                                type="text"
+                                                value={item.weekLayout || ''}
+                                                onChange={(e) => updateProposalItem(index, 'weekLayout', e.target.value)}
+                                                className="w-20 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs"
+                                                placeholder="Dönem"
+                                            />
                                             <input
                                                 type="number"
                                                 value={item.quantity}
                                                 onChange={(e) => updateProposalItem(index, 'quantity', parseInt(e.target.value) || 0)}
-                                                className="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                                className="w-14 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs"
                                                 placeholder="Adet"
                                                 readOnly={(item.type === 'BB' || item.type === 'GB') && !!item.network}
                                                 min="0"
@@ -2246,16 +2277,37 @@ export default function SalesPage() {
                                                 type="number"
                                                 value={item.unitPrice}
                                                 onChange={(e) => updateProposalItem(index, 'unitPrice', parseInt(e.target.value) || 0)}
-                                                className="w-32 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                placeholder="Birim Fiyat"
+                                                className="w-20 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs"
+                                                placeholder="Birim"
                                             />
-                                            <span className="w-32 text-right font-medium">
-                                                ₺{(item.quantity * item.unitPrice).toLocaleString()}
+                                            <input
+                                                type="number"
+                                                value={item.discountedPrice || 0}
+                                                onChange={(e) => updateProposalItem(index, 'discountedPrice', parseInt(e.target.value) || 0)}
+                                                className="w-20 px-2 py-2 border border-blue-200 bg-blue-50/30 rounded-lg focus:ring-2 focus:ring-blue-500 text-xs font-medium text-blue-700"
+                                                placeholder="İndirim"
+                                            />
+                                            <input
+                                                type="number"
+                                                value={item.printingCost}
+                                                onChange={(e) => updateProposalItem(index, 'printingCost', parseInt(e.target.value) || 0)}
+                                                className="w-20 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs"
+                                                placeholder="Baskı"
+                                            />
+                                            <input
+                                                type="number"
+                                                value={item.operationCost}
+                                                onChange={(e) => updateProposalItem(index, 'operationCost', parseInt(e.target.value) || 0)}
+                                                className="w-20 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs"
+                                                placeholder="Op."
+                                            />
+                                            <span className="w-28 text-right font-bold text-gray-900 text-xs">
+                                                ₺{((item.quantity * ((item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice)) + (item.quantity * item.printingCost) + (item.quantity * item.operationCost)).toLocaleString()}
                                             </span>
                                             {proposalItems.length > 1 && (
                                                 <button
                                                     onClick={() => removeProposalItem(index)}
-                                                    className="text-red-500 hover:text-red-700"
+                                                    className="w-8 flex items-center justify-center text-red-500 hover:text-red-700"
                                                 >
                                                     <X className="w-5 h-5" />
                                                 </button>
@@ -2299,65 +2351,6 @@ export default function SalesPage() {
                                     )}
                                 </div>
 
-                                {/* Hafta Bazlı Tarih Seçimi */}
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
-                                    <h4 className="text-sm font-semibold text-blue-800">Süre Bilgisi (Hafta Bazlı)</h4>
-
-                                    {/* Başlangıç */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Başlangıç Ayı</label>
-                                            <select
-                                                value={startMonth}
-                                                onChange={(e) => setStartMonth(parseInt(e.target.value))}
-                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                            >
-                                                {monthNames.map((month, idx) => (
-                                                    <option key={idx} value={idx + 1}>{month}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Başlangıç Haftası</label>
-                                            <select
-                                                value={startWeek}
-                                                onChange={(e) => setStartWeek(parseInt(e.target.value))}
-                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                            >
-                                                {[1, 2, 3, 4, 5].map(week => (
-                                                    <option key={week} value={week}>{week}. Hafta</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    {/* Süre (Hafta) */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Süre (Hafta)</label>
-                                        <div className="flex items-center gap-3">
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                max="52"
-                                                value={durationWeeks}
-                                                onChange={(e) => setDurationWeeks(Math.max(1, parseInt(e.target.value) || 1))}
-                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                            />
-                                            <span className="text-sm text-gray-500 whitespace-nowrap">Hafta</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Özet */}
-                                    <div className="bg-white rounded-lg p-3 border border-blue-200">
-                                        <p className="text-sm text-blue-800">
-                                            📅 <strong>{getWeekRangeText()}</strong>
-                                        </p>
-                                        <p className="text-xs text-blue-600 mt-1">
-                                            Toplam: {durationWeeks} Hafta |
-                                            Başlangıç: {formatWeekDate(startMonth, startWeek)}
-                                        </p>
-                                    </div>
-                                </div>
 
                                 {/* KDV Seçimi */}
                                 <div className="flex items-center gap-4">
@@ -2391,8 +2384,12 @@ export default function SalesPage() {
                                 {/* Detaylı Hesaplama */}
                                 <div className="border-t border-gray-200 pt-4 space-y-3">
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-gray-600">Ürün Bedeli ({durationWeeks} Hafta):</span>
+                                        <span className="text-gray-600">Ürün Bedeli:</span>
                                         <span className="font-medium">₺{calculateProductTotal().toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">Baskı Bedeli:</span>
+                                        <span className="font-medium text-blue-600">₺{calculatePrintingTotal().toLocaleString()}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-gray-600">

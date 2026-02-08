@@ -843,7 +843,7 @@ export default function ReservationsPage() {
 
         let message = `Sayın Yetkili, \n\n`
         if (isSelected) {
-            message += `Seçilen ${selectedCount} adet lokasyon (Kodlar: ${codes}) için revizyon listesini aşağıda bulabilirsiniz.\n\n`
+            message += `Seçilen ${selectedCount} adet lokasyon (Kodlar: ${codes}) için rezervasyon listesini aşağıda bulabilirsiniz.\n\n`
         } else {
             message += `Filtrelenen ${selectedCount} adet lokasyon bilgisini içeren yer listesini aşağıda bulabilirsiniz.\n\n`
         }
@@ -1033,7 +1033,7 @@ export default function ReservationsPage() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Revizyon & Rezervasyon Yönetimi</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Rezervasyon Yönetimi</h1>
                     <p className="text-gray-500">Hafta ve network bazlı lokasyon ataması ve liste yönetimi</p>
                 </div>
             </div>
@@ -1269,7 +1269,7 @@ export default function ReservationsPage() {
                             className="inline-flex items-center gap-2 px-4 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <RefreshCw className="w-5 h-5" />
-                            Revize Et (Kaydır)
+                            Rezervasyon Kaydır
                         </button>
                         <button
                             onClick={handleConfirmSelected}
@@ -1537,7 +1537,7 @@ export default function ReservationsPage() {
                         </div>
                     )}
 
-                    {/* Revize Et (Aktar/Kaydır) Modal */}
+                    {/* Rezervasyon Revize Et (Aktar/Kaydır) Modal */}
                     {showReviseModal && (
                         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
@@ -1714,7 +1714,7 @@ export default function ReservationsPage() {
                                                     onClick={() => {
                                                         const customer = customers.find(c => c.id === proposal.client_id)
                                                         setSelectedEmails(customer?.email ? [customer.email] : [])
-                                                        setEmailMessage(`Sayın ${proposal.client?.company_name || 'Yetkili'}, \n\n${proposal.proposal_number || 'Teklifler'} hakkında hazırladığımız revizyon listesini bulabilirsiniz.\n\nSaygılarımızla, \nİzmir Açıkhava Reklam Ajansı`)
+                                                        setEmailMessage(`Sayın ${proposal.client?.company_name || 'Yetkili'}, \n\n${proposal.proposal_number || 'Teklifler'} hakkında hazırladığımız rezervasyon listesini bulabilirsiniz.\n\nSaygılarımızla, \nİzmir Açıkhava Reklam Ajansı`)
                                                         setShowEmailModal(true)
                                                     }}
                                                     className="p-3 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all shadow-sm"

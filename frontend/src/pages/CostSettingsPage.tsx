@@ -5,7 +5,8 @@ import {
     Settings2,
     AlertCircle,
     Check,
-    Info
+    Info,
+    RefreshCw
 } from 'lucide-react'
 
 // Ürün tipi
@@ -13,20 +14,24 @@ interface ProductPrice {
     code: string
     name: string
     duration: string
+    period: string
     unitPrice: number
+    discountedPrice: number
+    printingCost: number
     operationCost: number
     isOperationPerUnit: boolean // true = adet başına, false = tek sefer (blok liste)
 }
 
-// Varsayılan fiyatlar
+const STORAGE_KEY = 'productPrices_2026_v2'
+
 const defaultProducts: ProductPrice[] = [
-    { code: 'BB', name: 'Billboard', duration: '1 Hafta', unitPrice: 3500, operationCost: 400, isOperationPerUnit: true },
-    { code: 'CLP', name: 'CLP Raket', duration: '1 Hafta', unitPrice: 1200, operationCost: 150, isOperationPerUnit: true },
-    { code: 'ML', name: 'Megalight', duration: '1 Hafta', unitPrice: 5000, operationCost: 500, isOperationPerUnit: true },
-    { code: 'LED', name: 'LED Ekran', duration: '1 Hafta', unitPrice: 8000, operationCost: 0, isOperationPerUnit: false }, // LED dijital hariç
-    { code: 'GB', name: 'Giantboard', duration: '10 Gün', unitPrice: 7500, operationCost: 600, isOperationPerUnit: true },
-    { code: 'MB', name: 'Megaboard', duration: '1 Ay', unitPrice: 15000, operationCost: 1000, isOperationPerUnit: true },
-    { code: 'KB', name: 'Kuleboard', duration: '1 Ay', unitPrice: 12000, operationCost: 800, isOperationPerUnit: true },
+    { code: 'BB', name: 'BILLBOARD', duration: '1 HAFTALIK', period: 'HAFTALIK', unitPrice: 6500, discountedPrice: 4250, printingCost: 400, operationCost: 500, isOperationPerUnit: true },
+    { code: 'CLP', name: 'CLP RAKET', duration: '1 HAFTALIK', period: 'HAFTALIK', unitPrice: 3000, discountedPrice: 2000, printingCost: 300, operationCost: 250, isOperationPerUnit: true },
+    { code: 'MGL', name: 'MEGALIGHT', duration: '1 HAFTALIK', period: 'HAFTALIK', unitPrice: 12000, discountedPrice: 7500, printingCost: 1750, operationCost: 1200, isOperationPerUnit: true },
+    { code: 'LB', name: 'LED EKRAN', duration: '1 HAFTALIK', period: 'HAFTALIK', unitPrice: 15000, discountedPrice: 9000, printingCost: 0, operationCost: 0, isOperationPerUnit: false },
+    { code: 'GB', name: 'GIANTBOARD', duration: '10 GÜN', period: '10 GÜNLÜK', unitPrice: 85000, discountedPrice: 55000, printingCost: 4500, operationCost: 2500, isOperationPerUnit: true },
+    { code: 'KB', name: 'KULEBOARD', duration: '1 AY', period: 'AYLIK', unitPrice: 250000, discountedPrice: 180000, printingCost: 9600, operationCost: 15000, isOperationPerUnit: true },
+    { code: 'MB', name: 'MEGABOARD', duration: '1 AY', period: 'AYLIK', unitPrice: 175000, discountedPrice: 100000, printingCost: 3500, operationCost: 1500, isOperationPerUnit: true },
 ]
 
 // KDV oranı seçenekleri
@@ -34,7 +39,7 @@ const KDV_RATES = [20, 14] as const
 
 export default function CostSettingsPage() {
     const [products, setProducts] = useState<ProductPrice[]>(() => {
-        const saved = localStorage.getItem('productPrices')
+        const saved = localStorage.getItem(STORAGE_KEY)
         return saved ? JSON.parse(saved) : defaultProducts
     })
 
@@ -50,7 +55,7 @@ export default function CostSettingsPage() {
 
     const [saved, setSaved] = useState(false)
 
-    const updateProduct = (index: number, field: keyof ProductPrice, value: number | boolean) => {
+    const updateProduct = (index: number, field: keyof ProductPrice, value: number | boolean | string) => {
         const updated = [...products]
         updated[index] = { ...updated[index], [field]: value }
         setProducts(updated)
@@ -58,7 +63,7 @@ export default function CostSettingsPage() {
     }
 
     const handleSave = () => {
-        localStorage.setItem('productPrices', JSON.stringify(products))
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(products))
         localStorage.setItem('addressDifferenceFee', addressDifferenceFee.toString())
         localStorage.setItem('kdvRate', kdvRate.toString())
         setSaved(true)
@@ -88,16 +93,32 @@ export default function CostSettingsPage() {
                     <h1 className="text-2xl font-bold text-gray-900">Maliyet Ayarları</h1>
                     <p className="text-gray-500">Ürün birim fiyatları ve operasyon maliyetlerini yönetin</p>
                 </div>
-                <button
-                    onClick={handleSave}
-                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all shadow-lg ${saved
-                        ? 'bg-green-600 text-white'
-                        : 'bg-gradient-to-r from-primary-600 to-secondary-600 text-white hover:from-primary-700 hover:to-secondary-700'
-                        }`}
-                >
-                    {saved ? <Check className="w-5 h-5" /> : <Save className="w-5 h-5" />}
-                    {saved ? 'Kaydedildi!' : 'Kaydet'}
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => {
+                            if (confirm('Tüm fiyatları yeni 2026 tarifesine sıfırlamak istediğinize emin misiniz?')) {
+                                setProducts(defaultProducts)
+                                localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultProducts))
+                                setSaved(true)
+                                setTimeout(() => setSaved(false), 3000)
+                            }
+                        }}
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all border border-red-200 text-red-600 hover:bg-red-50"
+                    >
+                        <RefreshCw className="w-5 h-5" />
+                        Fabrika Ayarlarına Dön
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all shadow-lg ${saved
+                            ? 'bg-green-600 text-white'
+                            : 'bg-gradient-to-r from-primary-600 to-secondary-600 text-white hover:from-primary-700 hover:to-secondary-700'
+                            }`}
+                    >
+                        {saved ? <Check className="w-5 h-5" /> : <Save className="w-5 h-5" />}
+                        {saved ? 'Kaydedildi!' : 'Kaydet'}
+                    </button>
+                </div>
             </div>
 
             {/* Info Box */}
@@ -128,10 +149,11 @@ export default function CostSettingsPage() {
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Kod</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Ürün Adı</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Süre</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Birim Fiyat (₺)</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Operasyon Bedeli (₺)</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Operasyon Tipi</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Süre / Dönem</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Liste Fiyatı (₺)</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase text-green-700">İndirimli Fiyat (₺)</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase text-orange-600">Baskı Fiyatı (₺)</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Op. Bedeli (₺)</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -143,7 +165,17 @@ export default function CostSettingsPage() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{product.name}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-600">{product.duration}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-600">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-xs font-bold text-gray-400">Süre: {product.duration}</span>
+                                            <input
+                                                type="text"
+                                                value={product.period}
+                                                onChange={(e) => updateProduct(index, 'period', e.target.value)}
+                                                className="w-24 px-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-primary-500"
+                                            />
+                                        </div>
+                                    </td>
                                     <td className="px-6 py-4">
                                         <div className="relative">
                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₺</span>
@@ -151,7 +183,30 @@ export default function CostSettingsPage() {
                                                 type="number"
                                                 value={product.unitPrice}
                                                 onChange={(e) => updateProduct(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                                                className="w-32 pl-8 pr-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                                className="w-28 pl-8 pr-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                                            />
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green-600 font-bold">₺</span>
+                                            <input
+                                                type="number"
+                                                value={product.discountedPrice}
+                                                onChange={(e) => updateProduct(index, 'discountedPrice', parseFloat(e.target.value) || 0)}
+                                                className="w-28 pl-8 pr-3 py-2 border border-green-200 bg-green-50 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm font-bold text-green-700"
+                                            />
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-600 font-bold">₺</span>
+                                            <input
+                                                type="number"
+                                                value={product.printingCost}
+                                                onChange={(e) => updateProduct(index, 'printingCost', parseFloat(e.target.value) || 0)}
+                                                className="w-24 pl-8 pr-2 py-2 border border-orange-200 bg-orange-50 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-xs font-bold text-orange-700"
+                                                disabled={product.code === 'LB'}
                                             />
                                         </div>
                                     </td>
@@ -162,24 +217,13 @@ export default function CostSettingsPage() {
                                                 type="number"
                                                 value={product.operationCost}
                                                 onChange={(e) => updateProduct(index, 'operationCost', parseFloat(e.target.value) || 0)}
-                                                className="w-32 pl-8 pr-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                                                disabled={product.code === 'LED'}
+                                                className="w-24 pl-8 pr-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-xs"
+                                                disabled={product.code === 'LB'}
                                             />
                                         </div>
-                                        {product.code === 'LED' && (
-                                            <p className="text-xs text-gray-500 mt-1">LED dijital hariç</p>
+                                        {product.code === 'LB' && (
+                                            <p className="text-[10px] text-gray-500 mt-1">LED dijital hariç</p>
                                         )}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <select
-                                            value={product.isOperationPerUnit ? 'per-unit' : 'once'}
-                                            onChange={(e) => updateProduct(index, 'isOperationPerUnit', e.target.value === 'per-unit')}
-                                            className="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
-                                            disabled={product.code === 'LED'}
-                                        >
-                                            <option value="per-unit">Adet Başına</option>
-                                            <option value="once">Tek Sefer (Blok)</option>
-                                        </select>
                                     </td>
                                 </tr>
                             ))}

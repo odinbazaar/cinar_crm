@@ -145,7 +145,7 @@ export default function DashboardPage() {
                 <div className="lg:col-span-2 card">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-lg font-bold text-gray-900">Son Rezervasyonlar</h2>
-                        <a href="/reservations" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+                        <a href="/bookings" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
                             Tümünü Gör →
                         </a>
                     </div>
