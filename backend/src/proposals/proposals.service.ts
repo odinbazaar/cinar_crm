@@ -335,9 +335,8 @@ export class ProposalsService {
             doc.rect(40, 35, 50, 50).fill(primaryColor);
             doc.fillColor('white').fontSize(20).font(safeFontBold).text('İAR', 40, 50, { width: 50, align: 'center' });
 
-            // Brand
-            doc.fillColor(primaryColor).fontSize(16).font(safeFontBold).text('İZMİR AÇIK HAVA', 100, 40);
-            doc.fillColor('#6b7280').fontSize(9).font(safeFontRegular).text('REKLAM AJANSI', 100, 58, { characterSpacing: 1.5 });
+            // Brand - Tek satırda
+            doc.fillColor(primaryColor).fontSize(14).font(safeFontBold).text('İZMİR AÇIK HAVA REKLAM', 100, 48);
 
             // Company Info (sağ taraf)
             const companyName = this.configService.get<string>('COMPANY_NAME') || 'İzmir Açıkhava Reklam Ajansı';
@@ -367,26 +366,28 @@ export class ProposalsService {
             doc.font(safeFontBold).text('GEÇERLİLİK:', 350, infoY + 15);
             doc.font(safeFontRegular).text(proposal.valid_until ? new Date(proposal.valid_until).toLocaleDateString('tr-TR') : '30 Gün', 420, infoY + 15);
 
-            // Table Header - Genişletilmiş kolonlar
+            // Table Header - Genişletilmiş kolonlar (DÖNEM dahil)
             const tableTop = 175;
-            const colWidths = { product: 130, qty: 35, unitPrice: 60, discPrice: 60, opCost: 55, printCost: 55, total: 65 };
+            const colWidths = { product: 110, qty: 30, period: 45, unitPrice: 55, discPrice: 55, opCost: 50, printCost: 50, total: 60 };
             const colX = {
                 product: 40,
-                qty: 170,
-                unitPrice: 205,
-                discPrice: 265,
-                opCost: 325,
-                printCost: 380,
+                qty: 150,
+                period: 180,
+                unitPrice: 225,
+                discPrice: 280,
+                opCost: 335,
+                printCost: 385,
                 total: 435
             };
 
             doc.rect(40, tableTop, 515, 22).fill(primaryColor);
-            doc.fillColor('white').fontSize(7).font(safeFontBold);
-            doc.text('ÜRÜN / LOKASYON', colX.product + 5, tableTop + 7, { width: colWidths.product });
+            doc.fillColor('white').fontSize(6.5).font(safeFontBold);
+            doc.text('ÜRÜN / LOKASYON', colX.product + 3, tableTop + 7, { width: colWidths.product });
             doc.text('ADET', colX.qty, tableTop + 7, { width: colWidths.qty, align: 'center' });
+            doc.text('DÖNEM', colX.period, tableTop + 7, { width: colWidths.period, align: 'center' });
             doc.text('BİRİM FİYAT', colX.unitPrice, tableTop + 7, { width: colWidths.unitPrice, align: 'center' });
             doc.text('İND. FİYAT', colX.discPrice, tableTop + 7, { width: colWidths.discPrice, align: 'center' });
-            doc.text('OP. BEDELİ', colX.opCost, tableTop + 7, { width: colWidths.opCost, align: 'center' });
+            doc.text('OP.', colX.opCost, tableTop + 7, { width: colWidths.opCost, align: 'center' });
             doc.text('BASKI', colX.printCost, tableTop + 7, { width: colWidths.printCost, align: 'center' });
             doc.text('TOPLAM', colX.total + 5, tableTop + 7, { width: colWidths.total - 5, align: 'right' });
 
@@ -426,14 +427,22 @@ export class ProposalsService {
                 // Fazla boşlukları temizle
                 cleanDescription = cleanDescription.replace(/\s+/g, ' ').trim();
 
+                // Dönem bilgisini çıkar
+                const metadata = item.metadata || {};
+                let period = metadata.period || metadata.duration || '1';
+                // [DÖNEM: ...] varsa al
+                const periodMatch = (item.description || '').match(/\[DÖNEM:\s*(.*?)\]/);
+                if (periodMatch) period = periodMatch[1];
+
                 const unitPrice = Number(item.unit_price) || 0;
-                const discountedPrice = unitPrice; // Şimdilik aynı, ileride indirimli fiyat eklenebilir
+                const discountedPrice = unitPrice;
                 const itemOpCost = Math.round(opPerItem);
                 const itemBaskiCost = Math.round(baskiPerItem);
                 const itemTotal = Number(item.total) || 0;
 
-                doc.text(cleanDescription, colX.product + 5, rowY + 8, { width: colWidths.product - 5 });
+                doc.text(cleanDescription, colX.product + 3, rowY + 8, { width: colWidths.product - 3 });
                 doc.text(item.quantity.toString(), colX.qty, rowY + 8, { width: colWidths.qty, align: 'center' });
+                doc.text(period, colX.period, rowY + 8, { width: colWidths.period, align: 'center' });
                 doc.text(`₺${unitPrice.toLocaleString('tr-TR')}`, colX.unitPrice, rowY + 8, { width: colWidths.unitPrice, align: 'center' });
                 doc.text(`₺${discountedPrice.toLocaleString('tr-TR')}`, colX.discPrice, rowY + 8, { width: colWidths.discPrice, align: 'center' });
                 doc.text(`₺${itemOpCost.toLocaleString('tr-TR')}`, colX.opCost, rowY + 8, { width: colWidths.opCost, align: 'center' });
@@ -528,19 +537,26 @@ export class ProposalsService {
             cleanDescription = cleanDescription.replace(/\(\d+\s*(Hafta|hafta|GÜN|gün|Gün)\)/g, '').trim();
             cleanDescription = cleanDescription.replace(/\s+/g, ' ').trim();
 
+            // Dönem bilgisini çıkar
+            const metadata = (item as any).metadata || {};
+            let period = metadata.period || metadata.duration || '1';
+            const periodMatch = (item.description || '').match(/\[DÖNEM:\s*(.*?)\]/);
+            if (periodMatch) period = periodMatch[1];
+
             const unitPrice = Number(item.unit_price) || 0;
             const discountedPrice = unitPrice;
             const itemTotal = Number(item.total) || 0;
 
             return `
                 <tr>
-                    <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; color: #1f2937;">${cleanDescription || '-'}</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity || 0}</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">₺${unitPrice.toLocaleString('tr-TR')}</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">₺${discountedPrice.toLocaleString('tr-TR')}</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">₺${opPerItem.toLocaleString('tr-TR')}</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">₺${baskiPerItem.toLocaleString('tr-TR')}</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">₺${itemTotal.toLocaleString('tr-TR')}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; color: #1f2937;">${cleanDescription || '-'}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity || 0}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${period}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">₺${unitPrice.toLocaleString('tr-TR')}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">₺${discountedPrice.toLocaleString('tr-TR')}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">₺${opPerItem.toLocaleString('tr-TR')}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">₺${baskiPerItem.toLocaleString('tr-TR')}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">₺${itemTotal.toLocaleString('tr-TR')}</td>
                 </tr>
             `;
         }).join('');
@@ -559,8 +575,7 @@ export class ProposalsService {
                                 <div style="display: inline-block; background: white; padding: 8px 12px; border-radius: 6px; margin-right: 12px;">
                                     <span style="color: #dc2626; font-weight: 900; font-size: 20px;">İAR</span>
                                 </div>
-                                <span style="color: white; font-size: 18px; font-weight: bold;">İZMİR AÇIK HAVA</span>
-                                <br/><span style="color: rgba(255,255,255,0.8); font-size: 10px; letter-spacing: 2px;">REKLAM AJANSI</span>
+                                <span style="color: white; font-size: 16px; font-weight: bold;">İZMİR AÇIK HAVA REKLAM</span>
                             </td>
                             <td style="text-align: right; color: rgba(255,255,255,0.9); font-size: 11px;">
                                 Teklif Bilgilendirmesi
@@ -586,19 +601,21 @@ export class ProposalsService {
                         <p style="margin: 5px 0; color: #374151; font-size: 13px;"><strong>Geçerlilik:</strong> ${(proposal as any).valid_until ? new Date((proposal as any).valid_until).toLocaleDateString('tr-TR') : '30 gün'}</p>
                     </div>
 
-                    <!-- Items Table - Genişletilmiş kolonlar -->
-                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 12px;">
+                    <!-- Items Table - Genişletilmiş kolonlar (DÖNEM dahil) -->
+                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 11px;">
                         <thead>
                             <tr style="background: #dc2626; color: white;">
-                                <th style="padding: 10px; text-align: left;">Ürün</th>
-                                <th style="padding: 10px; text-align: center;">Adet</th>
-                                <th style="padding: 10px; text-align: center;">Birim Fiyat</th>
-                                <th style="padding: 10px; text-align: center;">İnd. Fiyat</th>
-                                <th style="padding: 10px; text-align: center;">Op. Bedeli</th>
-                                <th style="padding: 10px; text-align: center;">Baskı</th>
-                                <th style="padding: 10px; text-align: right;">Toplam</th>
+                                <th style="padding: 8px; text-align: left;">Ürün</th>
+                                <th style="padding: 8px; text-align: center;">Adet</th>
+                                <th style="padding: 8px; text-align: center;">Dönem</th>
+                                <th style="padding: 8px; text-align: center;">Birim</th>
+                                <th style="padding: 8px; text-align: center;">İnd.</th>
+                                <th style="padding: 8px; text-align: center;">Op.</th>
+                                <th style="padding: 8px; text-align: center;">Baskı</th>
+                                <th style="padding: 8px; text-align: right;">Toplam</th>
                             </tr>
                         </thead>
+
                         <tbody>
                             ${itemsHtml}
                         </tbody>
