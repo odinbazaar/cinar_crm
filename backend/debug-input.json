@@ -1,12 +1,12 @@
 {
-  "title": "KARŞIYAKA MURAT ÖZEL EĞİTİM HİZM.LTD.ŞTİ - Bütçe Teklifi",
+  "title": "Folkart Yapı Sanayi A.Ş. - Bütçe Teklifi",
   "description": "Ocak 1.Hafta - 1 Hafta",
-  "client_id": "79c137e5-e68a-4bb4-97ed-ae285c5c5377",
+  "client_id": "c3b9fc89-55cd-492f-b753-cff8a9b5d89b",
   "created_by_id": "052fb95b-9139-431b-8d41-78d975f49e5a",
-  "subtotal": 175500,
+  "subtotal": 392000,
   "tax_rate": 20,
-  "tax_amount": 35100,
-  "total": 210600,
+  "tax_amount": 78400,
+  "total": 470400,
   "items": [
     {
       "description": "BILLBOARD (1 Hafta)",
@@ -14,9 +14,14 @@
       "unit_price": 7000
     },
     {
-      "description": "GIANTBOARD (1 Hafta)",
-      "quantity": 2,
-      "unit_price": 87500
+      "description": "CLP RAKET (1 Hafta)",
+      "quantity": 10,
+      "unit_price": 3250
+    },
+    {
+      "description": "MEGABOARD (1 Hafta)",
+      "quantity": 3,
+      "unit_price": 176500
     }
   ]
 }

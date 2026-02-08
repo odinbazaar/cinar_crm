@@ -1593,7 +1593,107 @@ export default function SalesPage() {
                 </div>
             )}
 
+            {activeTab === 'sent' && (
+                <div className="space-y-4">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900">Gönderilen Teklifler</h3>
+                                <p className="text-sm text-gray-500">Müşteriye mail ile gönderilen tüm teklifler</p>
+                            </div>
+                            <button 
+                                onClick={fetchData} 
+                                disabled={isLoading}
+                                className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all shadow-sm"
+                            >
+                                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+                                Yenile
+                            </button>
+                        </div>
+                        <div className="divide-y divide-gray-100">
+                            {proposals.filter(p => p.status === 'sent' || p.status === 'approved').length > 0 ? (
+                                proposals
+                                    .filter(p => p.status === 'sent' || p.status === 'approved')
+                                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                                    .map((proposal) => (
+                                    <div key={proposal.id} className="p-6 hover:bg-gray-50 transition-colors">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-4">
+                                                <div className={`w-10 h-10 ${proposal.status === 'approved' ? 'bg-blue-100' : 'bg-green-100'} rounded-lg flex items-center justify-center`}>
+                                                    {proposal.status === 'approved' ? (
+                                                        <CheckCircle2 className="w-5 h-5 text-blue-600" />
+                                                    ) : (
+                                                        <Send className="w-5 h-5 text-green-600" />
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <h4 className="font-medium text-gray-900">{proposal.proposalNumber ? `${proposal.proposalNumber} - ` : ''}{proposal.customerName}</h4>
+                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                                                            proposal.status === 'approved' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                                                        }`}>
+                                                            {proposal.status === 'approved' ? 'ONAYLANDI' : 'GÖNDERİLDİ'}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-500">
+                                                        Gönderim: {proposal.sentAt || proposal.createdAt}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <div className="text-right">
+                                                    <p className="text-lg font-bold text-gray-900">₺{proposal.totalAmount.toLocaleString()}</p>
+                                                    <p className="text-[10px] text-gray-400">KDV Dahil</p>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedProposalForContract(proposal)
+                                                            setShowContractModal(true)
+                                                        }}
+                                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors shadow-sm"
+                                                    >
+                                                        <FileText className="w-4 h-4" />
+                                                        Sözleşme
+                                                    </button>
+                                                    {proposal.status === 'sent' && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedProposalForLocationRequest(proposal)
+                                                                setShowLocationRequestModal(true)
+                                                            }}
+                                                            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors"
+                                                        >
+                                                            <MapPin className="w-4 h-4" />
+                                                            Yer Talebi
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 ml-14">
+                                            {proposal.items.map((item, idx) => (
+                                                <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-primary-50 text-primary-700 border border-primary-100">
+                                                    {item.quantity} {item.code}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="p-12 text-center text-gray-500">
+                                    <Send className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                                    <p>Henüz gönderilmiş teklif bulunmuyor.</p>
+                                    <p className="text-sm mt-2">Bütçe Teklifleri sekmesinden teklif göndererek başlayın.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {activeTab === 'reservations' && (
+
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-gray-900">Operasyondan Gelen Onay Bekleyenler</h3>
