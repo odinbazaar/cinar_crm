@@ -222,7 +222,7 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
             
             const resultsData: Record<number, { available: number, options: number }> = {}
             
-            proposal.items?.forEach((item: any, idx: number) => {
+            proposal?.items?.forEach((item: any, idx: number) => {
                 let pType = 'BB';
                 const desc = item.description || '';
                 if (desc.includes('Billboard') || desc.includes('BB')) pType = 'BB';
