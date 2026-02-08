@@ -1,0 +1,37 @@
+Sheets: ['Billboard', 'CLP', 'Megalight', 'Giantboard', 'Megaboard', 'Kuleboard']
+
+--- Billboard ---
+Total Rows: 90
+Columns: ['ASIM GÜNÜ PAZARTESİ / HAFTALIK SATILIYOR', 'Unnamed: 1', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4', 'Unnamed: 5', 'Unnamed: 6', 'Unnamed: 7', 'Unnamed: 8', 'Unnamed: 9', 'Unnamed: 10', 'Unnamed: 11']
+First Row Example:
+{'ASIM GÜNÜ PAZARTESİ / HAFTALIK SATILIYOR': 'Yıl', 'Unnamed: 1': 'Ay', 'Unnamed: 2': 'Hafta', 'Unnamed: 3': 'Koordinat', 'Unnamed: 4': 'İlçe', 'Unnamed: 5': 'Semt', 'Unnamed: 6': 'Adres', 'Unnamed: 7': 'Kod', 'Unnamed: 8': 'Rout No', 'Unnamed: 9': 'Network', 'Unnamed: 10': 'Marka 1.Opsiyon', 'Unnamed: 11': 'Durum'}
+
+--- CLP ---
+Total Rows: 45
+Columns: ['ASIM GÜNÜ ÇARŞAMBA / HAFTALIK SATILIYOR', 'Unnamed: 1', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4', 'Unnamed: 5', 'Unnamed: 6', 'Unnamed: 7', 'Unnamed: 8', 'Unnamed: 9', 'Unnamed: 10', 'Unnamed: 11']
+First Row Example:
+{'ASIM GÜNÜ ÇARŞAMBA / HAFTALIK SATILIYOR': 'Yıl', 'Unnamed: 1': 'Ay', 'Unnamed: 2': 'Hafta', 'Unnamed: 3': 'Koordinat', 'Unnamed: 4': 'İlçe', 'Unnamed: 5': 'Semt', 'Unnamed: 6': 'Adres', 'Unnamed: 7': 'Kod', 'Unnamed: 8': 'Rout No', 'Unnamed: 9': 'Network', 'Unnamed: 10': 'Marka 1.Opsiyon', 'Unnamed: 11': 'Durum'}
+
+--- Megalight ---
+Total Rows: 3
+Columns: ['ASIM GÜNÜ PERŞEMBE / HAFTALIK SATILIYOR', 'Unnamed: 1', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4', 'Unnamed: 5', 'Unnamed: 6', 'Unnamed: 7', 'Unnamed: 8', 'Unnamed: 9', 'Unnamed: 10', 'Unnamed: 11']
+First Row Example:
+{'ASIM GÜNÜ PERŞEMBE / HAFTALIK SATILIYOR': 'Yıl', 'Unnamed: 1': 'Ay', 'Unnamed: 2': 'Hafta', 'Unnamed: 3': 'Koordinat', 'Unnamed: 4': 'İlçe', 'Unnamed: 5': 'Semt', 'Unnamed: 6': 'Adres', 'Unnamed: 7': 'Kod', 'Unnamed: 8': 'Rout No', 'Unnamed: 9': 'Network', 'Unnamed: 10': 'Marka 1.Opsiyon', 'Unnamed: 11': 'Durum'}
+
+--- Giantboard ---
+Total Rows: 28
+Columns: ['ASIM HER AYIN 1 - 11 - 21  / 10 GÜNLÜK SATILIYOR', 'Unnamed: 1', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4', 'Unnamed: 5', 'Unnamed: 6', 'Unnamed: 7', 'Unnamed: 8', 'Unnamed: 9', 'Unnamed: 10', 'Unnamed: 11']
+First Row Example:
+{'ASIM HER AYIN 1 - 11 - 21  / 10 GÜNLÜK SATILIYOR': 'Yıl', 'Unnamed: 1': 'Ay', 'Unnamed: 2': 'Hafta', 'Unnamed: 3': 'Koordinat', 'Unnamed: 4': 'İlçe', 'Unnamed: 5': 'Semt', 'Unnamed: 6': 'Adres', 'Unnamed: 7': 'Kod', 'Unnamed: 8': 'Rout No', 'Unnamed: 9': 'Network', 'Unnamed: 10': 'Marka 1.Opsiyon', 'Unnamed: 11': 'Durum'}
+
+--- Megaboard ---
+Total Rows: 10
+Columns: ["ASIM HER AYIN 1'i  / 30 GÜNLÜK SATILIYOR", 'Unnamed: 1', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4', 'Unnamed: 5', 'Unnamed: 6', 'Unnamed: 7', 'Unnamed: 8', 'Unnamed: 9', 'Unnamed: 10', 'Unnamed: 11']
+First Row Example:
+{"ASIM HER AYIN 1'i  / 30 GÜNLÜK SATILIYOR": 'Yıl', 'Unnamed: 1': 'Ay', 'Unnamed: 2': 'Hafta', 'Unnamed: 3': 'Koordinat', 'Unnamed: 4': 'İlçe', 'Unnamed: 5': 'Semt', 'Unnamed: 6': 'Adres', 'Unnamed: 7': 'Kod', 'Unnamed: 8': 'Rout No', 'Unnamed: 9': 'Network', 'Unnamed: 10': 'Marka 1.Opsiyon', 'Unnamed: 11': 'Durum'}
+
+--- Kuleboard ---
+Total Rows: 10
+Columns: ["ASIM HER AYIN 1'i  / 30 GÜNLÜK SATILIYOR", 'Unnamed: 1', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4', 'Unnamed: 5', 'Unnamed: 6', 'Unnamed: 7', 'Unnamed: 8', 'Unnamed: 9', 'Unnamed: 10', 'Unnamed: 11']
+First Row Example:
+{"ASIM HER AYIN 1'i  / 30 GÜNLÜK SATILIYOR": 'Yıl', 'Unnamed: 1': 'Ay', 'Unnamed: 2': 'Hafta', 'Unnamed: 3': 'Koordinat', 'Unnamed: 4': 'İlçe', 'Unnamed: 5': 'Semt', 'Unnamed: 6': 'Adres', 'Unnamed: 7': 'Kod', 'Unnamed: 8': 'Rout No', 'Unnamed: 9': 'Network', 'Unnamed: 10': 'Marka 1.Opsiyon', 'Unnamed: 11': 'Durum'}

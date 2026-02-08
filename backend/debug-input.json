@@ -1,27 +1,27 @@
 {
   "title": "MOİFİT SAĞLIK VE SPOR TESİSLERİ - Bütçe Teklifi",
-  "description": "Mayıs 1.Hafta - 2 Hafta",
-  "client_id": "7cb5d85e-3127-40d2-abe5-98d5429195cc",
+  "description": "Ocak 1.Hafta - 1 Hafta",
+  "client_id": "300bf7a6-55c9-49ca-90f9-657e546740a7",
   "created_by_id": "052fb95b-9139-431b-8d41-78d975f49e5a",
-  "subtotal": 154800,
+  "subtotal": 297500,
   "tax_rate": 20,
-  "tax_amount": 30960,
-  "total": 185760,
+  "tax_amount": 59500,
+  "total": 357000,
   "items": [
     {
-      "description": "Billboard (2 Hafta)",
-      "quantity": 10,
-      "unit_price": 7400
+      "description": "BILLBOARD (1 Hafta)",
+      "quantity": 6,
+      "unit_price": 7000
     },
     {
-      "description": "Kuleboard (2 Hafta)",
-      "quantity": 2,
-      "unit_price": 24800
+      "description": "GIANTBOARD (1 Hafta)",
+      "quantity": 1,
+      "unit_price": 87500
     },
     {
-      "description": "Giantboard (2 Hafta)",
-      "quantity": 2,
-      "unit_price": 15600
+      "description": "KULEBOARD (1 Hafta)",
+      "quantity": 1,
+      "unit_price": 265000
     }
   ]
 }

@@ -1,0 +1,47 @@
+
+--- Processing Ürün Envanteri Güncel.xlsx ---
+Reading sheet: Billboard
+Upserting 89 items from Billboard...
+Successfully upserted 50 items.
+Successfully upserted 39 items.
+Reading sheet: CLP
+Upserting 44 items from CLP...
+Successfully upserted 44 items.
+Reading sheet: Megalight
+Upserting 2 items from Megalight...
+Successfully upserted 2 items.
+Reading sheet: Giantboard
+Upserting 9 items from Giantboard...
+Successfully upserted 9 items.
+Reading sheet: Megaboard
+Upserting 9 items from Megaboard...
+Successfully upserted 9 items.
+Reading sheet: Kuleboard
+Upserting 9 items from Kuleboard...
+Successfully upserted 9 items.
+
+--- Processing Karşıyaka Ürün Envanteri.xlsx ---
+Reading sheet: BB
+Upserting 95 items from BB...
+Successfully upserted 50 items.
+Successfully upserted 45 items.
+Reading sheet: CLP  
+Upserting 22 items from CLP  ...
+Successfully upserted 22 items.
+Reading sheet: MGL  
+Upserting 2 items from MGL  ...
+Successfully upserted 2 items.
+Reading sheet: LB  
+Upserting 2 items from LB  ...
+Successfully upserted 2 items.
+Reading sheet: GB  
+Upserting 9 items from GB  ...
+Successfully upserted 9 items.
+Reading sheet: MB  
+Upserting 7 items from MB  ...
+Successfully upserted 7 items.
+Reading sheet: KB  
+Upserting 11 items from KB  ...
+Successfully upserted 11 items.
+
+--- Done ---

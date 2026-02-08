@@ -34,6 +34,9 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
     const { success, error, info } = useToast()
     const [step, setStep] = useState<1 | 2>(1)
     const [isLoading, setIsLoading] = useState(false)
+    const [selectedItemIndex, setSelectedItemIndex] = useState<number>(0)
+    const [completedItems, setCompletedItems] = useState<number[]>([])
+
 
     // Helper function to normalize date formats for comparison
     const normalizeDate = (dateStr: string): string => {
@@ -69,19 +72,22 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
             }
         }
         return [
-            { code: 'BB', name: 'Billboard' },
-            { code: 'CLP', name: 'CLP Raket' },
-            { code: 'MGL', name: 'Megalight' },
-            { code: 'LB', name: 'LED Ekran' },
-            { code: 'GB', name: 'Giantboard' },
-            { code: 'MB', name: 'Megaboard' },
-            { code: 'KB', name: 'Kuleboard' },
+            { code: 'BB', name: 'BILLBOARD' },
+            { code: 'CLP', name: 'CLP RAKET' },
+            { code: 'MGL', name: 'MEGALIGHT' },
+            { code: 'LB', name: 'LED EKRAN' },
+            { code: 'GB', name: 'GIANTBOARD' },
+            { code: 'KB', name: 'KULEBOARD' },
+            { code: 'MB', name: 'MEGABOARD' },
         ]
     })()
 
     // Sync form with proposal when it changes
     useEffect(() => {
         if (proposal && isOpen) {
+            setSelectedItemIndex(0)
+            setCompletedItems([])
+            
             const firstItem = proposal.items && proposal.items.length > 0 ? proposal.items[0] : null;
             const totalQty = proposal.items?.reduce((acc, item) => acc + item.quantity, 0) || 10;
 
@@ -163,7 +169,7 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
             })
             setStep(1)
         }
-    }, [proposal, isOpen])
+    }, [proposal?.id, isOpen])
 
     // Fetch network counts
     useEffect(() => {
@@ -417,8 +423,9 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
 
             setIsLoading(false)
             success('Rezervasyon talebi başarıyla backend\'e iletildi.')
+            setCompletedItems(prev => [...prev, selectedItemIndex])
+            setStep(1)
             if (onComplete) onComplete()
-            onClose()
         } catch (err: any) {
             console.error('Error in handleCreateReservations:', err)
             setIsLoading(false)
@@ -454,6 +461,7 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                                         <button
                                             key={idx}
                                             onClick={() => {
+                                                setSelectedItemIndex(idx)
                                                 const foundType = productTypes.find((pt: any) =>
                                                     item.description.includes(pt.name) ||
                                                     item.description.includes(pt.code)
@@ -465,7 +473,7 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                                                     network: (item as any).network || prev.network
                                                 }));
                                             }}
-                                            className={`flex items-center justify-between p-3 rounded-lg border transition-all text-left ${requestData.productType === ((item as any).type || 'BB') && requestData.quantity === item.quantity
+                                            className={`flex items-center justify-between p-3 rounded-lg border transition-all text-left ${selectedItemIndex === idx
                                                 ? 'bg-primary-50 border-primary-300 ring-2 ring-primary-200'
                                                 : 'bg-white border-gray-200 hover:border-primary-300'
                                                 }`}
@@ -474,7 +482,14 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                                                 <div className="text-sm font-bold text-gray-900">{item.description}</div>
                                                 <div className="text-xs text-gray-500">Adet: {item.quantity} {(item as any).network ? `| Network: ${(item as any).network}` : ''}</div>
                                             </div>
-                                            <div className="bg-primary-100 text-primary-700 text-[10px] font-bold px-2 py-1 rounded">SEÇ</div>
+                                            <div className={`${completedItems.includes(idx) ? 'bg-green-100 text-green-700' : 'bg-primary-100 text-primary-700'} text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1`}>
+                                                {completedItems.includes(idx) ? (
+                                                    <>
+                                                        <Check className="w-3 h-3" />
+                                                        TAMAM
+                                                    </>
+                                                ) : 'SEÇ'}
+                                            </div>
                                         </button>
                                     ))}
                                 </div>

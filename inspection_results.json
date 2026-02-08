@@ -1,0 +1,44 @@
+{
+  "sheets": [
+    "Billboard",
+    "CLP",
+    "Megalight",
+    "Giantboard",
+    "Megaboard",
+    "Kuleboard"
+  ],
+  "data": {
+    "Billboard": {
+      "columns": [
+        "ASIM GÜNÜ PAZARTESİ / HAFTALIK SATILIYOR",
+        "Unnamed: 1",
+        "Unnamed: 2",
+        "Unnamed: 3",
+        "Unnamed: 4",
+        "Unnamed: 5",
+        "Unnamed: 6",
+        "Unnamed: 7",
+        "Unnamed: 8",
+        "Unnamed: 9",
+        "Unnamed: 10",
+        "Unnamed: 11"
+      ],
+      "rows": [
+        {
+          "ASIM GÜNÜ PAZARTESİ / HAFTALIK SATILIYOR": "Yıl",
+          "Unnamed: 1": "Ay",
+          "Unnamed: 2": "Hafta",
+          "Unnamed: 3": "Koordinat",
+          "Unnamed: 4": "İlçe",
+          "Unnamed: 5": "Semt",
+          "Unnamed: 6": "Adres",
+          "Unnamed: 7": "Kod",
+          "Unnamed: 8": "Rout No",
+          "Unnamed: 9": "Network",
+          "Unnamed: 10": "Marka 1.Opsiyon",
+          "Unnamed: 11": "Durum"
+        },
+        {
+          "ASIM GÜNÜ PAZARTESİ / HAFTALIK SATILIYOR": 2026,
+          "Unnamed: 1": "Mart",
+          "Unnamed: 2": 
