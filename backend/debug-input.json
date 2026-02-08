@@ -3,20 +3,20 @@
   "description": "Ocak 1.Hafta - 1 Hafta",
   "client_id": "79c137e5-e68a-4bb4-97ed-ae285c5c5377",
   "created_by_id": "052fb95b-9139-431b-8d41-78d975f49e5a",
-  "subtotal": 307600,
+  "subtotal": 175500,
   "tax_rate": 20,
-  "tax_amount": 61520,
-  "total": 369120,
+  "tax_amount": 35100,
+  "total": 210600,
   "items": [
     {
-      "description": "KULEBOARD (1 Hafta)",
-      "quantity": 1,
-      "unit_price": 265000
+      "description": "BILLBOARD (1 Hafta)",
+      "quantity": 10,
+      "unit_price": 7000
     },
     {
-      "description": "BILLBOARD (1 Hafta)",
-      "quantity": 20,
-      "unit_price": 7000
+      "description": "GIANTBOARD (1 Hafta)",
+      "quantity": 2,
+      "unit_price": 87500
     }
   ]
 }
