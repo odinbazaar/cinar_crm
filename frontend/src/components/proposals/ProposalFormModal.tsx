@@ -20,6 +20,7 @@ interface ProposalItem {
     minPeriod: string
     district: string
     periodType: string
+    startDate?: string
 }
 
 interface ProposalFormModalProps {
@@ -72,7 +73,8 @@ export default function ProposalFormModal({ isOpen, onClose, onSave, proposal }:
                     measurements: bi.metadata?.measurements || '',
                     minPeriod: bi.metadata?.period || '1 HAFTA',
                     district: bi.metadata?.district || '',
-                    periodType: bi.metadata?.period?.includes('GÜN') ? 'GÜN' : 'HAFTA'
+                    periodType: bi.metadata?.period?.includes('GÜN') ? 'GÜN' : 'HAFTA',
+                    startDate: bi.metadata?.startDate || ''
                 })
             })
 
@@ -147,7 +149,10 @@ export default function ProposalFormModal({ isOpen, onClose, onSave, proposal }:
             measurements: priceConfig.baskiAlani,
             minPeriod: priceConfig.period,
             district: inventoryItem.district,
-            periodType: priceConfig.period.includes('HAFTA') ? 'HAFTA' : (priceConfig.period.includes('GÜN') ? 'GÜN' : 'AY')
+            periodType: priceConfig.period.includes('HAFTA') ? 'HAFTA' : (priceConfig.period.includes('GÜN') ? 'GÜN' : 'AY'),
+            startDate: (inventoryItem.type === 'GB' || inventoryItem.type === 'KB' || inventoryItem.type === 'MB') 
+                ? new Date().toISOString().split('T')[0] 
+                : undefined
         }
 
         setFormData(prev => ({
@@ -195,11 +200,11 @@ export default function ProposalFormModal({ isOpen, onClose, onSave, proposal }:
             valid_until: new Date(formData.validUntil).toISOString(),
             items: formData.items.flatMap(item => [
                 {
-                    description: `${item.type} - ${item.measurements}`,
+                    description: `${item.type} - ${item.measurements} [DÖNEM: ${item.duration} ${item.periodType}]${item.startDate ? ` [BAŞLANGIÇ: ${new Date(item.startDate).toLocaleDateString('tr-TR')}]` : ''}`,
                     quantity: item.quantity,
-                    unit_price: item.price * item.duration, // Include duration in unit price for backend
+                    unit_price: item.price, // Changed: just the period price, total handles duration
                     total: item.price * item.quantity * item.duration,
-                    metadata: { type: item.type, district: item.district, duration: item.duration, period: item.minPeriod, measurements: item.measurements }
+                    metadata: { type: item.type, district: item.district, duration: item.duration, period: item.minPeriod, measurements: item.measurements, startDate: item.startDate }
                 },
                 ...(item.opBedel > 0 ? [{
                     description: `OP. BEDELİ - ${item.measurements}`,
@@ -389,7 +394,19 @@ export default function ProposalFormModal({ isOpen, onClose, onSave, proposal }:
                                                                         className="w-10 border-0 bg-transparent p-0 focus:ring-0"
                                                                     />
                                                                 </td>
-                                                                <td className="p-2 border-r">{item.minPeriod}</td>
+                                                                <td className="p-2 border-r">
+                                                                    <div className="flex flex-col gap-1">
+                                                                        <span className="font-medium">{item.minPeriod}</span>
+                                                                        {(item.type === 'GB' || item.type === 'KB' || item.type === 'MB') && (
+                                                                            <input
+                                                                                type="date"
+                                                                                value={item.startDate}
+                                                                                onChange={e => updateItem(item.id, { startDate: e.target.value })}
+                                                                                className="text-[9px] border border-gray-200 rounded p-1 focus:ring-1 focus:ring-[#B91C1C] bg-white outline-none w-full"
+                                                                            />
+                                                                        )}
+                                                                    </div>
+                                                                </td>
                                                                 <td className="p-2 border-r">
                                                                     <input
                                                                         type="number"

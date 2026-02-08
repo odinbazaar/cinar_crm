@@ -116,7 +116,7 @@ export class CustomerRequestsService {
             ...createDto,
             client_id: createDto.client_id === '' ? null : createDto.client_id,
             request_number: createDto.request_number || this.generateRequestNumber(),
-            status: 'pending',
+            status: createDto.status || 'pending',
             quantity: createDto.quantity || 1,
             priority: createDto.priority || 'medium',
         };

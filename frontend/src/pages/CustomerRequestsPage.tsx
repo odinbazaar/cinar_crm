@@ -51,7 +51,8 @@ const statusLabels: Record<string, string> = {
     rejected: 'Reddedildi',
     in_progress: 'İşlemde',
     completed: 'Tamamlandı',
-    cancelled: 'İptal Edildi'
+    cancelled: 'İptal Edildi',
+    checked_by_ops: 'Ops. Kontrol Etti'
 }
 
 // Priority labels in Turkish
@@ -69,7 +70,8 @@ const statusColors: Record<string, string> = {
     rejected: 'bg-red-500/20 text-red-400 border-red-500/30',
     in_progress: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
     completed: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-    cancelled: 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+    cancelled: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+    checked_by_ops: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
 }
 
 // Priority colors
@@ -567,6 +569,17 @@ function RequestCard({ request, onEdit, onDelete, onStatusChange }: RequestCardP
         }).format(amount)
     }
 
+    const getOpsResult = (notes?: string) => {
+        if (!notes) return null;
+        try {
+            const parsed = JSON.parse(notes);
+            if (parsed.type === 'ops_check_result') return parsed.results;
+        } catch (e) { }
+        return null;
+    }
+
+    const opsResult = getOpsResult(request.notes);
+
     return (
         <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-2xl p-5 hover:border-violet-500/30 transition-all group">
             {/* Header */}
@@ -583,33 +596,69 @@ function RequestCard({ request, onEdit, onDelete, onStatusChange }: RequestCardP
                         <span>{request.client?.company_name || 'Bilinmeyen Müşteri'}</span>
                     </div>
                 </div>
-                <div className="relative">
-                    <button
-                        onClick={() => setShowStatusMenu(!showStatusMenu)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium border flex items-center gap-1 ${statusColors[request.status]}`}
-                    >
-                        {statusLabels[request.status]}
-                        <ChevronDown className="w-3 h-3" />
-                    </button>
-                    {showStatusMenu && (
-                        <div className="absolute right-0 top-full mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-10 py-1 min-w-[140px]">
-                            {Object.entries(statusLabels).map(([value, label]) => (
-                                <button
-                                    key={value}
-                                    onClick={() => {
-                                        onStatusChange(request.id, value)
-                                        setShowStatusMenu(false)
-                                    }}
-                                    className={`w-full px-3 py-2 text-left text-sm hover:bg-slate-600 transition-colors ${request.status === value ? 'text-violet-400' : 'text-slate-300'
-                                        }`}
-                                >
-                                    {label}
-                                </button>
-                            ))}
-                        </div>
+                <div className="flex flex-col items-end gap-2">
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowStatusMenu(!showStatusMenu)}
+                            className={`px-3 py-1.5 rounded-lg text-sm font-medium border flex items-center gap-1 ${statusColors[request.status]}`}
+                        >
+                            {statusLabels[request.status]}
+                            <ChevronDown className="w-3 h-3" />
+                        </button>
+                        {showStatusMenu && (
+                            <div className="absolute right-0 top-full mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-20 py-1 min-w-[140px]">
+                                {Object.entries(statusLabels).map(([value, label]) => (
+                                    <button
+                                        key={value}
+                                        onClick={() => {
+                                            onStatusChange(request.id, value)
+                                            setShowStatusMenu(false)
+                                        }}
+                                        className={`w-full px-3 py-2 text-left text-sm hover:bg-slate-600 transition-colors ${request.status === value ? 'text-violet-400' : 'text-slate-300'
+                                            }`}
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    {request.status === 'checked_by_ops' && (
+                        <button
+                            onClick={() => onStatusChange(request.id, 'approved')}
+                            className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1 shadow-lg"
+                        >
+                            <CheckCircle2 className="w-3 h-3" />
+                            Seçilenleri Onayla
+                        </button>
                     )}
                 </div>
             </div>
+
+            {/* Ops Check Results */}
+            {opsResult && (
+                <div className="mb-4 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
+                    <div className="text-[10px] font-bold text-indigo-400 uppercase mb-2 flex items-center gap-1">
+                        <Search className="w-3 h-3" />
+                        Bulunan Müsait Yerler
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {opsResult.available?.slice(0, 5).map((l: any) => (
+                            <span key={l.id} className="px-2 py-0.5 bg-indigo-900/40 text-indigo-300 text-[10px] rounded border border-indigo-500/30">
+                                {l.kod}
+                            </span>
+                        ))}
+                        {opsResult.available?.length > 5 && (
+                            <span className="text-[10px] text-indigo-400 self-center">+{opsResult.available.length - 5} daha</span>
+                        )}
+                    </div>
+                    {opsResult.options?.length > 0 && (
+                        <div className="mt-2 text-[10px] text-indigo-400/70 italic">
+                            Alt sıradan {opsResult.options.length} opsiyon önerildi.
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Product Info */}
             <div className="bg-slate-700/30 rounded-xl p-3 mb-4">
@@ -696,6 +745,7 @@ export default function CustomerRequestsPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [statusFilter, setStatusFilter] = useState<string>('all')
     const [productFilter, setProductFilter] = useState<string>('all')
+    const [activeTab, setActiveTab] = useState<'all' | 'approvals'>('all')
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingRequest, setEditingRequest] = useState<CustomerRequest | undefined>(undefined)
 
@@ -777,8 +827,9 @@ export default function CustomerRequestsPage() {
 
         const matchesStatus = statusFilter === 'all' || request.status === statusFilter
         const matchesProduct = productFilter === 'all' || request.product_type === productFilter
+        const matchesTab = activeTab === 'all' || request.status === 'checked_by_ops'
 
-        return matchesSearch && matchesStatus && matchesProduct
+        return matchesSearch && matchesStatus && matchesProduct && matchesTab
     })
 
     // Stats
@@ -786,7 +837,8 @@ export default function CustomerRequestsPage() {
         total: requests.length,
         pending: requests.filter(r => r.status === 'pending').length,
         approved: requests.filter(r => r.status === 'approved').length,
-        in_progress: requests.filter(r => r.status === 'in_progress').length
+        in_progress: requests.filter(r => r.status === 'in_progress').length,
+        ops_checked: requests.filter(r => r.status === 'checked_by_ops').length
     }
 
     return (
@@ -844,15 +896,47 @@ export default function CustomerRequestsPage() {
                     </div>
                     <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-4">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-blue-500/20 rounded-lg">
-                                <AlertCircle className="w-5 h-5 text-blue-400" />
+                            <div className="p-2 bg-indigo-500/20 rounded-lg">
+                                <Search className="w-5 h-5 text-indigo-400" />
                             </div>
                             <div>
-                                <div className="text-2xl font-bold text-white">{stats.in_progress}</div>
-                                <div className="text-slate-400 text-sm">İşlemde</div>
+                                <div className="text-2xl font-bold text-white">{stats.ops_checked}</div>
+                                <div className="text-slate-400 text-sm">Ops. Gelenler</div>
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex gap-4 mb-6 border-b border-slate-700/50 p-1">
+                    <button
+                        onClick={() => setActiveTab('all')}
+                        className={`px-4 py-2 text-sm font-bold transition-all rounded-t-lg border-b-2 flex items-center gap-2 ${activeTab === 'all'
+                            ? 'text-violet-400 border-violet-500 bg-violet-500/10'
+                            : 'text-slate-400 border-transparent hover:text-slate-300'
+                            }`}
+                    >
+                        <List className="w-4 h-4" />
+                        Tüm Talepler
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('approvals')}
+                        className={`px-4 py-2 text-sm font-bold transition-all rounded-t-lg border-b-2 flex items-center gap-2 relative ${activeTab === 'approvals'
+                            ? 'text-indigo-400 border-indigo-500 bg-indigo-500/10'
+                            : 'text-slate-400 border-transparent hover:text-slate-300'
+                            }`}
+                    >
+                        <Search className="w-4 h-4" />
+                        Operasyondan Gelenler (Onay Bekleyenler)
+                        {stats.ops_checked > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-4 w-4 bg-indigo-500 text-[10px] items-center justify-center text-white">
+                                    {stats.ops_checked}
+                                </span>
+                            </span>
+                        )}
+                    </button>
                 </div>
 
                 {/* Filters */}

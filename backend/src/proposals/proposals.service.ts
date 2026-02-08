@@ -129,7 +129,7 @@ export class ProposalsService {
                     total: (item as any).total || (qty * unitPrice),
                     estimated_hours: (item as any).estimated_hours || 0,
                     hourly_rate: (item as any).hourly_rate || 0,
-                    // metadata: item.metadata || {}, // REMARK: Removed due to missing DB column
+                    metadata: item.metadata || {},
                     order: index,
                 };
             });
@@ -232,7 +232,7 @@ export class ProposalsService {
                     total: (Number(item.quantity) || 0) * (Number(item.unit_price) || 0),
                     estimated_hours: item.estimated_hours || 0,
                     hourly_rate: item.hourly_rate || 0,
-                    // metadata: item.metadata || {},
+                    metadata: item.metadata || {},
                     order: index
                 }));
 
@@ -376,25 +376,62 @@ export class ProposalsService {
             // Table Header
             const tableTop = 240;
             doc.rect(50, tableTop, 500, 25).fill(primaryColor);
-            doc.fillColor('white').fontSize(10).font(safeFontBold);
-            doc.text('ÜRÜN / HİZMET', 60, tableTop + 8);
-            doc.text('ADET', 300, tableTop + 8, { width: 50, align: 'center' });
-            doc.text('BİRİM FİYAT', 360, tableTop + 8, { width: 80, align: 'right' });
-            doc.text('TOPLAM', 450, tableTop + 8, { width: 90, align: 'right' });
+            doc.fillColor('white').fontSize(9).font(safeFontBold);
+            doc.text('ÜRÜN / LOKASYON', 60, tableTop + 8);
+            doc.text('ADET', 260, tableTop + 8, { width: 40, align: 'center' });
+            doc.text('DÖNEM', 310, tableTop + 8, { width: 60, align: 'center' });
+            doc.text('BİRİM FİYAT', 380, tableTop + 8, { width: 80, align: 'right' });
+            doc.text('TOPLAM', 470, tableTop + 8, { width: 70, align: 'right' });
 
             // Table Rows
             let rowY = tableTop + 25;
             const items = (proposal as any).items || [];
-            doc.fillColor('#374151').font(safeFontRegular);
+            doc.fillColor('#374151').font(safeFontRegular).fontSize(8);
 
             items.forEach((item: any) => {
-                doc.text(item.description, 60, rowY + 10, { width: 230 });
-                doc.text(item.quantity.toString(), 300, rowY + 10, { width: 50, align: 'center' });
-                doc.text(`₺${(item.unit_price || 0).toLocaleString('tr-TR')}`, 360, rowY + 10, { width: 80, align: 'right' });
-                doc.text(`₺${(item.total || 0).toLocaleString('tr-TR')}`, 450, rowY + 10, { width: 90, align: 'right' });
+                const metadata = item.metadata || {};
+                let period = metadata.period || (metadata.duration ? `${metadata.duration} ${metadata.period?.includes('GÜN') ? 'Gün' : 'Hafta'}` : '—');
+                
+                let cleanDescription = item.description;
+                if (item.description.includes('[DÖNEM:')) {
+                    const match = item.description.match(/\[DÖNEM: (.*?)\]/);
+                    if (match) {
+                        period = match[1];
+                        cleanDescription = item.description.replace(/\[DÖNEM: .*?\]/, '').trim();
+                    }
+                }
+
+                if (cleanDescription.includes('[BAŞLANGIÇ:')) {
+                    const match = cleanDescription.match(/\[BAŞLANGIÇ: (.*?)\]/);
+                    if (match) {
+                        const startDateStr = match[1];
+                        cleanDescription = cleanDescription.replace(/\[BAŞLANGIÇ: .*?\]/, '').trim();
+                        // Instead of adding to period, let's add it to description as a second line
+                        // or just leave it in cleanDescription. Let's add it to period for clarity.
+                        if (!item.description.includes('OP.') && !item.description.includes('BASKI')) {
+                            period = `${period}\n(${startDateStr})`;
+                        }
+                    }
+                }
+
+                // For OP and BASKI rows, period might be empty or redundant
+                const displayPeriod = (item.description.includes('OP.') || item.description.includes('BASKI')) ? '—' : period;
+
+                doc.text(cleanDescription, 60, rowY + 10, { width: 190 });
+                doc.text(item.quantity.toString(), 260, rowY + 10, { width: 40, align: 'center' });
+                doc.text(displayPeriod.toUpperCase(), 310, rowY + 10, { width: 60, align: 'center' });
+                doc.text(`₺${(item.unit_price || 0).toLocaleString('tr-TR')}`, 380, rowY + 10, { width: 80, align: 'right' });
+                doc.text(`₺${(item.total || 0).toLocaleString('tr-TR')}`, 470, rowY + 10, { width: 70, align: 'right' });
 
                 rowY += 30;
                 doc.moveTo(50, rowY).lineTo(550, rowY).stroke('#f3f4f6');
+
+                // Check for page break
+                if (rowY > 700) {
+                    doc.addPage();
+                    rowY = 50;
+                    // Re-draw header on new page? (Optional, but let's keep it simple for now)
+                }
             });
 
             // Totals
@@ -448,17 +485,38 @@ export class ProposalsService {
         const items = (proposal as any).items || [];
         const itemsHtml = items.map((item: any) => {
             const m = item.metadata || {};
-            const duration = m.duration ? `(${m.duration} ${m.period?.includes('GÜN') ? 'Gün' : 'Hafta'})` : '';
+            let period = m.period || (m.duration ? `${m.duration} ${m.period?.includes('GÜN') ? 'Gün' : 'Hafta'}` : '—');
+            
+            let cleanDescription = item.description;
+            if (item.description.includes('[DÖNEM:')) {
+                const match = item.description.match(/\[DÖNEM: (.*?)\]/);
+                if (match) {
+                    period = match[1];
+                    cleanDescription = item.description.replace(/\[DÖNEM: .*?\]/, '').trim();
+                }
+            }
+
+            if (cleanDescription.includes('[BAŞLANGIÇ:')) {
+                const match = cleanDescription.match(/\[BAŞLANGIÇ: (.*?)\]/);
+                if (match) {
+                    const startDateStr = match[1];
+                    cleanDescription = cleanDescription.replace(/\[BAŞLANGIÇ: .*?\]/, '').trim();
+                    if (!item.description.includes('OP.') && !item.description.includes('BASKI')) {
+                        period = `${period}<br/><small>Başlangıç: ${startDateStr}</small>`;
+                    }
+                }
+            }
+
             const dates = m.start_date && m.end_date ? `<br/><small style="color: #666;">${m.start_date} - ${m.end_date}</small>` : '';
 
             return `
                 <tr>
                     <td style="padding: 12px; border-bottom: 1px solid #eee;">
-                        <div style="font-weight: bold; color: #1f2937;">${item.description || '-'}</div>
+                        <div style="font-weight: bold; color: #1f2937;">${cleanDescription || '-'}</div>
                         ${dates}
                     </td>
                     <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity || 0}</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">${duration || '-'}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">${period || '-'}</td>
                     <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right;">₺${(item.unit_price || 0).toLocaleString('tr-TR')}</td>
                     <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">₺${(item.total || 0).toLocaleString('tr-TR')}</td>
                 </tr>

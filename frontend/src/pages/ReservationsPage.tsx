@@ -199,7 +199,7 @@ export default function ReservationsPage() {
                     network: details.network || '1',
                     availableCount: details.availableCount || 0,
                     optionsCount: details.optionsCount || 0,
-                    status: req.status === 'completed' ? 'completed' : 'pending',
+                    status: req.status,
                     createdAt: req.created_at,
                     selectedLocations: details.selectedLocations || []
                 };
@@ -552,6 +552,36 @@ export default function ReservationsPage() {
             setIsLoadingLocations(false);
         }
     }
+
+    const handleSendResultsToSales = async () => {
+        if (!selectedRequest) return;
+        setIsLoadingRequests(true);
+        try {
+            const currentResults = {
+                available: processAvailability.available.map(l => ({ id: l.id, kod: l.kod })),
+                options: processAvailability.options.map(l => ({ id: l.id, kod: l.kod }))
+            };
+
+            await customerRequestsService.update(selectedRequest.id, {
+                status: 'checked_by_ops' as any,
+                notes: JSON.stringify({
+                    type: 'ops_check_result',
+                    results: currentResults,
+                    checkedAt: new Date().toISOString()
+                })
+            });
+
+            toastSuccess('Müsaitlik sonuçları satış birimine iletildi.');
+            setShowProcessModal(false);
+            setSelectedRequest(null);
+            fetchData();
+        } catch (error) {
+            console.error('Error sending results to sales:', error);
+            toastInfo('Sonuçlar iletilirken bir hata oluştu.');
+        } finally {
+            setIsLoadingRequests(false);
+        }
+    };
 
     const handleResetData = async () => {
         if (window.confirm('Tüm rezervasyon verilerini sıfırlayıp fabrika ayarlarına dönmek istediğinize emin misiniz? (Tüm atanmış markalar silinecektir)')) {
@@ -1294,6 +1324,16 @@ export default function ReservationsPage() {
                             Mail Gönder
                         </button>
                         <button
+                            onClick={() => {
+                                setSelectedProposal(null);
+                                setIsLocationModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-lg"
+                        >
+                            <Search className="w-5 h-5" />
+                            Müsaitlik Sorgula
+                        </button>
+                        <button
                             onClick={handleDeleteSelected}
                             disabled={selectedRows.length === 0}
                             className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1799,8 +1839,16 @@ export default function ReservationsPage() {
                                         <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
                                             <FileSpreadsheet className="w-6 h-6" />
                                         </div>
-                                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${req.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700 animate-pulse'}`}>
-                                            {req.status === 'completed' ? 'İŞLENDİ' : 'YENİ TALEP'}
+                                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                            req.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                                req.status === 'checked_by_ops' ? 'bg-indigo-100 text-indigo-700' :
+                                                    req.status === 'approved' ? 'bg-amber-100 text-amber-700' :
+                                                        'bg-blue-100 text-blue-700 animate-pulse'
+                                            }`}>
+                                            {req.status === 'completed' ? 'İŞLENDİ' :
+                                                req.status === 'checked_by_ops' ? 'SATIŞA İLETİLDİ' :
+                                                    req.status === 'approved' ? 'SATIŞ ONAYLADI' :
+                                                        'YENİ TALEP'}
                                         </span>
                                     </div>
 
@@ -1856,19 +1904,25 @@ export default function ReservationsPage() {
 
                                         <div className="pt-4 flex items-center justify-between border-t border-gray-100">
                                             <span className="text-[10px] text-gray-400 italic">Talep: {new Date(req.createdAt).toLocaleDateString()}</span>
-                                            {req.status === 'pending' ? (
-                                                <button
-                                                    onClick={() => handleOpenProcessModal(req)}
-                                                    className="px-4 py-2 bg-primary-600 text-white text-xs font-bold rounded-lg hover:bg-primary-700 transition-all flex items-center gap-2 shadow-md shadow-primary-200"
-                                                >
-                                                    <Check className="w-3.5 h-3.5" />
-                                                    Talebi İşle
-                                                </button>
-                                            ) : (
+                                            {req.status === 'completed' ? (
                                                 <div className="flex items-center gap-1 text-green-600 text-xs font-bold">
                                                     <CheckCircle className="w-4 h-4" />
                                                     İşlendi
                                                 </div>
+                                            ) : req.status === 'checked_by_ops' ? (
+                                                <div className="flex items-center gap-1 text-indigo-600 text-xs font-bold">
+                                                    <Clock className="w-4 h-4" />
+                                                    Satış Onayı Bekliyor
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleOpenProcessModal(req)}
+                                                    className={`px-4 py-2 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-2 shadow-md ${req.status === 'approved' ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-200' : 'bg-primary-600 hover:bg-primary-700 shadow-primary-200'
+                                                        }`}
+                                                >
+                                                    <Check className="w-3.5 h-3.5" />
+                                                    {req.status === 'approved' ? 'Onaylı Talebi İşle' : 'Talebi İşle'}
+                                                </button>
                                             )}
                                         </div>
                                     </div>
@@ -2060,6 +2114,14 @@ export default function ReservationsPage() {
                                 className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
                             >
                                 İptal
+                            </button>
+                            <button
+                                onClick={handleSendResultsToSales}
+                                disabled={isCheckingAvailability || isLoadingRequests || (processAvailability.available.length === 0 && processAvailability.options.length === 0)}
+                                className="px-6 py-2.5 text-sm font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-xl hover:bg-indigo-100 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Send className="w-5 h-5" />
+                                Satışa Onaya Gönder
                             </button>
                             <button
                                 onClick={handleConfirmProcessRequest}

@@ -135,8 +135,9 @@ interface CustomerRequest {
     quantity: number
     notes: string
     budgetSource: string
-    status: 'pending' | 'approved' | 'rejected'
+    status: 'pending' | 'approved' | 'rejected' | 'checked_by_ops' | 'completed' | 'cancelled' | 'in_progress'
     createdAt: string
+    brandName?: string
 }
 
 const STORAGE_KEY = 'productPrices_2026_v2'
@@ -159,7 +160,7 @@ const getProductTypes = () => {
 }
 
 export default function SalesPage() {
-    const [activeTab, setActiveTab] = useState<'customers' | 'proposals' | 'sent'>('customers')
+    const [activeTab, setActiveTab] = useState<'customers' | 'proposals' | 'sent' | 'reservations'>('customers')
     const [showCustomerModal, setShowCustomerModal] = useState(false)
     const [showProposalModal, setShowProposalModal] = useState(false)
     const [showEmailModal, setShowEmailModal] = useState(false)
@@ -340,19 +341,28 @@ export default function SalesPage() {
             setProposals(mappedProposals)
 
             // Map backend requests to local CustomerRequest type
-            const mappedRequests: CustomerRequest[] = requestsData.map(r => ({
-                id: (r as any).id,
-                requestNumber: (r as any).request_number,
-                customerId: (r as any).client_id,
-                customerName: (r as any).client?.company_name || 'Bilinmeyen Müşteri',
-                productType: (r as any).product_type,
-                productDetails: (r as any).product_details || '',
-                quantity: (r as any).quantity,
-                notes: (r as any).notes || '',
-                budgetSource: '',
-                status: ((r as any).status === 'pending' ? 'pending' : (r as any).status === 'approved' ? 'approved' : 'rejected') as any,
-                createdAt: (r as any).created_at?.split('T')[0] || new Date().toISOString().split('T')[0]
-            }))
+            const mappedRequests: CustomerRequest[] = requestsData.map(r => {
+                let bn = '';
+                try {
+                    const notes = JSON.parse((r as any).notes || '{}');
+                    bn = notes.brandName || '';
+                } catch (e) { }
+
+                return {
+                    id: (r as any).id,
+                    requestNumber: (r as any).request_number,
+                    customerId: (r as any).client_id,
+                    customerName: (r as any).client?.company_name || bn || 'Bilinmeyen Müşteri',
+                    productType: (r as any).product_type,
+                    productDetails: (r as any).product_details || '',
+                    quantity: (r as any).quantity,
+                    notes: (r as any).notes || '',
+                    budgetSource: '',
+                    status: (r as any).status as any,
+                    createdAt: (r as any).created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+                    brandName: bn
+                };
+            })
             setCustomerRequests(mappedRequests)
 
             // Fetch inventory and calculate network counts by type
@@ -1073,6 +1083,17 @@ export default function SalesPage() {
         setShowProposalModal(false)
     }
 
+    const handleApproveResults = async (requestId: string) => {
+        try {
+            await customerRequestsService.update(requestId, { status: 'approved' })
+            success('Operasyon sonuçları onaylandı. Rezervasyon aşamasına geçilebilir.')
+            fetchData()
+        } catch (error) {
+            console.error('Approval error:', error)
+            alert('Onaylanırken hata oluştu.')
+        }
+    }
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -1125,6 +1146,26 @@ export default function SalesPage() {
                     <div className="flex items-center gap-2">
                         <Send className="w-4 h-4" />
                         Gönderilen Teklifler
+                    </div>
+                </button>
+                <button
+                    onClick={() => setActiveTab('reservations')}
+                    className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors relative ${activeTab === 'reservations'
+                        ? 'border-primary-600 text-primary-600 font-bold'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                        }`}
+                >
+                    <div className="flex items-center gap-2">
+                        <ShoppingBag className="w-4 h-4" />
+                        Rezervasyondan Gelenler
+                        {customerRequests.filter(r => r.status === 'checked_by_ops').length > 0 && (
+                            <span className="flex h-4 w-4">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-[9px] items-center justify-center text-white">
+                                    {customerRequests.filter(r => r.status === 'checked_by_ops').length}
+                                </span>
+                            </span>
+                        )}
                     </div>
                 </button>
             </div>
@@ -1552,72 +1593,138 @@ export default function SalesPage() {
                 </div>
             )}
 
-            {activeTab === 'sent' && (
+            {activeTab === 'reservations' && (
                 <div className="space-y-4">
-                    {/* Sent proposals table/list would go here */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50 border-b border-gray-100">
-                                <tr>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Teklif No</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Müşteri</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Tarih</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Durum</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">İşlem</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {proposals.filter(p => p.status === 'sent' || p.status === 'approved' || p.status === 'rejected').map((p) => (
-                                    <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 font-bold text-primary-600">{p.proposalNumber}</td>
-                                        <td className="px-6 py-4 font-medium text-gray-900">{p.customerName}</td>
-                                        <td className="px-6 py-4 text-gray-600">{p.sentAt || p.createdAt}</td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${p.status === 'sent' ? 'bg-blue-100 text-blue-700' :
-                                                p.status === 'approved' ? 'bg-green-100 text-green-700' :
-                                                    'bg-red-100 text-red-700'
-                                                }`}>
-                                                {p.status === 'sent' ? 'Gönderildi' :
-                                                    p.status === 'approved' ? 'Onaylandı' : 'Reddedildi'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                {p.status === 'sent' && (
-                                                    <button
-                                                        onClick={() => handleApproveProposal(p.id)}
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors shadow-sm"
-                                                        title="Onayla"
-                                                    >
-                                                        <CheckCircle className="w-3.5 h-3.5" />
-                                                        Onayla
-                                                    </button>
-                                                )}
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900">Operasyondan Gelen Onay Bekleyenler</h3>
+                        <button 
+                            onClick={fetchData} 
+                            disabled={isLoading}
+                            className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all shadow-sm"
+                        >
+                            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+                            Listeyi Yenile
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4">
+                        {customerRequests.filter(r => r.status === 'checked_by_ops').length === 0 ? (
+                            <div className="bg-white rounded-xl p-12 text-center border border-gray-100 shadow-sm">
+                                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <Clock className="w-8 h-8 text-gray-300" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900">Onay Bekleyen Liste Yok</h3>
+                                <p className="text-gray-500 max-w-sm mx-auto mt-2">Operasyondan gelen herhangi bir müsaitlik kontrol sonucu bulunmuyor.</p>
+                            </div>
+                        ) : (
+                            customerRequests.filter(r => r.status === 'checked_by_ops').map(request => {
+                                let results: any = null;
+                                try {
+                                    const notes = JSON.parse(request.notes || '{}');
+                                    results = notes.results;
+                                } catch (e) { }
+
+                                return (
+                                    <div key={request.id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                                        <div className="p-5 border-b border-gray-50 flex flex-wrap items-center justify-between gap-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-center">
+                                                    <Hash className="w-6 h-6 text-indigo-600" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-gray-900">{request.customerName}</h3>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold rounded uppercase tracking-wider">
+                                                            {request.requestNumber}
+                                                        </span>
+                                                        <span className="text-xs text-gray-400">• {request.createdAt}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3">
                                                 <button
-                                                    onClick={() => handleReviseFromSent(p)}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors shadow-sm"
-                                                    title="Revize Et"
+                                                    onClick={() => handleApproveResults(request.id)}
+                                                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-2 transition-all shadow-sm"
                                                 >
-                                                    <RefreshCw className="w-3.5 h-3.5" />
-                                                    Revize Et
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        if (window.confirm('Bu teklifi silmek istediğinize emin misiniz?')) {
-                                                            handleDeleteProposal(p.id)
-                                                        }
-                                                    }}
-                                                    className="inline-flex items-center p-1.5 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                                                    title="Sil"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
+                                                    <CheckCircle2 className="w-4 h-4" />
+                                                    Sonuçları Onayla
                                                 </button>
                                             </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                        </div>
+                                        <div className="p-5 bg-gray-50/50">
+                                            <div className="space-y-4">
+                                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                                    <Search className="w-3 h-3" />
+                                                    Müsaitlik Özeti
+                                                </h4>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm group hover:border-emerald-200 transition-colors">
+                                                        <div className="text-2xl font-black text-emerald-600">{results?.available?.length || 0}</div>
+                                                        <div className="text-[10px] font-bold text-gray-500 uppercase mt-1">Tam Müsait</div>
+                                                        <div className="h-1 w-8 bg-emerald-500 rounded-full mt-2 group-hover:w-full transition-all duration-500"></div>
+                                                    </div>
+                                                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm group hover:border-amber-200 transition-colors">
+                                                        <div className="text-2xl font-black text-amber-600">{results?.options?.length || 0}</div>
+                                                        <div className="text-[10px] font-bold text-gray-500 uppercase mt-1">Kısmi / Opsiyon</div>
+                                                        <div className="h-1 w-8 bg-amber-500 rounded-full mt-2 group-hover:w-full transition-all duration-500"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {(results?.available?.length > 0 || results?.options?.length > 0) && (
+                                                <div className="mt-8">
+                                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                        <LayoutGrid className="w-3 h-3" />
+                                                        Bulunan Üniteler Detaylı Liste
+                                                    </h4>
+                                                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                                                        <table className="w-full text-left border-collapse">
+                                                            <thead>
+                                                                <tr className="bg-gray-50 border-b border-gray-200">
+                                                                    <th className="px-6 py-3 text-[10px] font-black text-gray-500 uppercase tracking-wider">#</th>
+                                                                    <th className="px-6 py-3 text-[10px] font-black text-gray-500 uppercase tracking-wider">Ünite Kodu</th>
+                                                                    <th className="px-6 py-3 text-[10px] font-black text-gray-500 uppercase tracking-wider">Durum</th>
+                                                                    <th className="px-6 py-3 text-[10px] font-black text-gray-500 uppercase tracking-wider text-right">Açıklama</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-gray-100">
+                                                                {results.available.map((loc: any, idx: number) => (
+                                                                    <tr key={`avail-${idx}`} className="hover:bg-emerald-50/30 transition-colors group">
+                                                                        <td className="px-6 py-3 text-xs text-gray-400 font-medium w-16">{idx + 1}</td>
+                                                                        <td className="px-6 py-3">
+                                                                            <span className="font-mono font-bold text-gray-900 group-hover:text-emerald-700">{loc.kod}</span>
+                                                                        </td>
+                                                                        <td className="px-6 py-3">
+                                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-emerald-100 text-emerald-700 uppercase">Tam Müsait</span>
+                                                                        </td>
+                                                                        <td className="px-6 py-3 text-right">
+                                                                            <span className="text-[10px] text-gray-500 italic">Hemen Rezervasyon</span>
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                                {results.options.map((loc: any, idx: number) => (
+                                                                    <tr key={`opt-${idx}`} className="hover:bg-amber-50/30 transition-colors group">
+                                                                        <td className="px-6 py-3 text-xs text-gray-400 font-medium w-16">{results.available.length + idx + 1}</td>
+                                                                        <td className="px-6 py-3">
+                                                                            <span className="font-mono font-bold text-gray-900 group-hover:text-amber-700">{loc.kod}</span>
+                                                                        </td>
+                                                                        <td className="px-6 py-3">
+                                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-amber-100 text-amber-700 uppercase">Opsiyon / Alt Sıra</span>
+                                                                        </td>
+                                                                        <td className="px-6 py-3 text-right">
+                                                                            <span className="text-[10px] text-gray-500 italic">Sıraya Alınacak</span>
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
                     </div>
                 </div>
             )}

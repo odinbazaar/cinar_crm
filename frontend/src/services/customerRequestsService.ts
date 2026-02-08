@@ -21,7 +21,7 @@ export interface CustomerRequest {
     end_date: string;
     budget_min?: number;
     budget_max?: number;
-    status: 'pending' | 'approved' | 'rejected' | 'in_progress' | 'completed' | 'cancelled';
+    status: 'pending' | 'approved' | 'rejected' | 'in_progress' | 'completed' | 'cancelled' | 'checked_by_ops';
     priority: 'low' | 'medium' | 'high' | 'urgent';
     notes?: string;
     assigned_to?: string;
@@ -43,10 +43,11 @@ export interface CreateCustomerRequestDto {
     priority?: 'low' | 'medium' | 'high' | 'urgent';
     notes?: string;
     request_number?: string;
+    status?: 'pending' | 'approved' | 'rejected' | 'in_progress' | 'completed' | 'cancelled' | 'checked_by_ops';
 }
 
 export interface UpdateCustomerRequestDto extends Partial<CreateCustomerRequestDto> {
-    status?: 'pending' | 'approved' | 'rejected' | 'in_progress' | 'completed' | 'cancelled';
+    status?: 'pending' | 'approved' | 'rejected' | 'in_progress' | 'completed' | 'cancelled' | 'checked_by_ops';
 }
 
 // Customer Requests Service

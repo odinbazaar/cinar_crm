@@ -30,6 +30,7 @@ export interface ProposalItem {
     total: number;
     estimated_hours?: number;
     hourly_rate?: number;
+    metadata?: any;
     order: number;
 }
 

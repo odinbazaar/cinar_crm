@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Plus, Search, FileText, Download, Eye, MoreVertical, Send, Upload, FileSignature, MapPin, Mail, Printer, ChevronDown, Pencil } from 'lucide-react'
-import { proposalsService, type Proposal } from '../services'
+import { proposalsService, customerRequestsService, type Proposal } from '../services'
 import { useToast } from '../hooks/useToast'
 import ProposalFormModal from '../components/proposals/ProposalFormModal'
 import ProposalContractModal from '../components/proposals/ProposalContractModal'
@@ -22,6 +22,7 @@ export default function ProposalsPage() {
     const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null)
     const [isContractModalOpen, setIsContractModalOpen] = useState(false)
     const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
+    const [customerRequests, setCustomerRequests] = useState<any[]>([])
     const { success, error } = useToast()
 
     useEffect(() => {
@@ -31,8 +32,12 @@ export default function ProposalsPage() {
     const loadProposals = async () => {
         try {
             setIsLoading(true)
-            const data = await proposalsService.getAll()
+            const [data, requests] = await Promise.all([
+                proposalsService.getAll(),
+                customerRequestsService.getAll()
+            ])
             setProposals(data)
+            setCustomerRequests(requests)
         } catch (err: any) {
             console.error('Failed to load proposals:', err)
             // Fallback to mock data for testing/demo if backend fails
@@ -331,6 +336,7 @@ export default function ProposalsPage() {
                                 <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Teklif Detayları</th>
                                 <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tarih</th>
                                 <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tutar</th>
+                                <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Müsaitlik</th>
                                 <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Durum</th>
                                 <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">İşlemler</th>
                             </tr>
@@ -361,6 +367,37 @@ export default function ProposalsPage() {
                                             ₺{proposal.total.toLocaleString('tr-TR')}
                                         </div>
                                         <div className="text-xs text-gray-500">KDV Dahil</div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        {(() => {
+                                            const request = customerRequests.find(r => {
+                                                try {
+                                                    const notes = JSON.parse(r.notes || '{}');
+                                                    return notes.proposal_id === proposal.id;
+                                                } catch (e) { return false; }
+                                            });
+
+                                            if (!request) return <span className="text-xs text-gray-400">Talep Yok</span>;
+
+                                            if (request.status === 'checked_by_ops') {
+                                                try {
+                                                    const notes = JSON.parse(request.notes || '{}');
+                                                    const results = notes.results;
+                                                    return (
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className="badge bg-indigo-50 text-indigo-700 border-indigo-200">Ops. Kontrol Etti</span>
+                                                            <span className="text-[10px] font-bold text-gray-600">
+                                                                {results.available?.length || 0} Boş, {results.options?.length || 0} Opsiyon
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                } catch (e) { }
+                                            }
+
+                                            if (request.status === 'approved') return <span className="badge bg-green-50 text-green-700 border-green-200">Satış Onayladı</span>;
+                                            if (request.status === 'completed') return <span className="badge bg-emerald-50 text-emerald-700 border-emerald-200">İşlendi</span>;
+                                            return <span className="badge bg-blue-50 text-blue-700 border-blue-200 text-xs">Ops. Bekliyor</span>;
+                                        })()}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         {getStatusBadge(proposal.status)}
