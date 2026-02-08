@@ -129,7 +129,7 @@ export class ProposalsService {
                     total: (item as any).total || (qty * unitPrice),
                     estimated_hours: (item as any).estimated_hours || 0,
                     hourly_rate: (item as any).hourly_rate || 0,
-                    metadata: item.metadata || {},
+                    // metadata: item.metadata || {}, // Omit if column missing
                     order: index,
                 };
             });
@@ -232,7 +232,7 @@ export class ProposalsService {
                     total: (Number(item.quantity) || 0) * (Number(item.unit_price) || 0),
                     estimated_hours: item.estimated_hours || 0,
                     hourly_rate: item.hourly_rate || 0,
-                    metadata: item.metadata || {},
+                    // metadata: item.metadata || {}, // Omit if column missing
                     order: index
                 }));
 

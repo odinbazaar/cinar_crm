@@ -1,27 +1,22 @@
 {
-  "title": "MOİFİT SAĞLIK VE SPOR TESİSLERİ - Bütçe Teklifi",
+  "title": "KARŞIYAKA MURAT ÖZEL EĞİTİM HİZM.LTD.ŞTİ - Bütçe Teklifi",
   "description": "Ocak 1.Hafta - 1 Hafta",
-  "client_id": "300bf7a6-55c9-49ca-90f9-657e546740a7",
+  "client_id": "79c137e5-e68a-4bb4-97ed-ae285c5c5377",
   "created_by_id": "052fb95b-9139-431b-8d41-78d975f49e5a",
-  "subtotal": 297500,
+  "subtotal": 307600,
   "tax_rate": 20,
-  "tax_amount": 59500,
-  "total": 357000,
+  "tax_amount": 61520,
+  "total": 369120,
   "items": [
-    {
-      "description": "BILLBOARD (1 Hafta)",
-      "quantity": 6,
-      "unit_price": 7000
-    },
-    {
-      "description": "GIANTBOARD (1 Hafta)",
-      "quantity": 1,
-      "unit_price": 87500
-    },
     {
       "description": "KULEBOARD (1 Hafta)",
       "quantity": 1,
       "unit_price": 265000
+    },
+    {
+      "description": "BILLBOARD (1 Hafta)",
+      "quantity": 20,
+      "unit_price": 7000
     }
   ]
 }

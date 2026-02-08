@@ -1092,9 +1092,9 @@ export default function ReservationsPage() {
                     <div className="flex items-center gap-2">
                         <FileSpreadsheet className="w-4 h-4" />
                         Onaylı Teklifler
-                        {approvedProposals.length > 0 && (
+                        {(approvedProposals.length + reservationRequests.filter(r => r.status === 'approved').length) > 0 && (
                             <span className="bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                                {approvedProposals.length}
+                                {approvedProposals.length + reservationRequests.filter(r => r.status === 'approved').length}
                             </span>
                         )}
                     </div>
@@ -1108,7 +1108,7 @@ export default function ReservationsPage() {
                 >
                     <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4" />
-                        Gelen Talepler
+                        Talepleri İşle
                         {reservationRequests.filter(r => r.status === 'pending').length > 0 && (
                             <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">
                                 {reservationRequests.filter(r => r.status === 'pending').length}
@@ -1699,80 +1699,146 @@ export default function ReservationsPage() {
                         </div>
 
                         <div className="grid grid-cols-1 gap-4">
-                            {approvedProposals.length > 0 ? (
-                                approvedProposals.map((proposal) => (
-                                    <div key={proposal.id} className="group p-6 bg-gray-50 rounded-2xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all">
-                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm border border-gray-100">
-                                                    <CheckCircle className="w-6 h-6 text-blue-600" />
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <h4 className="font-bold text-gray-900 text-lg">
-                                                            {proposal.proposal_number || proposal.id} - {proposal.client?.company_name || proposal.customerName}
-                                                        </h4>
-                                                        <span className="px-2.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-black rounded-full uppercase">
-                                                            ONAYLANDI
-                                                        </span>
+                            {approvedProposals.length > 0 || reservationRequests.filter(r => r.status === 'approved').length > 0 ? (
+                                <>
+                                    {/* Approved Requests Section */}
+                                    {reservationRequests.filter(r => r.status === 'approved').length > 0 && (
+                                        <div className="mb-8 space-y-4">
+                                            <h3 className="text-sm font-black text-amber-600 uppercase tracking-widest flex items-center gap-2">
+                                                <div className="w-2 h-2 bg-amber-500 rounded-full animate-ping" />
+                                                Satıştan Onaylanan Yer Talepleri
+                                            </h3>
+                                            <div className="grid grid-cols-1 gap-4">
+                                                {reservationRequests.filter(r => r.status === 'approved').map((req) => (
+                                                    <div key={req.id} className="group p-6 bg-amber-50 rounded-2xl border border-amber-100 hover:border-amber-200 transition-all">
+                                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm border border-amber-100">
+                                                                    <Check className="w-6 h-6 text-amber-600" />
+                                                                </div>
+                                                                <div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <h4 className="font-bold text-gray-900 text-lg">
+                                                                            {req.customerName} - {req.brandName}
+                                                                        </h4>
+                                                                        <span className="px-2.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-black rounded-full uppercase">
+                                                                            SATIŞ ONAYLADI
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                                                                        <span className="flex items-center gap-1">
+                                                                            <Calendar className="w-3.5 h-3.5" />
+                                                                            {req.year} / {req.month}
+                                                                        </span>
+                                                                        <span className="text-xs font-bold text-amber-600">
+                                                                            {req.availableCount + req.optionsCount} Lokasyon Onaylı
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex gap-2">
+                                                                <button
+                                                                    onClick={() => handleOpenProcessModal(req)}
+                                                                    className="inline-flex items-center gap-2 px-6 py-3 bg-amber-600 text-white font-bold rounded-xl hover:bg-amber-700 transition-all shadow-lg shadow-amber-200"
+                                                                >
+                                                                    <Check className="w-5 h-5" />
+                                                                    Onaylı Talebi İşle
+                                                                </button>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-                                                        <span className="flex items-center gap-1">
-                                                            <Calendar className="w-3.5 h-3.5" />
-                                                            {proposal.created_at ? new Date(proposal.created_at).toLocaleDateString('tr-TR') : '-'}
-                                                        </span>
-                                                        <span className="font-bold text-gray-900">
-                                                            ₺{proposal.total?.toLocaleString() || proposal.totalAmount?.toLocaleString()}
-                                                        </span>
-                                                    </div>
-                                                </div>
+                                                ))}
                                             </div>
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedProposal({
-                                                            ...proposal,
-                                                            customerName: proposal.client?.company_name || proposal.customerName,
-                                                            proposalNumber: proposal.proposal_number || proposal.id,
-                                                            grandTotal: proposal.total || proposal.totalAmount,
-                                                            kdvAmount: proposal.tax_amount || proposal.kdvAmount,
-                                                            createdAt: proposal.created_at,
-                                                            items: (proposal.items || []).map((item: any) => ({
-                                                                code: item.description,
-                                                                quantity: item.quantity,
-                                                                unitPrice: item.unit_price
-                                                            }))
-                                                        });
-                                                        setIsLocationModalOpen(true);
-                                                    }}
-                                                    className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
-                                                >
-                                                    <MapPin className="w-5 h-5" />
-                                                    Yer Talebi Oluştur
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        const customer = customers.find(c => c.id === proposal.client_id)
-                                                        setSelectedEmails(customer?.email ? [customer.email] : [])
-                                                        setEmailMessage(`Sayın ${proposal.client?.company_name || 'Yetkili'}, \n\n${proposal.proposal_number || 'Teklifler'} hakkında hazırladığımız rezervasyon listesini bulabilirsiniz.\n\nSaygılarımızla, \nİzmir Açıkhava Reklam Ajansı`)
-                                                        setShowEmailModal(true)
-                                                    }}
-                                                    className="p-3 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all shadow-sm"
-                                                    title="Mail Gönder"
-                                                >
-                                                    <Send className="w-5 h-5" />
-                                                </button>
+                                            <div className="h-px bg-gray-100 my-8" />
+                                        </div>
+                                    )}
+
+                                    {/* Approved Proposals Section */}
+                                    {approvedProposals.length > 0 && (
+                                        <div className="space-y-4">
+                                            {reservationRequests.filter(r => r.status === 'approved').length > 0 && (
+                                                <h3 className="text-sm font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
+                                                    Onaylı Bütçe Teklifleri
+                                                </h3>
+                                            )}
+                                            <div className="grid grid-cols-1 gap-4">
+                                                {approvedProposals.map((proposal) => (
+                                                    <div key={proposal.id} className="group p-6 bg-gray-50 rounded-2xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all">
+                                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm border border-gray-100">
+                                                                    <CheckCircle className="w-6 h-6 text-blue-600" />
+                                                                </div>
+                                                                <div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <h4 className="font-bold text-gray-900 text-lg">
+                                                                            {proposal.proposal_number || proposal.id} - {proposal.client?.company_name || proposal.customerName}
+                                                                        </h4>
+                                                                        <span className="px-2.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-black rounded-full uppercase">
+                                                                            ONAYLANDI
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                                                                        <span className="flex items-center gap-1">
+                                                                            <Calendar className="w-3.5 h-3.5" />
+                                                                            {proposal.created_at ? new Date(proposal.created_at).toLocaleDateString('tr-TR') : '-'}
+                                                                        </span>
+                                                                        <span className="font-bold text-gray-900">
+                                                                            ₺{proposal.total?.toLocaleString() || proposal.totalAmount?.toLocaleString()}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex gap-2">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedProposal({
+                                                                            ...proposal,
+                                                                            customerName: proposal.client?.company_name || proposal.customerName,
+                                                                            proposalNumber: proposal.proposal_number || proposal.id,
+                                                                            grandTotal: proposal.total || proposal.totalAmount,
+                                                                            kdvAmount: proposal.tax_amount || proposal.kdvAmount,
+                                                                            createdAt: proposal.created_at,
+                                                                            items: (proposal.items || []).map((item: any) => ({
+                                                                                code: item.description,
+                                                                                quantity: item.quantity,
+                                                                                unitPrice: item.unit_price
+                                                                            }))
+                                                                        });
+                                                                        setIsLocationModalOpen(true);
+                                                                    }}
+                                                                    className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
+                                                                >
+                                                                    <MapPin className="w-5 h-5" />
+                                                                    Yer Talebi Oluştur
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const customer = customers.find(c => c.id === proposal.client_id)
+                                                                        setSelectedEmails(customer?.email ? [customer.email] : [])
+                                                                        setEmailMessage(`Sayın ${proposal.client?.company_name || 'Yetkili'}, \n\n${proposal.proposal_number || 'Teklifler'} hakkında hazırladığımız rezervasyon listesini bulabilirsiniz.\n\nSaygılarımızla, \nİzmir Açıkhava Reklam Ajansı`)
+                                                                        setShowEmailModal(true)
+                                                                    }}
+                                                                    className="p-3 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all shadow-sm"
+                                                                    title="Mail Gönder"
+                                                                >
+                                                                    <Send className="w-5 h-5" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
-                                    </div>
-                                ))
+                                    )}
+                                </>
                             ) : (
                                 <div className="py-20 text-center bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
                                     <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                                         <FileSpreadsheet className="w-10 h-10 text-gray-300" />
                                     </div>
                                     <h3 className="text-xl font-bold text-gray-900">Onaylı Teklif Bulunamadı</h3>
-                                    <p className="text-gray-500">Yer talebi oluşturulabilecek onaylanmış bütçe teklifi bulunmuyor.</p>
+                                    <p className="text-gray-500">Yer talebi oluşturulabilecek onaylanmış bütçe teklifi veya yer listesi bulunmuyor.</p>
                                 </div>
                             )}
                         </div>
@@ -1832,8 +1898,8 @@ export default function ReservationsPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {reservationRequests.length > 0 ? (
-                            reservationRequests.map((req) => (
+                        {reservationRequests.filter(r => r.status !== 'approved').length > 0 ? (
+                            reservationRequests.filter(r => r.status !== 'approved').map((req) => (
                                 <div key={req.id} className={`bg-white rounded-2xl shadow-sm border-2 p-6 transition-all hover:shadow-md ${req.status === 'completed' ? 'border-green-100 opacity-75' : 'border-blue-100 shadow-blue-100/50'}`}>
                                     <div className="flex justify-between items-start mb-4">
                                         <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">

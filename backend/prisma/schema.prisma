@@ -342,6 +342,7 @@ model ProposalItem {
   hourlyRate      Decimal?
   
   order           Int       @default(0)
+  metadata        Json?     @default("{}")
   
   @@map("proposal_items")
 }
