@@ -132,6 +132,20 @@ def update_from_excel(filename):
         print(f"Error processing {filename}: {e}")
 
 if __name__ == '__main__':
-    update_from_excel('Ürün Envanteri Güncel.xlsx')
-    update_from_excel('Karşıyaka Ürün Envanteri.xlsx')
+    # Search for the files instead of hardcoding characters that might have normalization issues
+    files = os.listdir('.')
+    inventory_file = next((f for f in files if 'ru' in f and 'n' in f and 'Envanteri' in f and 'ncel' in f and f.endswith('.xlsx')), None)
+    karsiyaka_file = next((f for f in files if 'karsiyaka' in f.lower() and 'envanteri' in f.lower() and f.endswith('.xlsx')), None)
+    
+    if inventory_file:
+        update_from_excel(inventory_file)
+    else:
+        # Fallback to hardcoded name if not found via pattern
+        update_from_excel('Ürün Envanteri Güncel.xlsx')
+        
+    if karsiyaka_file:
+        update_from_excel(karsiyaka_file)
+    elif os.path.exists('Karşıyaka Ürün Envanteri.xlsx'):
+        update_from_excel('Karşıyaka Ürün Envanteri.xlsx')
+        
     print("\n--- Done ---")
