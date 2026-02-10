@@ -105,8 +105,7 @@ export default function MainLayout({ onLogout }: MainLayoutProps) {
                             <span className="text-xl font-bold text-white">İ</span>
                         </div>
                         <div>
-                            <h1 className="text-lg font-bold text-gray-900">İzmir Açıkhava CRM</h1>
-                            <p className="text-xs text-gray-500">Reklam Ajansı</p>
+                            <h1 className="text-sm font-bold text-gray-900 leading-tight">İzmir Açık Hava Reklam</h1>
                         </div>
                     </div>
                     <button

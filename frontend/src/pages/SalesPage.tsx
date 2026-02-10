@@ -2007,23 +2007,27 @@ export default function SalesPage() {
                                                     className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
                                                 >
                                                     <option value="">Seçiniz</option>
-                                                    <option value="reklam">Reklam</option>
-                                                    <option value="retail">Retail</option>
-                                                    <option value="fmcg">FMCG</option>
-                                                    <option value="aksesuar">Aksesuar</option>
-                                                    <option value="dayanikli_tuketim">Dayanıklı Tüketim</option>
-                                                    <option value="saglik">Sağlık</option>
-                                                    <option value="medya">Medya</option>
-                                                    <option value="finans">Finans</option>
-                                                    <option value="mobilya">Mobilya</option>
-                                                    <option value="sanayi">Sanayi</option>
-                                                    <option value="tekstil">Tekstil</option>
-                                                    <option value="turizm">Turizm</option>
-                                                    <option value="perakende">Perakende</option>
-                                                    <option value="uretim">Üretim</option>
-                                                    <option value="hizmet">Hizmet</option>
-                                                    <option value="teknoloji">Teknoloji</option>
-                                                    <option value="diger">Diğer</option>
+                                                    <option value="Reklam">Reklam</option>
+                                                    <option value="Retail">Retail</option>
+                                                    <option value="FMCG">FMCG</option>
+                                                    <option value="Gıda">Gıda</option>
+                                                    <option value="Eğitim">Eğitim</option>
+                                                    <option value="İnşaat">İnşaat</option>
+                                                    <option value="Otomotiv">Otomotiv</option>
+                                                    <option value="Aksesuar">Aksesuar</option>
+                                                    <option value="Dayanıklı Tüketim">Dayanıklı Tüketim</option>
+                                                    <option value="Sağlık">Sağlık</option>
+                                                    <option value="Medya">Medya</option>
+                                                    <option value="Finans">Finans</option>
+                                                    <option value="Mobilya">Mobilya</option>
+                                                    <option value="Sanayi">Sanayi</option>
+                                                    <option value="Tekstil">Tekstil</option>
+                                                    <option value="Turizm">Turizm</option>
+                                                    <option value="Perakende">Perakende</option>
+                                                    <option value="Üretim">Üretim</option>
+                                                    <option value="Hizmet">Hizmet</option>
+                                                    <option value="Teknoloji">Teknoloji</option>
+                                                    <option value="Diğer">Diğer</option>
                                                 </select>
                                             </div>
                                         </div>

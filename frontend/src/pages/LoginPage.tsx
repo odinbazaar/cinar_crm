@@ -46,8 +46,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                     <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-lg mb-4">
                         <span className="text-3xl font-bold text-primary-600">İ</span>
                     </div>
-                    <h1 className="text-4xl font-bold text-white mb-2">İzmir Açıkhava CRM</h1>
-                    <p className="text-primary-100 font-medium">Reklam Ajansı Yönetim Sistemi</p>
+                    <h1 className="text-4xl font-bold text-white mb-2">İzmir Açık Hava Reklam</h1>
+                    <p className="text-primary-100 font-medium">Yönetim Paneli</p>
                 </div>
 
                 {/* Login Card */}
@@ -134,7 +134,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
                 {/* Footer */}
                 <p className="text-center text-primary-100 text-sm mt-10 opacity-70">
-                    © 2026 İzmir Açıkhava Reklam Ajansı
+                    © 2026 İzmir Açık Hava Reklam
                 </p>
             </div>
         </div>

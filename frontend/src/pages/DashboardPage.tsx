@@ -1,6 +1,7 @@
 import {
     TrendingUp,
-    DollarSign,
+    Users,
+    Map,
     ArrowUp,
     ArrowDown,
     MapPin,
@@ -16,10 +17,10 @@ import { notificationsService } from '../services/notificationsService'
 import type { Notification } from '../services/notificationsService'
 
 const iconMap: Record<string, any> = {
-    DollarSign,
+    Users,
     MapPin,
     Calendar,
-    TrendingUp
+    Map
 };
 
 export default function DashboardPage() {
@@ -52,7 +53,7 @@ export default function DashboardPage() {
             {/* Page Header */}
             <div>
                 <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-                <p className="text-gray-600 mt-1">İzmir Açıkhava Reklam Ajansı genel performans özeti</p>
+                <p className="text-gray-600 mt-1">İzmir Açık Hava Reklam genel performans özeti</p>
             </div>
 
             {/* Announcements & Reminders */}

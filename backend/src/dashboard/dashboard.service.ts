@@ -35,8 +35,10 @@ export class DashboardService {
             .gte('end_date', today)
             .not('status', 'eq', 'CANCELLED');
 
-        // 4. Avg Profitability (Mock for now or 32% default)
-        const avgProfitability = 32.5;
+        // 4. Total Customers
+        const { count: totalCustomers } = await supabase
+            .from('clients')
+            .select('*', { count: 'exact', head: true });
 
         // 5. Recent Bookings
         const { data: recentBookingsData } = await supabase
@@ -76,10 +78,10 @@ export class DashboardService {
 
         return {
             stats: [
-                { name: 'Toplam Gelir', value: `₺${totalRevenue.toLocaleString('tr-TR')}`, change: '+0%', changeType: 'increase', icon: 'DollarSign', color: 'bg-green-500' },
+                { name: 'Toplam Müşteri Sayısı', value: totalCustomers?.toString() || '0', change: '+0', changeType: 'increase', icon: 'Users', color: 'bg-green-500' },
                 { name: 'Envanter Doluluk', value: `%${occupancy}`, change: '+0%', changeType: 'increase', icon: 'MapPin', color: 'bg-blue-500' },
                 { name: 'Aktif Rezervasyon', value: activeBookings?.toString() || '0', change: '+0', changeType: 'increase', icon: 'Calendar', color: 'bg-purple-500' },
-                { name: 'Ortalama Kârlılık', value: `%${avgProfitability}`, change: '+0%', changeType: 'increase', icon: 'TrendingUp', color: 'bg-orange-500' },
+                { name: 'Güncel Envanter Sayısı', value: totalItems?.toString() || '0', change: '+0', changeType: 'increase', icon: 'Map', color: 'bg-orange-500' },
             ],
             recentBookings,
             inventoryBreakdown
