@@ -84,9 +84,9 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
                 <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
                     <div className="flex items-center gap-2">
                         <div className="bg-red-600 p-1 rounded">
-                            <span className="text-white font-bold text-xs">İAR</span>
+                            <span className="text-white font-black text-xs">IAR</span>
                         </div>
-                        <h2 className="text-sm font-bold text-gray-900 uppercase tracking-tight">Teklif Önizleme</h2>
+                        <h2 className="text-sm font-black text-gray-900 uppercase tracking-tight">Teklif Önizleme</h2>
                     </div>
                     <div className="flex items-center gap-3">
                         {/* Sender Selection */}
@@ -166,12 +166,12 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
                         {/* Letterhead */}
                         <div className="flex justify-between items-start mb-10">
                             <div className="flex items-center gap-4">
-                                <div className="bg-red-600 p-4 rounded-lg">
-                                    <span className="text-white font-black text-4xl leading-none">İAR</span>
+                                <div className="bg-red-600 p-4 rounded-lg shadow-sm">
+                                    <span className="text-white font-black text-4xl leading-none italic tracking-tighter">IAR</span>
                                 </div>
                                 <div>
-                                    <h1 className="text-xl font-black text-red-600 tracking-tighter leading-none">İZMİR AÇIK HAVA</h1>
-                                    <p className="text-[10px] font-bold text-gray-500 tracking-[0.2em] uppercase">REKLAM AJANSAI</p>
+                                    <h1 className="text-xl font-black text-gray-900 tracking-tighter leading-none">İZMİR AÇIK HAVA</h1>
+                                    <p className="text-[10px] font-bold text-gray-500 tracking-[0.2em] uppercase">REKLAM</p>
                                 </div>
                             </div>
                             <div className="text-right text-[9px] font-bold text-gray-600 space-y-1">
@@ -340,7 +340,7 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
                         {/* Signatures */}
                         <div className="grid grid-cols-2 gap-20">
                             <div className="text-center">
-                                <div className="font-black text-red-600 text-xs mb-10 border-b border-black pb-2 uppercase italic">KİRALAYAN (İAR)</div>
+                                <div className="font-black text-red-600 text-xs mb-10 border-b border-black pb-2 uppercase italic">KİRALAYAN (IAR)</div>
                                 <div className="text-[10px] text-gray-400">İmza / Kaşe</div>
                             </div>
                             <div className="text-center">

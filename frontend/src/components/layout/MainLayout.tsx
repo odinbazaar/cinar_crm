@@ -39,6 +39,8 @@ const navigation = [
 ]
 
 
+import Logo from '../common/Logo'
+
 export default function MainLayout({ onLogout }: MainLayoutProps) {
     const location = useLocation()
     const navigate = useNavigate()
@@ -99,15 +101,8 @@ export default function MainLayout({ onLogout }: MainLayoutProps) {
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
                 {/* Logo */}
-                <div className="h-16 flex items-center justify-between px-6 border-b border-gray-200">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-lg flex items-center justify-center">
-                            <span className="text-xl font-bold text-white">İ</span>
-                        </div>
-                        <div>
-                            <h1 className="text-sm font-bold text-gray-900 leading-tight">İzmir Açık Hava Reklam</h1>
-                        </div>
-                    </div>
+                <div className="h-20 flex items-center justify-between px-6 border-b border-gray-200">
+                    <Logo size="md" />
                     <button
                         onClick={() => setSidebarOpen(false)}
                         className="lg:hidden text-gray-500 hover:text-gray-700"

@@ -121,7 +121,7 @@ export class UsersService {
             last_name: createUserDto.last_name,
             role: createUserDto.role,
             status: 'ACTIVE',
-            permissions: (createUserDto as any).permissions || ['dashboard', 'sales', 'reservations', 'inventory', 'proposals', 'incoming-calls']
+            permissions: createUserDto.permissions || ['dashboard', 'sales', 'reservations', 'inventory', 'proposals', 'incoming-calls']
         };
 
         if (createUserDto.phone) userData.phone = createUserDto.phone;

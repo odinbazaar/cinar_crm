@@ -27,10 +27,12 @@ import {
     Table
 } from 'lucide-react'
 import { useToast } from '../hooks/useToast'
+import { useAuth } from '../hooks/useAuth'
 import { incomingCallsService, type IncomingCall } from '../services/incomingCallsService'
 import { clientsService } from '../services/clientsService'
 
 export default function IncomingCallsPage() {
+    const { isAdmin } = useAuth()
     const [incomingCalls, setIncomingCalls] = useState<IncomingCall[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
@@ -379,13 +381,15 @@ export default function IncomingCallsPage() {
                                             <Edit2 className="w-4 h-4" />
                                             Düzenle
                                         </button>
-                                        <button
-                                            onClick={() => handleDeleteCall(call.id)}
-                                            className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-red-500 rounded-xl hover:bg-red-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                            Sil
-                                        </button>
+                                        {isAdmin && (
+                                            <button
+                                                onClick={() => handleDeleteCall(call.id)}
+                                                className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-red-500 rounded-xl hover:bg-red-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                                Sil
+                                            </button>
+                                        )}
                                     </>
                                 ) : (
                                     <div className="w-full px-4 py-3 text-sm font-bold text-green-700 bg-green-50 rounded-xl flex items-center justify-center gap-2 border border-green-100">
@@ -463,13 +467,15 @@ export default function IncomingCallsPage() {
                                                         >
                                                             <Edit2 className="w-4 h-4" />
                                                         </button>
-                                                        <button
-                                                            onClick={() => handleDeleteCall(call.id)}
-                                                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-white rounded-lg transition-all"
-                                                            title="Sil"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
+                                                        {isAdmin && (
+                                                            <button
+                                                                onClick={() => handleDeleteCall(call.id)}
+                                                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-white rounded-lg transition-all"
+                                                                title="Sil"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
                                                     </>
                                                 ) : (
                                                     <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg">
@@ -687,16 +693,18 @@ export default function IncomingCallsPage() {
                                                                     {note.reminderDate} {note.reminderTime}
                                                                 </span>
                                                             )}
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    const updated = JSON.stringify(notesArr.filter((n: any) => n.id !== note.id));
-                                                                    setNewCallForm({ ...newCallForm, notes: updated });
-                                                                }}
-                                                                className="absolute right-3 top-3 p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                                                            >
-                                                                <Trash2 className="w-3" />
-                                                            </button>
+                                                            {isAdmin && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const updated = JSON.stringify(notesArr.filter((n: any) => n.id !== note.id));
+                                                                        setNewCallForm({ ...newCallForm, notes: updated });
+                                                                    }}
+                                                                    className="absolute right-3 top-3 p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                                                >
+                                                                    <Trash2 className="w-3" />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                         <p className="text-xs text-gray-700 leading-relaxed font-medium">{note.content}</p>
                                                     </div>

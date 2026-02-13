@@ -1,0 +1,16 @@
+﻿python :   File "<string>", line 6
+At line:1 char:1
++ python -c "
++ ~~~~~~~~~~~
+    + CategoryInfo          : NotSpecifie 
+   d: (  File "<string>", line 6:String)  
+   [], RemoteException
+    + FullyQualifiedErrorId : NativeComma 
+   ndError
+ 
+    print(f'{s}: {len(df)} rows, unique Ko
+d: {df[" Kod\].nunique()},
+                                          
+                          ^
+SyntaxError: EOL while scanning string lit
+eral

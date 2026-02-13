@@ -25,6 +25,7 @@ import {
     Clock,
     List
 } from 'lucide-react'
+import { useAuth } from '../hooks/useAuth'
 import { clientsService } from '../services/clientsService'
 import type { Client, CreateClientDto } from '../services/clientsService'
 
@@ -38,6 +39,7 @@ interface ClientFormModalProps {
 }
 
 function ClientFormModal({ isOpen, onClose, onSave, initialData, loading }: ClientFormModalProps) {
+    const { isAdmin } = useAuth()
     const [formData, setFormData] = useState<CreateClientDto>({
         company_name: '',
         trade_name: '',
@@ -639,16 +641,18 @@ function ClientFormModal({ isOpen, onClose, onSave, initialData, loading }: Clie
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                const updatedNotes = JSON.stringify(notesArr.filter((n: any) => n.id !== note.id));
-                                                                setFormData({ ...formData, notes: updatedNotes });
-                                                            }}
-                                                            className="p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                                                        >
-                                                            <Trash2 className="w-3.5 h-3.5" />
-                                                        </button>
+                                                        {isAdmin && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const updatedNotes = JSON.stringify(notesArr.filter((n: any) => n.id !== note.id));
+                                                                    setFormData({ ...formData, notes: updatedNotes });
+                                                                }}
+                                                                className="p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                     <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.content}</p>
                                                 </div>
@@ -704,6 +708,7 @@ interface ClientCardProps {
 }
 
 function ClientCard({ client, onEdit, onDelete, expanded, onToggle }: ClientCardProps) {
+    const { isAdmin } = useAuth()
     const statusColors = {
         active: 'bg-green-100 text-green-800',
         inactive: 'bg-gray-100 text-gray-800',
@@ -753,12 +758,14 @@ function ClientCard({ client, onEdit, onDelete, expanded, onToggle }: ClientCard
                         >
                             <Edit2 className="w-4 h-4" />
                         </button>
-                        <button
-                            onClick={() => onDelete(client.id)}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
+                        {isAdmin && (
+                            <button
+                                onClick={() => onDelete(client.id)}
+                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        )}
                         <button
                             onClick={onToggle}
                             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"

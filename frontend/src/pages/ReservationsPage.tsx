@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { FileSpreadsheet, MapPin, Search, Filter, Calendar, Clock, Check, X, CheckCircle, Smartphone, RefreshCw, ChevronRight, ChevronLeft, Download, Plus, Trash2, AlertCircle, CalendarDays, Send, Mail } from 'lucide-react'
 import { reservationsData } from '../data/reservations'
 import { useToast } from '../hooks/useToast'
+import { useAuth } from '../hooks/useAuth'
 import { inventoryService, bookingsService, customerRequestsService, proposalsService, clientsService } from '../services'
 import LocationRequestModal from '../components/proposals/LocationRequestModal'
 import * as XLSX from 'xlsx'
@@ -44,6 +45,7 @@ const sampleLocations: Location[] = typedReservations
 
 
 export default function ReservationsPage() {
+    const { isAdmin } = useAuth()
     const [locations, setLocations] = useState<Location[]>([])
     const [selectedYear, setSelectedYear] = useState<number>(2026)
     const [selectedMonth, setSelectedMonth] = useState<string>('Ocak')
@@ -1123,13 +1125,15 @@ export default function ReservationsPage() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-sm font-bold text-gray-700">Filtreleme Seçenekleri</h3>
-                            <button
-                                onClick={handleResetData}
-                                className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2"
-                            >
-                                <RefreshCw className="w-3.5 h-3.5" />
-                                Verileri Sıfırla
-                            </button>
+                            {isAdmin && (
+                                <button
+                                    onClick={handleResetData}
+                                    className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2"
+                                >
+                                    <RefreshCw className="w-3.5 h-3.5" />
+                                    Verileri Sıfırla
+                                </button>
+                            )}
                         </div>
                         {/* İlk Satır - Ana Filtreler */}
                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -1333,14 +1337,16 @@ export default function ReservationsPage() {
                             <Search className="w-5 h-5" />
                             Müsaitlik Sorgula
                         </button>
-                        <button
-                            onClick={handleDeleteSelected}
-                            disabled={selectedRows.length === 0}
-                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <Trash2 className="w-5 h-5" />
-                            Seçilenleri Sil ({selectedRows.length})
-                        </button>
+                        {isAdmin && (
+                            <button
+                                onClick={handleDeleteSelected}
+                                disabled={selectedRows.length === 0}
+                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Trash2 className="w-5 h-5" />
+                                Seçilenleri Sil ({selectedRows.length})
+                            </button>
+                        )}
                     </div>
 
 

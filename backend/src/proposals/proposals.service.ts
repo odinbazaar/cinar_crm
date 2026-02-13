@@ -284,7 +284,7 @@ export class ProposalsService {
         // Use a 5-digit random for better look
         const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
 
-        return `İAR-${year}${month}${day}-${random}`;
+        return `IAR-${year}${month}${day}-${random}`;
     }
 
     // Teklif e-posta ile gönder
@@ -333,10 +333,10 @@ export class ProposalsService {
 
             // Header - Logo (Sözleşme stiliyle uyumlu)
             doc.rect(40, 35, 50, 50).fill(primaryColor);
-            doc.fillColor('white').fontSize(20).font(safeFontBold).text('İAR', 40, 50, { width: 50, align: 'center' });
+            doc.fillColor('white').fontSize(20).font(safeFontBold).text('IAR', 40, 50, { width: 50, align: 'center' });
 
             // Brand - Tek satırda
-            doc.fillColor(primaryColor).fontSize(14).font(safeFontBold).text('İZMİR AÇIK HAVA REKLAM', 100, 48);
+            doc.fillColor('#111827').fontSize(14).font(safeFontBold).text('İZMİR AÇIK HAVA REKLAM', 100, 48);
 
             // Company Info (sağ taraf)
             const companyName = this.configService.get<string>('COMPANY_NAME') || 'İzmir Açıkhava Reklam Ajansı';
@@ -573,7 +573,7 @@ export class ProposalsService {
                         <tr>
                             <td style="vertical-align: middle;">
                                 <div style="display: inline-block; background: white; padding: 8px 12px; border-radius: 6px; margin-right: 12px;">
-                                    <span style="color: #dc2626; font-weight: 900; font-size: 20px;">İAR</span>
+                                    <span style="color: #dc2626; font-weight: 900; font-size: 20px;">IAR</span>
                                 </div>
                                 <span style="color: white; font-size: 16px; font-weight: bold;">İZMİR AÇIK HAVA REKLAM</span>
                             </td>

@@ -20,6 +20,8 @@ import {
 import { usersService } from '../services/usersService'
 import type { CreateUserDto } from '../services/usersService'
 import type { User as UserType } from '../services/authService'
+import { useToast } from '../hooks/useToast'
+import { useAuth } from '../hooks/useAuth'
 
 interface SettingSection {
     id: string
@@ -42,6 +44,8 @@ const sections: SettingSection[] = [
 export default function SettingsPage() {
     const [activeSection, setActiveSection] = useState('profile')
     const [saved, setSaved] = useState(false)
+    const { success, error: errorToast } = useToast()
+    const { isAdmin } = useAuth()
 
     // Users management
     const [users, setUsers] = useState<UserType[]>([])
@@ -144,11 +148,14 @@ export default function SettingsPage() {
         setError(null)
         try {
             await usersService.create(newUser)
+            success('Kullanıcı başarıyla oluşturuldu')
             await loadUsers()
             setShowUserModal(false)
             resetNewUser()
         } catch (err: any) {
-            setError(err.message || 'Kullanıcı oluşturulurken hata oluştu')
+            const errorMsg = err.message || 'Kullanıcı oluşturulurken hata oluştu'
+            setError(errorMsg)
+            errorToast(errorMsg)
         } finally {
             setLoading(false)
         }
@@ -165,14 +172,18 @@ export default function SettingsPage() {
                 last_name: editingUser.last_name,
                 phone: editingUser.phone,
                 status: editingUser.status,
+                role: editingUser.role,
                 permissions: editingUser.permissions,
                 email: editingUser.email,
-                password: editingUser.password // Artık e-posta değil, girilen şifreyi gönderiyoruz
+                password: editingUser.password
             })
+            success('Kullanıcı başarıyla güncellendi')
             await loadUsers()
             setEditingUser(null)
         } catch (err: any) {
-            setError(err.message || 'Kullanıcı güncellenirken hata oluştu')
+            const errorMsg = err.message || 'Kullanıcı güncellenirken hata oluştu'
+            setError(errorMsg)
+            errorToast(errorMsg)
         } finally {
             setLoading(false)
         }
@@ -185,9 +196,12 @@ export default function SettingsPage() {
         setError(null)
         try {
             await usersService.delete(id)
+            success('Kullanıcı başarıyla silindi')
             await loadUsers()
         } catch (err: any) {
-            setError(err.message || 'Kullanıcı silinirken hata oluştu')
+            const errorMsg = err.message || 'Kullanıcı silinirken hata oluştu'
+            setError(errorMsg)
+            errorToast(errorMsg)
         } finally {
             setLoading(false)
         }
@@ -370,13 +384,15 @@ export default function SettingsPage() {
                                     >
                                         <Edit2 className="w-4 h-4" />
                                     </button>
-                                    <button
-                                        onClick={() => handleDeleteUser(user.id)}
-                                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-white rounded-lg transition-colors"
-                                        title="Sil"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                                    {isAdmin && (
+                                        <button
+                                            onClick={() => handleDeleteUser(user.id)}
+                                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-white rounded-lg transition-colors"
+                                            title="Sil"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>

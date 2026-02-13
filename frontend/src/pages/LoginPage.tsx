@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { LogIn, AlertCircle, Users, Shield } from 'lucide-react'
 import { authService } from '../services'
 
+import Logo from '../components/common/Logo'
+
 interface LoginPageProps {
     onLogin: () => void
 }
@@ -39,22 +41,19 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-[#1e293b] flex items-center justify-center p-4">
             <div className="w-full max-w-md">
                 {/* Logo and Title */}
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-lg mb-4">
-                        <span className="text-3xl font-bold text-primary-600">İ</span>
-                    </div>
-                    <h1 className="text-4xl font-bold text-white mb-2">İzmir Açık Hava Reklam</h1>
-                    <p className="text-primary-100 font-medium">Yönetim Paneli</p>
+                <div className="flex flex-col items-center mb-12">
+                    <Logo size="xl" light className="mb-6 transform hover:scale-105 transition-transform" />
+                    <p className="text-slate-400 font-medium tracking-widest uppercase text-xs">Yönetim Paneli</p>
                 </div>
 
                 {/* Login Card */}
-                <div className="bg-white rounded-2xl shadow-2xl p-8 transition-all hover:shadow-primary-500/10">
-                    <div className="text-center mb-8">
-                        <h2 className="text-2xl font-bold text-gray-900">Hoş Geldiniz</h2>
-                        <p className="text-sm text-gray-500 mt-2">Devam etmek için lütfen giriş bilgilerinizi yazın</p>
+                <div className="bg-white rounded-3xl shadow-2xl p-10 border border-slate-700/50">
+                    <div className="text-center mb-10">
+                        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Hoş Geldiniz</h2>
+                        <p className="text-sm text-slate-500 mt-2">Devam etmek için lütfen giriş bilgilerinizi yazın</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-5">
@@ -133,7 +132,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 </div>
 
                 {/* Footer */}
-                <p className="text-center text-primary-100 text-sm mt-10 opacity-70">
+                <p className="text-center text-primary-100 text-sm mt-10 opacity-70 font-bold uppercase tracking-widest">
                     © 2026 İzmir Açık Hava Reklam
                 </p>
             </div>

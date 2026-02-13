@@ -7,8 +7,10 @@ import type { InventoryItem } from '../services/inventoryService'
 import InventoryFormModal from '../components/inventory/InventoryFormModal'
 import InventoryMapModal from '../components/inventory/InventoryMapModal'
 import DataImportModal from '../components/common/DataImportModal'
+import { useAuth } from '../hooks/useAuth'
 
 export default function InventoryPage() {
+    const { isAdmin } = useAuth()
     const [searchTerm, setSearchTerm] = useState('')
     const [filterType, setFilterType] = useState<string>('ALL')
     const [columnFilters, setColumnFilters] = useState({
@@ -374,13 +376,15 @@ export default function InventoryPage() {
                                                 <Map className="w-3 h-3" />
                                                 Harita
                                             </button>
-                                            <button
-                                                onClick={() => handleDelete(item.id)}
-                                                className="text-red-500 hover:text-red-700 font-medium text-xs flex items-center gap-1"
-                                            >
-                                                <Trash2 className="w-3 h-3" />
-                                                Sil
-                                            </button>
+                                            {isAdmin && (
+                                                <button
+                                                    onClick={() => handleDelete(item.id)}
+                                                    className="text-red-500 hover:text-red-700 font-medium text-xs flex items-center gap-1"
+                                                >
+                                                    <Trash2 className="w-3 h-3" />
+                                                    Sil
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

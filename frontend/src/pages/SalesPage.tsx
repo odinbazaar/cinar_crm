@@ -37,6 +37,7 @@ import {
 import LocationRequestModal from '../components/proposals/LocationRequestModal'
 import ProposalContractModal from '../components/proposals/ProposalContractModal'
 import { useToast } from '../hooks/useToast'
+import { useAuth } from '../hooks/useAuth'
 import { clientsService } from '../services/clientsService'
 import { proposalsService } from '../services/proposalsService'
 import { customerRequestsService } from '../services/customerRequestsService'
@@ -161,6 +162,7 @@ const getProductTypes = () => {
 }
 
 export default function SalesPage() {
+    const { isAdmin } = useAuth()
     const [activeTab, setActiveTab] = useState<'customers' | 'proposals' | 'sent' | 'reservations'>('customers')
     const [showCustomerModal, setShowCustomerModal] = useState(false)
     const [showProposalModal, setShowProposalModal] = useState(false)
@@ -733,8 +735,9 @@ export default function SalesPage() {
     // Hesaplama fonksiyonları
     const calculateProductTotal = () => {
         return proposalItems.reduce((sum, item) => {
+            const period = parseInt(item.weekLayout || '1') || 1
             const price = (item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice
-            return sum + (item.quantity * price)
+            return sum + (item.quantity * price * period)
         }, 0)
     }
 
@@ -743,12 +746,18 @@ export default function SalesPage() {
             // Blok listede operasyon maliyeti (ürünlerin birim op. maliyetleri toplamı) * operasyon adeti
             return proposalItems.reduce((sum, item) => sum + item.operationCost, 0) * blockOperationQuantity
         }
-        // Normal listede adet başına operasyon maliyeti
-        return proposalItems.reduce((sum, item) => sum + (item.quantity * item.operationCost), 0)
+        // Normal listede adet başına operasyon maliyeti * dönem
+        return proposalItems.reduce((sum, item) => {
+            const period = parseInt(item.weekLayout || '1') || 1
+            return sum + (item.quantity * item.operationCost * period)
+        }, 0)
     }
 
     const calculatePrintingTotal = () => {
-        return proposalItems.reduce((sum, item) => sum + (item.quantity * item.printingCost), 0)
+        return proposalItems.reduce((sum, item) => {
+            const period = parseInt(item.weekLayout || '1') || 1
+            return sum + (item.quantity * item.printingCost * period)
+        }, 0)
     }
 
     const calculateSubtotal = () => {
@@ -1467,13 +1476,15 @@ export default function SalesPage() {
                                                     >
                                                         <RefreshCw className="w-4 h-4" />
                                                     </button>
-                                                    <button
-                                                        onClick={() => handleDeleteCustomer(customer.id)}
-                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                        title="Sil"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
+                                                    {isAdmin && (
+                                                        <button
+                                                            onClick={() => handleDeleteCustomer(customer.id)}
+                                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                            title="Sil"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -1568,18 +1579,20 @@ export default function SalesPage() {
                                                     <RefreshCw className="w-4 h-4" />
                                                     Revize Et
                                                 </button>
-                                                <button
-                                                    onClick={() => {
-                                                        if (window.confirm('Bu teklifi silmek istediğinize emin misiniz?')) {
-                                                            handleDeleteProposal(proposal.id)
-                                                        }
-                                                    }}
-                                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                                                    title="Sil"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                    Sil
-                                                </button>
+                                                {isAdmin && (
+                                                    <button
+                                                        onClick={() => {
+                                                            if (window.confirm('Bu teklifi silmek istediğinize emin misiniz?')) {
+                                                                handleDeleteProposal(proposal.id)
+                                                            }
+                                                        }}
+                                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                                                        title="Sil"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                        Sil
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex flex-wrap gap-2 ml-13">
@@ -2494,10 +2507,11 @@ export default function SalesPage() {
                                                 </select>
                                             </div>
                                             <input
-                                                type="text"
+                                                type="number"
+                                                min="1"
                                                 value={item.weekLayout || ''}
                                                 onChange={(e) => updateProposalItem(index, 'weekLayout', e.target.value)}
-                                                className="w-20 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs"
+                                                className="w-20 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs text-center"
                                                 placeholder="Dönem"
                                             />
                                             <input
@@ -2538,7 +2552,11 @@ export default function SalesPage() {
                                                 placeholder="Op."
                                             />
                                             <span className="w-28 text-right font-bold text-gray-900 text-xs">
-                                                ₺{((item.quantity * ((item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice)) + (item.quantity * item.printingCost) + (item.quantity * item.operationCost)).toLocaleString()}
+                                                ₺{(() => {
+                                                    const period = parseInt(item.weekLayout || '1') || 1
+                                                    const price = (item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice
+                                                    return (((item.quantity * price) + (item.quantity * item.printingCost) + (item.quantity * item.operationCost)) * period).toLocaleString()
+                                                })()}
                                             </span>
                                             {proposalItems.length > 1 && (
                                                 <button
