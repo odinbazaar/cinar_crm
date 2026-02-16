@@ -951,7 +951,7 @@ export default function ReservationsPage() {
             setLocations(updated as any);
             localStorage.setItem('inventoryLocations', JSON.stringify(updated));
             setSelectedRows([]);
-            toastSuccess(`${selectedRows.length} adet opsiyon KESİN olarak onaylandı ve Asım Listesi'ne eklendi!`);
+            toastSuccess(`${selectedRows.length} adet opsiyon KESİN olarak onaylandı ve Operasyonlar listesine eklendi!`);
         } catch (error) {
             console.error('Confirm error:', error);
             toastInfo('Onaylama sırasında bir hata oluştu.');

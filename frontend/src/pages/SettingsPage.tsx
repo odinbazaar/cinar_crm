@@ -15,9 +15,16 @@ import {
     Users,
     Lock,
     LogIn,
-    Activity
+    Activity,
+    Info,
+    AlertCircle,
+    Clock,
+    Terminal,
+    RefreshCw
 } from 'lucide-react'
 import { usersService } from '../services/usersService'
+import { logsService } from '../services/logsService'
+import type { SystemLog } from '../services/logsService'
 import type { CreateUserDto } from '../services/usersService'
 import type { User as UserType } from '../services/authService'
 import { useToast } from '../hooks/useToast'
@@ -36,6 +43,7 @@ const sections: SettingSection[] = [
     { id: 'security', name: 'Güvenlik', icon: Shield },
     { id: 'permissions', name: 'Sayfa Yetkileri', icon: Lock },
     { id: 'login-logs', name: 'Giriş Kayıtları', icon: LogIn },
+    { id: 'system-logs', name: 'Sistem Günlükleri', icon: Activity },
     { id: 'appearance', name: 'Görünüm', icon: Palette },
     { id: 'data', name: 'Veri Yönetimi', icon: Database },
     { id: 'language', name: 'Dil & Bölge', icon: Globe },
@@ -60,7 +68,7 @@ export default function SettingsPage() {
         last_name: '',
         role: 'EMPLOYEE',
         phone: '',
-        permissions: ['dashboard', 'sales', 'reservations', 'inventory', 'proposals', 'incoming-calls'] // Varsayılan yetkiler
+        permissions: ['dashboard', 'sales', 'reservations', 'inventory', 'proposals', 'incoming-calls', 'reports'] // Varsayılan yetkiler
     })
     const [userModalTab, setUserModalTab] = useState<'info' | 'permissions'>('info')
 
@@ -103,11 +111,12 @@ export default function SettingsPage() {
         { id: 'reservations', name: 'Rezervasyon', manager: true, employee: true },
         { id: 'cost-settings', name: 'Maliyet Ayarları', manager: true, employee: false },
         { id: 'inventory', name: 'Envanter', manager: true, employee: true },
-        { id: 'asim-listesi', name: 'Asım Listesi', manager: true, employee: true },
+        { id: 'asim-listesi', name: 'Operasyonlar', manager: true, employee: true },
         { id: 'proposals', name: 'Teklifler', manager: true, employee: true },
         { id: 'contracts', name: 'Sözleşmeler', manager: true, employee: false },
         { id: 'incoming-calls', name: 'Arayan Firmalar', manager: true, employee: true },
         { id: 'settings', name: 'Ayarlar', manager: true, employee: false },
+        { id: 'reports', name: 'Raporlar', manager: true, employee: false },
     ])
 
     // Login Logs (Mock Data)
@@ -118,11 +127,42 @@ export default function SettingsPage() {
         { id: 4, user: 'Can Bey', email: 'can@izmiracikhavareklam.com', date: '2026-01-24 18:05', ip: '192.168.1.22', device: 'Android - Chrome' },
         { id: 5, user: 'Simge Hanım', email: 'simge@izmiracikhavareklam.com', date: '2026-01-23 23:50', ip: '192.168.1.10', device: 'Windows - Chrome' },
     ])
+
+    // System Logs
+    const [systemLogs, setSystemLogs] = useState<SystemLog[]>([])
+    const [logsLoading, setLogsLoading] = useState(false)
+
     useEffect(() => {
         if (activeSection === 'users') {
             loadUsers()
+        } else if (activeSection === 'system-logs') {
+            loadLogs()
         }
     }, [activeSection])
+
+    const loadLogs = async () => {
+        setLogsLoading(true)
+        try {
+            const data = await logsService.getAll()
+            setSystemLogs(data)
+        } catch (err) {
+            console.error('Logs error:', err)
+            errorToast('Günlükler yüklenirken hata oluştu')
+        } finally {
+            setLogsLoading(false)
+        }
+    }
+
+    const handleClearLogs = async () => {
+        if (!confirm('Tüm günlükleri silmek istediğinizden emin misiniz?')) return
+        try {
+            await logsService.clear()
+            success('Günlükler başarıyla temizlendi')
+            loadLogs()
+        } catch (err) {
+            errorToast('Günlükler temizlenirken hata oluştu')
+        }
+    }
 
     const loadUsers = async () => {
         setLoading(true)
@@ -215,7 +255,7 @@ export default function SettingsPage() {
             last_name: '',
             role: 'EMPLOYEE',
             phone: '',
-            permissions: ['dashboard', 'sales', 'reservations', 'inventory', 'proposals', 'incoming-calls']
+            permissions: ['dashboard', 'sales', 'reservations', 'inventory', 'proposals', 'incoming-calls', 'reports']
         })
         setUserModalTab('info')
     }
@@ -375,7 +415,7 @@ export default function SettingsPage() {
                                         onClick={() => {
                                             setEditingUser({
                                                 ...user,
-                                                permissions: user.permissions || ['dashboard', 'sales', 'reservations', 'inventory', 'proposals', 'incoming-calls']
+                                                permissions: user.permissions || ['dashboard', 'sales', 'reservations', 'inventory', 'proposals', 'incoming-calls', 'reports']
                                             })
                                             setUserModalTab('info')
                                         }}
@@ -514,7 +554,7 @@ export default function SettingsPage() {
                                         { id: 'reservations', name: 'Rezervasyon' },
                                         { id: 'cost-settings', name: 'Maliyet Ayarları' },
                                         { id: 'inventory', name: 'Envanter' },
-                                        { id: 'asim-listesi', name: 'Asım Listesi' },
+                                        { id: 'asim-listesi', name: 'Operasyonlar' },
                                         { id: 'proposals', name: 'Teklifler' },
                                         { id: 'contracts', name: 'Sözleşmeler' },
                                         { id: 'incoming-calls', name: 'Arayan Firmalar' },
@@ -684,7 +724,7 @@ export default function SettingsPage() {
                                         { id: 'reservations', name: 'Rezervasyon' },
                                         { id: 'cost-settings', name: 'Maliyet Ayarları' },
                                         { id: 'inventory', name: 'Envanter' },
-                                        { id: 'asim-listesi', name: 'Asım Listesi' },
+                                        { id: 'asim-listesi', name: 'Operasyonlar' },
                                         { id: 'proposals', name: 'Teklifler' },
                                         { id: 'contracts', name: 'Sözleşmeler' },
                                         { id: 'incoming-calls', name: 'Arayan Firmalar' },
@@ -1092,6 +1132,113 @@ export default function SettingsPage() {
         </div>
     )
 
+    const renderSystemLogsSection = () => (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Sistem Günlükleri</h3>
+                    <p className="text-sm text-gray-500 mt-1">Uygulama genelindeki tüm işlemleri ve hataları takip edin.</p>
+                </div>
+                <div className="flex gap-2">
+                    <button
+                        onClick={loadLogs}
+                        disabled={logsLoading}
+                        className="p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Yenile"
+                    >
+                        <RefreshCw className={`w-5 h-5 ${logsLoading ? 'animate-spin' : ''}`} />
+                    </button>
+                    {isAdmin && (
+                        <button
+                            onClick={handleClearLogs}
+                            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Günlükleri Temizle
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-gray-50 border-b border-gray-200">
+                                <th className="px-6 py-4 text-sm font-semibold text-gray-900">Seviye</th>
+                                <th className="px-6 py-4 text-sm font-semibold text-gray-900">Modül</th>
+                                <th className="px-6 py-4 text-sm font-semibold text-gray-900">Mesaj / Detay</th>
+                                <th className="px-6 py-4 text-sm font-semibold text-gray-900">Kullanıcı</th>
+                                <th className="px-6 py-4 text-sm font-semibold text-gray-900">Tarih</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                            {logsLoading && systemLogs.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <RefreshCw className="w-8 h-8 animate-spin text-primary-500" />
+                                            <span>Günlükler yükleniyor...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : systemLogs.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                                        Henüz günlük kaydı bulunmuyor.
+                                    </td>
+                                </tr>
+                            ) : (
+                                systemLogs.map((log) => (
+                                    <tr key={log.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2">
+                                                {log.level === 'ERROR' ? (
+                                                    <AlertCircle className="w-4 h-4 text-red-500" />
+                                                ) : log.level === 'WARN' ? (
+                                                    <AlertCircle className="w-4 h-4 text-amber-500" />
+                                                ) : (
+                                                    <Info className="w-4 h-4 text-blue-500" />
+                                                )}
+                                                <span className={`text-xs font-bold uppercase ${log.level === 'ERROR' ? 'text-red-700' : log.level === 'WARN' ? 'text-amber-700' : 'text-blue-700'}`}>
+                                                    {log.level}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                                {log.module}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="max-w-md">
+                                                <p className="text-sm font-medium text-gray-900 line-clamp-2">{log.message}</p>
+                                                {log.details && (
+                                                    <p className="text-xs text-gray-500 mt-0.5 font-mono truncate">{log.details}</p>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-sm text-gray-700">
+                                                {log.user_name || <span className="text-gray-400 italic">Sistem</span>}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                                            <div className="flex items-center gap-1.5">
+                                                <Clock className="w-3.5 h-3.5" />
+                                                {new Date(log.created_at).toLocaleString('tr-TR')}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    )
+
     const renderActiveSection = () => {
         switch (activeSection) {
             case 'profile': return renderProfileSection()
@@ -1100,6 +1247,7 @@ export default function SettingsPage() {
             case 'security': return renderSecuritySection()
             case 'permissions': return renderPermissionsSection()
             case 'login-logs': return renderLoginLogsSection()
+            case 'system-logs': return renderSystemLogsSection()
             case 'appearance': return renderAppearanceSection()
             case 'data': return renderDataSection()
             case 'language': return renderLanguageSection()

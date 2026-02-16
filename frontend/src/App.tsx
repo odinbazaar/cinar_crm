@@ -12,6 +12,7 @@ import ProposalsPage from './pages/ProposalsPage'
 import AsimListesiPage from './pages/AsimListesiPage'
 import CustomerRequestsPage from './pages/CustomerRequestsPage'
 import SettingsPage from './pages/SettingsPage'
+import ReportsPage from './pages/ReportsPage'
 import SalesPage from './pages/SalesPage'
 import ReservationsPage from './pages/ReservationsPage'
 import CostSettingsPage from './pages/CostSettingsPage'
@@ -79,6 +80,7 @@ function App() {
                         <Route path="contracts" element={<ContractsPage />} />
                         <Route path="incoming-calls" element={<IncomingCallsPage />} />
                         <Route path="settings" element={<SettingsPage />} />
+                        <Route path="reports" element={<ReportsPage />} />
                         <Route path="cost-settings" element={<CostSettingsPage />} />
 
                         {/* Redirect tasks to inventory for now */}

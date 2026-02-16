@@ -543,3 +543,19 @@ model PriceList {
 
   @@map("price_lists")
 }
+// ============================================
+// 10. SYSTEM LOGGING (NEW)
+// ============================================
+
+model SystemLog {
+  id        String   @id @default(uuid())
+  level     String   // INFO, WARN, ERROR
+  module    String
+  message   String
+  details   String?  // Stack trace or extra info
+  userId    String?  @map("user_id")
+  userName  String?  @map("user_name")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("system_logs")
+}

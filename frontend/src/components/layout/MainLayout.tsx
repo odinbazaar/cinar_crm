@@ -15,7 +15,8 @@ import {
     ShoppingBag,
     CalendarDays,
     Calculator,
-    FileSignature
+    FileSignature,
+    BarChart3
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import NotificationsPanel from './NotificationsPanel'
@@ -31,10 +32,11 @@ const navigation = [
     { id: 'reservations', name: 'Rezervasyon', href: '/bookings', icon: CalendarDays },
     { id: 'cost-settings', name: 'Maliyet Ayarları', href: '/cost-settings', icon: Calculator },
     { id: 'inventory', name: 'Envanter', href: '/inventory', icon: MapPin },
-    { id: 'asim-listesi', name: 'Asım Listesi', href: '/asim-listesi', icon: Calendar },
+    { id: 'asim-listesi', name: 'Operasyonlar', href: '/asim-listesi', icon: Calendar },
     { id: 'proposals', name: 'Teklifler', href: '/proposals', icon: FileText },
     { id: 'contracts', name: 'Sözleşmeler', href: '/contracts', icon: FileSignature },
     { id: 'incoming-calls', name: 'Arayan Firmalar', href: '/incoming-calls', icon: ClipboardList },
+    { id: 'reports', name: 'Raporlar', href: '/reports', icon: BarChart3 },
     { id: 'settings', name: 'Ayarlar', href: '/settings', icon: Settings },
 ]
 
@@ -74,13 +76,22 @@ export default function MainLayout({ onLogout }: MainLayoutProps) {
 
     // Menü kalemlerini yetkiye göre filtrele
     const filteredNavigation = navigation.filter(item => {
-        // Eğer yetki listesi boş değilse kontrol et, boşsa (yeni/hata) hepsini göster
+        // Raporlar sadece yönetici/adminlere özel (başta kontrol et)
+        if (item.id === 'reports' && !isManager) return false
+
+        // Eğer yetki listesi varsa onu kullan
         if (userPermissions.length > 0) {
-            return userPermissions.includes(item.id)
+            // Raporlar için özel durum: Manager ise her zaman görsün (veya izne bağlı olsun)
+            // Burada kullanıcıya esneklik sağlamak için: if listed, show. if not listed but is manager and it is reports, show.
+            return userPermissions.includes(item.id) || (item.id === 'reports' && isManager)
         }
-        // Admin her şeyi görür
+        
+        // Yetki listesi yoksa role göre göster
         if (isManager) return true
-        return true
+        
+        // EMPLOYEE yetkileri varsayılan (listesi yoksa)
+        const employeeAllowed = ['dashboard', 'sales', 'reservations', 'inventory', 'asim-listesi', 'proposals', 'incoming-calls']
+        return employeeAllowed.includes(item.id)
     })
 
     return (

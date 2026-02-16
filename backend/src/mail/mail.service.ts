@@ -89,6 +89,15 @@ export class MailService {
                 } else {
                     throw new Error(`Ayşe hesabı için şifre (AYSE_MAIL_PASS) .env dosyasında bulunamadı.`);
                 }
+            } else if (lowerFrom.includes('can@izmiracikhavareklam.com') || lowerFrom.includes('can@')) {
+                const canUser = 'can@izmiracikhavareklam.com';
+                const canPass = this.configService.get<string>('CAN_MAIL_PASS');
+                if (canPass) {
+                    auth = { user: canUser, pass: canPass };
+                    this.logger.log(`📧 Using Can credentials for sending.`);
+                } else {
+                    throw new Error(`Can Bey hesabı için şifre (CAN_MAIL_PASS) .env dosyasında bulunamadı.`);
+                }
             }
         }
 

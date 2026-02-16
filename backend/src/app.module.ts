@@ -16,6 +16,8 @@ import { FinanceModule } from './finance/finance.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MailModule } from './mail/mail.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { LogsModule } from './logs/logs.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -37,9 +39,10 @@ import { DashboardModule } from './dashboard/dashboard.module';
     NotificationsModule,
     MailModule,
     DashboardModule,
+    LogsModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule { }
-

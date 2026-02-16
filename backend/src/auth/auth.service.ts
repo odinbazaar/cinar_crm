@@ -1,10 +1,13 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import supabase from '../config/supabase.config';
 import * as bcrypt from 'bcrypt';
+import { LogsService } from '../logs/logs.service';
 
 
 @Injectable()
 export class AuthService {
+    constructor(private readonly logsService: LogsService) { }
+
     async login(email: string, password: string) {
         console.log('🔐 Login attempt:', { email });
 
@@ -18,33 +21,40 @@ export class AuthService {
             .eq('email', email)
             .single();
 
-        console.log('👤 User lookup result:', { user, error });
-
         if (error || !user) {
-            console.log('❌ User not found');
+            await this.logsService.createLog({
+                level: 'WARN',
+                module: 'AUTH',
+                message: `Başarısız giriş denemesi: ${email}`,
+                details: 'Kullanıcı bulunamadı'
+            });
             throw new UnauthorizedException('Invalid credentials');
         }
-
-        console.log('🔑 Password comparison:', {
-            providedPassword: password,
-            storedHash: user.password_hash,
-            hashLength: user.password_hash?.length
-        });
 
         // Verify password
         const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
-        console.log('✅ Password valid:', isPasswordValid);
-
         if (!isPasswordValid) {
-            console.log('❌ Password mismatch');
+            await this.logsService.createLog({
+                level: 'WARN',
+                module: 'AUTH',
+                message: `Hatalı şifre denemesi: ${email}`,
+                user_id: user.id,
+                user_name: `${user.first_name} ${user.last_name}`
+            });
             throw new UnauthorizedException('Invalid credentials');
         }
 
         // Return user without password
         const { password_hash, ...userWithoutPassword } = user;
 
-        console.log('✅ Login successful for:', email);
+        await this.logsService.createLog({
+            level: 'INFO',
+            module: 'AUTH',
+            message: `Kullanıcı giriş yaptı: ${email}`,
+            user_id: user.id,
+            user_name: `${user.first_name} ${user.last_name}`
+        });
 
         return {
             user: userWithoutPassword,
@@ -77,8 +87,21 @@ export class AuthService {
             .single();
 
         if (error) {
+            await this.logsService.createLog({
+                level: 'ERROR',
+                module: 'USERS',
+                message: `Kullanıcı oluşturma hatası: ${data.email}`,
+                details: error.message
+            });
             throw new Error(`Failed to create user: ${error.message}`);
         }
+
+        await this.logsService.createLog({
+            level: 'INFO',
+            module: 'USERS',
+            message: `Yeni kullanıcı oluşturuldu: ${data.email}`,
+            details: `Rol: ${data.role}`
+        });
 
         // Return user without password
         const { password_hash, ...userWithoutPassword } = user;

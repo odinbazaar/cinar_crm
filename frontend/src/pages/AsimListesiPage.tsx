@@ -167,7 +167,7 @@ const AsimListesiPage = () => {
             // Create inventory map for quick lookup
             const inventoryMap = new Map(inventory.map(item => [item.id, item]));
 
-            // Only show confirmed (KESİN) bookings in Asım Listesi
+            // Only show confirmed (KESİN) bookings in Operasyonlar
             const confirmedBookings = bookings.filter(b => b.status === 'KESİN');
 
             // Transform bookings to AsimData format grouped by brand
@@ -533,7 +533,7 @@ const AsimListesiPage = () => {
 
         const worksheet = XLSX.utils.json_to_sheet(rows);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Asım Listesi');
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Operasyonlar');
 
         // Column widths
         const wscols = [
@@ -568,9 +568,9 @@ const AsimListesiPage = () => {
                         <div className="p-2 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-xl text-white">
                             <Calendar className="w-6 h-6" />
                         </div>
-                        Asım Listesi
+                        Operasyonlar
                     </h1>
-                    <p className="text-gray-500 mt-1">Rezervasyon verilerinden oluşturulmuş asım listesi</p>
+                    <p className="text-gray-500 mt-1">Rezervasyon verilerinden oluşturulmuş operasyon listesi</p>
                 </div>
 
                 <div className="flex gap-3">
@@ -954,7 +954,7 @@ const AsimListesiPage = () => {
                                 <FileText className="w-8 h-8" />
                                 <div>
                                     <h2 className="text-xl font-bold">Özet Rapor</h2>
-                                    <p className="text-green-100 text-sm">Asım Listesi Genel Özeti</p>
+                                    <p className="text-green-100 text-sm">Operasyonlar Genel Özeti</p>
                                 </div>
                             </div>
                             <button
