@@ -1,38 +1,39 @@
-﻿import { useState, useEffect, useMemo } from 'react'
+﻿import React, { useState, useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
-import {
-    ShoppingBag,
-    TrendingUp,
-    DollarSign,
-    Users,
-    Plus,
-    Search,
-    Filter,
-    UserPlus,
-    FileText,
-    Send,
-    Mail,
-    X,
-    Check,
-    Building2,
-    Phone,
-    MapPin,
-    Building,
-    StickyNote,
-    Save,
-    Hash,
-    AlertCircle,
-    CheckCircle2,
-    ChevronDown,
-    RefreshCw,
-    CheckCircle,
-    Loader2,
-    Trash2,
-    LayoutGrid,
-    List,
-    Calendar,
-    Bell,
-    Clock
+import { 
+    ShoppingBag, 
+    TrendingUp, 
+    DollarSign, 
+    Users, 
+    Plus, 
+    Search, 
+    Filter, 
+    UserPlus, 
+    FileText, 
+    Send, 
+    Mail, 
+    X, 
+    Check, 
+    Building2, 
+    Phone, 
+    MapPin, 
+    Building, 
+    StickyNote, 
+    Save, 
+    Hash, 
+    AlertCircle, 
+    CheckCircle2, 
+    ChevronDown, 
+    RefreshCw, 
+    CheckCircle, 
+    Loader2, 
+    Trash2, 
+    LayoutGrid, 
+    List, 
+    Calendar, 
+    Bell, 
+    Clock,
+    RefreshCw as RefreshIcon
 } from 'lucide-react'
 import LocationRequestModal from '../components/proposals/LocationRequestModal'
 import ProposalContractModal from '../components/proposals/ProposalContractModal'
@@ -44,122 +45,39 @@ import { customerRequestsService } from '../services/customerRequestsService'
 import { incomingCallsService, type IncomingCall } from '../services/incomingCallsService'
 import { inventoryService, type InventoryItem } from '../services/inventoryService'
 
-// Müşteri tipi
-interface Customer {
-    id: string
-    companyName: string
-    contactPerson: string
-    email: string
-    phone: string
-    address: string
-    createdAt: string
-    tradeName?: string
-    sector?: string
-    taxOffice?: string
-    taxNumber?: string
-    status?: string
-    city?: string
-    district?: string
-    postalCode?: string
-    mobile?: string
-    website?: string
-    notes?: string
-    requestDetail?: string
-    calledPhone?: string
-    leadSource?: string
-    leadStage?: string
-}
+import type { 
+    Customer, 
+    CustomerForm, 
+    ProposalItem, 
+    Proposal, 
+    CustomerRequest 
+} from '../types/sales'
 
-interface CustomerForm {
-    companyName: string
-    tradeName: string
-    sector: string
-    taxOffice: string
-    taxNumber: string
-    status: string
-    address: string
-    city: string
-    district: string
-    postalCode: string
-    contactPerson: string
-    email: string
-    phone: string
-    mobile: string
-    website: string
-    notes: string
-    requestDetail: string
-    calledPhone: string
-    leadSource: string
-    leadStage: string
-}
+import { 
+    STORAGE_KEY,
+    getProductTypes,
+    calculateProductTotal,
+    calculatePrintingTotal,
+    calculateOperationTotal,
+    calculateSubtotal,
+    calculateKDV,
+    calculateGrandTotal,
+    monthNames,
+    getWeeksInMonth,
+    getWeekStartDate,
+    getWeekRangeText,
+    calculateTotalWeeks,
+    formatWeekDate
+} from '../utils/salesUtils'
 
-// Teklif ürün tipi
-interface ProposalItem {
-    type: string
-    code: string
-    description?: string
-    quantity: number
-    unitPrice: number
-    discountedPrice?: number
-    printingCost: number
-    operationCost: number
-    network?: string
-    weekLayout?: string
-}
+import { CustomerModal } from '../components/sales/CustomerModal'
+import { ProposalModal } from '../components/sales/ProposalModal'
+import { EmailModal } from '../components/sales/EmailModal'
+import { CustomerRequestModal } from '../components/sales/CustomerRequestModal'
+import { SalesStats } from '../components/sales/SalesStats'
+import { CustomerList } from '../components/sales/CustomerList'
+import { ProposalList } from '../components/sales/ProposalList'
 
-// Teklif tipi
-interface Proposal {
-    id: string
-    proposalNumber?: string
-    customerId: string
-    customerName: string
-    items: ProposalItem[]
-    totalAmount: number
-    operationTotal: number
-    kdvAmount: number
-    grandTotal: number
-    isBlockList: boolean
-    status: 'draft' | 'sent' | 'approved' | 'rejected'
-    createdAt: string
-    sentAt?: string
-    weekInfo?: string
-    usagePeriod?: string
-}
-
-// Müşteri Talebi tipi
-interface CustomerRequest {
-    id: string
-    requestNumber: string
-    customerId: string
-    customerName: string
-    productType: string
-    productDetails: string
-    quantity: number
-    notes: string
-    budgetSource: string
-    status: 'pending' | 'approved' | 'rejected' | 'checked_by_ops' | 'completed' | 'cancelled' | 'in_progress'
-    createdAt: string
-    brandName?: string
-}
-
-const STORAGE_KEY = 'productPrices_2026_v2'
-
-// Örnek ürün tipleri - Maliyet Ayarlarından alınır
-const getProductTypes = () => {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-        return JSON.parse(saved)
-    }
-    return [
-        { code: 'BB', name: 'BILLBOARD', duration: '1 HAFTALIK', period: 'HAFTALIK', unitPrice: 6500, discountedPrice: 4250, printingCost: 400, operationCost: 500 },
-        { code: 'CLP', name: 'CLP RAKET', duration: '1 HAFTALIK', period: 'HAFTALIK', unitPrice: 3000, discountedPrice: 2000, printingCost: 300, operationCost: 250 },
-        { code: 'MGL', name: 'MEGALIGHT', duration: '1 HAFTALIK', period: 'HAFTALIK', unitPrice: 12000, discountedPrice: 7500, printingCost: 1750, operationCost: 1200 },
-        { code: 'LB', name: 'LED EKRAN', duration: '1 HAFTALIK', period: 'HAFTALIK', unitPrice: 15000, discountedPrice: 9000, printingCost: 0, operationCost: 0 },
-        { code: 'GB', name: 'GIANTBOARD', duration: '10 GÜN', period: '10 GÜNLÜK', unitPrice: 85000, discountedPrice: 55000, printingCost: 4500, operationCost: 2500 },
-        { code: 'KB', name: 'KULEBOARD', duration: '1 AY', period: 'AYLIK', unitPrice: 250000, discountedPrice: 180000, printingCost: 9600, operationCost: 15000 },
-        { code: 'MB', name: 'MEGABOARD', duration: '1 AY', period: 'AYLIK', unitPrice: 175000, discountedPrice: 100000, printingCost: 3500, operationCost: 1500 },
-    ]
-}
 
 export default function SalesPage() {
     const { isAdmin } = useAuth()
@@ -733,86 +651,10 @@ export default function SalesPage() {
     }
 
     // Hesaplama fonksiyonları
-    const calculateProductTotal = () => {
-        return proposalItems.reduce((sum, item) => {
-            const period = parseInt(item.weekLayout || '1') || 1
-            const price = (item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice
-            return sum + (item.quantity * price * period)
-        }, 0)
-    }
-
-    const calculateOperationTotal = () => {
-        if (isBlockList) {
-            // Blok listede operasyon maliyeti (ürünlerin birim op. maliyetleri toplamı) * operasyon adeti
-            return proposalItems.reduce((sum, item) => sum + item.operationCost, 0) * blockOperationQuantity
-        }
-        // Normal listede adet başına operasyon maliyeti * dönem
-        return proposalItems.reduce((sum, item) => {
-            const period = parseInt(item.weekLayout || '1') || 1
-            return sum + (item.quantity * item.operationCost * period)
-        }, 0)
-    }
-
-    const calculatePrintingTotal = () => {
-        return proposalItems.reduce((sum, item) => {
-            const period = parseInt(item.weekLayout || '1') || 1
-            return sum + (item.quantity * item.printingCost * period)
-        }, 0)
-    }
-
-    const calculateSubtotal = () => {
-        return calculateProductTotal() + calculateOperationTotal() + calculatePrintingTotal()
-    }
-
-    const calculateKDV = () => {
-        return calculateSubtotal() * (kdvRate / 100)
-    }
-
-    const calculateGrandTotal = () => {
-        return calculateSubtotal() + calculateKDV()
-    }
-
-    // Ay adları
-    const monthNames = [
-        'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-        'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
-    ]
-
-    // Ayın kaç haftası olduğunu hesapla
-    const getWeeksInMonth = (month: number, year: number = 2026): number => {
-        const firstDay = new Date(year, month - 1, 1)
-        const lastDay = new Date(year, month, 0)
-        const daysInMonth = lastDay.getDate()
-        const firstDayOfWeek = firstDay.getDay()
-        return Math.ceil((daysInMonth + firstDayOfWeek) / 7)
-    }
-
-    // Ayın belirli haftasının Pazartesi tarihini bul
-    const getWeekStartDate = (month: number, week: number, year: number = 2026): Date => {
-        const firstDay = new Date(year, month - 1, 1)
-        const firstMonday = new Date(firstDay)
-        const dayOfWeek = firstDay.getDay()
-        const daysUntilMonday = dayOfWeek === 0 ? 1 : (dayOfWeek === 1 ? 0 : 8 - dayOfWeek)
-        firstMonday.setDate(1 + daysUntilMonday + (week - 1) * 7)
-        return firstMonday
-    }
-
-    // Hafta aralığı formatı
-    const getWeekRangeText = (): string => {
-        const startText = `${monthNames[startMonth - 1]} ${startWeek}.Hafta`
-        return `${startText} - ${durationWeeks} Hafta`
-    }
-
-    // Toplam hafta sayısını hesapla
-    const calculateTotalWeeks = (): number => {
-        return durationWeeks
-    }
-
-    // Tarih formatlama
-    const formatWeekDate = (month: number, week: number): string => {
-        const date = getWeekStartDate(month, week)
-        return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })
-    }
+    const getWeekRangeVal = () => getWeekRangeText(startMonth, startWeek, durationWeeks)
+    const subtotalVal = () => calculateSubtotal(proposalItems, isBlockList, blockOperationQuantity)
+    const kdvVal = () => calculateKDV(proposalItems, isBlockList, blockOperationQuantity, kdvRate)
+    const grandTotalVal = () => calculateGrandTotal(proposalItems, isBlockList, blockOperationQuantity, kdvRate)
 
     const handleSendEmail = async () => {
         try {
@@ -854,24 +696,24 @@ export default function SalesPage() {
                     // Mevcut teklifi güncelle
                     await proposalsService.update(proposalId, {
                         title: `${selectedCustomer.companyName} - Bütçe Teklifi`,
-                        description: getWeekRangeText(),
-                        subtotal: calculateSubtotal(),
+                        description: getWeekRangeVal(),
+                        subtotal: subtotalVal(),
                         tax_rate: kdvRate,
-                        tax_amount: calculateKDV(),
-                        total: calculateGrandTotal(),
+                        tax_amount: kdvVal(),
+                        total: grandTotalVal(),
                         items: finalItems
                     });
                 } else {
                     // Yeni teklif oluştur
                     const newProposal = await proposalsService.create({
                         title: `${selectedCustomer.companyName} - Bütçe Teklifi`,
-                        description: getWeekRangeText(),
+                        description: getWeekRangeVal(),
                         client_id: selectedCustomer.id,
                         created_by_id: userId,
-                        subtotal: calculateSubtotal(),
+                        subtotal: subtotalVal(),
                         tax_rate: kdvRate,
-                        tax_amount: calculateKDV(),
-                        total: calculateGrandTotal(),
+                        tax_amount: kdvVal(),
+                        total: grandTotalVal(),
                         items: finalItems
                     });
                     proposalId = newProposal.id;
@@ -1048,11 +890,11 @@ export default function SalesPage() {
                 // Mevcut teklifi güncelle
                 await proposalsService.update(selectedProposal.id, {
                     title: `${selectedCustomer.companyName} - Bütçe Teklifi`,
-                    description: getWeekRangeText(),
-                    subtotal: calculateSubtotal(),
+                    description: getWeekRangeVal(),
+                    subtotal: subtotalVal(),
                     tax_rate: kdvRate,
-                    tax_amount: calculateKDV(),
-                    total: calculateGrandTotal(),
+                    tax_amount: kdvVal(),
+                    total: grandTotalVal(),
                     items: finalItems
                 })
                 success('Teklif başarıyla güncellendi.')
@@ -1060,13 +902,13 @@ export default function SalesPage() {
                 // Yeni teklif oluştur
                 await proposalsService.create({
                     title: `${selectedCustomer.companyName} - Bütçe Teklifi`,
-                    description: getWeekRangeText(),
+                    description: getWeekRangeVal(),
                     client_id: selectedCustomer.id,
                     created_by_id: userId,
-                    subtotal: calculateSubtotal(),
+                    subtotal: subtotalVal(),
                     tax_rate: kdvRate,
-                    tax_amount: calculateKDV(),
-                    total: calculateGrandTotal(),
+                    tax_amount: kdvVal(),
+                    total: grandTotalVal(),
                     items: finalItems
                 })
                 success('Teklif taslağı başarıyla kaydedildi.')
@@ -1087,8 +929,8 @@ export default function SalesPage() {
             const label = item.network ? `${item.code} (Network ${item.network})` : item.code
             return `${item.quantity} ${label} `
         }).join(', ')
-        const dateRange = getWeekRangeText()
-        const totalWeeks = calculateTotalWeeks()
+        const dateRange = getWeekRangeVal()
+        const totalWeeks = calculateTotalWeeks(startMonth, startWeek, durationWeeks)
         alert(`Yer Listesi Talebi Gönderildi!\n\nAlıcı: ${reservationEmail} \nMüşteri: ${selectedCustomer?.companyName} \nÜrünler: ${itemsSummary} \nToplam Hafta: ${totalWeeks} \nKullanım Süresi: ${dateRange} \n\nTeklif onaylanmıştır.`)
         setShowReservationModal(false)
         setShowProposalModal(false)
@@ -1181,438 +1023,43 @@ export default function SalesPage() {
                 </button>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500">Toplam Müşteri</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-1">{customers.length}</p>
-                            <p className="text-sm text-green-600 mt-1">+2 bu hafta</p>
-                        </div>
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                            <Users className="w-6 h-6 text-blue-600" />
-                        </div>
-                    </div>
-                </div>
-
-                <div
-                    onClick={() => setActiveTab('proposals')}
-                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-all hover:bg-yellow-50/30 group"
-                >
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500">Hazırlanan Teklif</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-1">{proposals.filter(p => p.status === 'draft').length}</p>
-                            <p className="text-sm text-yellow-600 mt-1">{proposals.filter(p => p.status === 'draft').length} taslak</p>
-                        </div>
-                        <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <FileText className="w-6 h-6 text-yellow-600" />
-                        </div>
-                    </div>
-                </div>
-
-                <div
-                    onClick={() => setActiveTab('sent')}
-                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-all hover:bg-green-50/30 group bg-gradient-to-br from-white to-green-50/30"
-                >
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500">Gönderilen</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-1">{proposals.filter(p => p.status === 'sent' || p.status === 'approved').length}</p>
-                            <p className="text-sm text-green-600 mt-1">Müşteriye iletildi</p>
-                        </div>
-                        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner shadow-green-200">
-                            <Send className="w-6 h-6 text-green-600" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 bg-gradient-to-br from-white to-purple-50/30">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500">Toplam Değer</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-1">₺{proposals.reduce((sum, p) => sum + p.totalAmount, 0).toLocaleString()}</p>
-                            <p className="text-sm text-purple-600 mt-1">Tüm teklifler</p>
-                        </div>
-                        <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center shadow-inner shadow-purple-200">
-                            <DollarSign className="w-6 h-6 text-purple-600" />
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <SalesStats 
+                customers={customers}
+                proposals={proposals}
+                setActiveTab={setActiveTab}
+            />
 
             {/* Tab Content */}
             {activeTab === 'customers' && (
-                <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-2 rounded-xl border border-gray-100 shadow-sm">
-                        <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Müşteri ara..."
-                                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                            />
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="flex bg-gray-100 p-1 rounded-xl">
-                                <button
-                                    onClick={() => setCustomerViewType('grid')}
-                                    className={`p-2 rounded-lg transition-all ${customerViewType === 'grid' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                    title="Kart Görünümü"
-                                >
-                                    <LayoutGrid className="w-5 h-5" />
-                                </button>
-                                <button
-                                    onClick={() => setCustomerViewType('table')}
-                                    className={`p-2 rounded-lg transition-all ${customerViewType === 'table' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                    title="Tablo Görünümü"
-                                >
-                                    <List className="w-5 h-5" />
-                                </button>
-                            </div>
-                            <button
-                                onClick={() => setShowCustomerModal(true)}
-                                className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-bold rounded-xl hover:shadow-xl hover:shadow-primary-500/20 active:scale-95 transition-all"
-                            >
-                                <UserPlus className="w-5 h-5" />
-                                <span className="hidden sm:inline">Yeni Müşteri Kartı</span>
-                                <span className="sm:hidden">Yeni</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Customers Content */}
-                    {customerViewType === 'grid' ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {customers.map((customer) => (
-                                <div key={customer.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center">
-                                            <Building2 className="w-6 h-6 text-white" />
-                                        </div>
-                                        <span className="text-xs text-gray-500">{customer.createdAt}</span>
-                                    </div>
-                                    <h3 className="font-semibold text-gray-900 mb-1">{customer.companyName}</h3>
-                                    <p className="text-sm text-gray-600 mb-3">{customer.contactPerson}</p>
-                                    <div className="space-y-3 text-sm">
-                                        <div className="flex items-center gap-3 text-gray-600 hover:text-primary-600 transition-colors">
-                                            <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
-                                                <Mail className="w-4 h-4" />
-                                            </div>
-                                            <span className="font-medium">{customer.email}</span>
-                                        </div>
-                                        <div className="flex items-center gap-3 text-gray-600 hover:text-primary-600 transition-colors">
-                                            <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
-                                                <Phone className="w-4 h-4" />
-                                            </div>
-                                            <span className="font-medium">{customer.phone}</span>
-                                        </div>
-                                        <div className="flex items-center gap-3 text-gray-600 hover:text-primary-600 transition-colors">
-                                            <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
-                                                <MapPin className="w-4 h-4" />
-                                            </div>
-                                            <span className="font-medium truncate block max-w-[200px]" title={customer.address}>{customer.address}</span>
-                                        </div>
-                                    </div>
-                                    <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
-                                        <button
-                                            onClick={() => {
-                                                setSelectedCustomer(customer)
-                                                setSelectedProposal(null)
-                                                const defaultProduct = getProductTypes()[0]
-                                                setProposalItems([{ 
-                                                    type: defaultProduct.code, 
-                                                    code: defaultProduct.name, 
-                                                    quantity: 0, 
-                                                    unitPrice: defaultProduct.unitPrice, 
-                                                    discountedPrice: defaultProduct.discountedPrice || 0,
-                                                    printingCost: defaultProduct.printingCost,
-                                                    operationCost: defaultProduct.operationCost,
-                                                    weekLayout: '' 
-                                                }])
-                                                setShowProposalModal(true)
-                                            }}
-                                            className="flex-1 px-3 py-2 text-sm font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
-                                        >
-                                            Teklif Hazırla
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setSelectedCustomer(customer)
-                                                setCustomerForm({
-                                                    companyName: customer.companyName,
-                                                    tradeName: (customer as any).tradeName || '',
-                                                    sector: (customer as any).sector || '',
-                                                    taxOffice: (customer as any).taxOffice || '',
-                                                    taxNumber: (customer as any).taxNumber || '',
-                                                    status: (customer as any).status || 'Potansiyel',
-                                                    address: customer.address || '',
-                                                    city: (customer as any).city || '',
-                                                    district: (customer as any).district || '',
-                                                    postalCode: (customer as any).postalCode || '',
-                                                    contactPerson: customer.contactPerson,
-                                                    email: customer.email,
-                                                    phone: customer.phone,
-                                                    mobile: (customer as any).mobile || '',
-                                                    website: (customer as any).website || '',
-                                                    notes: (customer as any).notes || '',
-                                                    requestDetail: customer.requestDetail || '',
-                                                    calledPhone: customer.calledPhone || '',
-                                                    leadSource: customer.leadSource || '',
-                                                    leadStage: customer.leadStage || 'Aday'
-                                                })
-                                                setShowCustomerModal(true)
-                                            }}
-                                            className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                                            title="Güncelle"
-                                        >
-                                            Revize
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeleteCustomer(customer.id)}
-                                            className="px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                                            title="Sil"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-gray-50 border-b border-gray-100">
-                                    <tr>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Şirket</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Yetkili</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">İletişim</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Şehir/İlçe</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Kayıt Tarihi</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">İşlemler</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {customers.map((customer) => (
-                                        <tr key={customer.id} className="hover:bg-gray-50 transition-colors group">
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center text-primary-600 font-bold text-xs">
-                                                        {customer.companyName.charAt(0)}
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-semibold text-gray-900 line-clamp-1">{customer.companyName}</div>
-                                                        <div className="text-xs text-gray-500">{customer.tradeName || 'Ticari Unvan Belirtilmedi'}</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="text-sm font-medium text-gray-900">{customer.contactPerson}</div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="text-sm text-gray-600">{customer.email}</div>
-                                                <div className="text-xs text-gray-400">{customer.phone}</div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="text-sm text-gray-600">{customer.city || '-'} / {customer.district || '-'}</div>
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-500">
-                                                {customer.createdAt}
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedCustomer(customer)
-                                                            setSelectedProposal(null)
-                                                            const defaultProduct = getProductTypes()[0]
-                                                            setProposalItems([{ 
-                                                                type: defaultProduct.code, 
-                                                                code: defaultProduct.name, 
-                                                                quantity: 0, 
-                                                                unitPrice: defaultProduct.unitPrice, 
-                                                                discountedPrice: defaultProduct.discountedPrice || 0,
-                                                                printingCost: defaultProduct.printingCost,
-                                                                operationCost: defaultProduct.operationCost,
-                                                                weekLayout: '' 
-                                                            }])
-                                                            setShowProposalModal(true)
-                                                        }}
-                                                        className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                                                        title="Teklif Hazırla"
-                                                    >
-                                                        <FileText className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedCustomer(customer)
-                                                            setCustomerForm({
-                                                                companyName: customer.companyName,
-                                                                tradeName: (customer as any).tradeName || '',
-                                                                sector: (customer as any).sector || '',
-                                                                taxOffice: (customer as any).taxOffice || '',
-                                                                taxNumber: (customer as any).taxNumber || '',
-                                                                status: (customer as any).status || 'Potansiyel',
-                                                                address: customer.address || '',
-                                                                city: (customer as any).city || '',
-                                                                district: (customer as any).district || '',
-                                                                postalCode: (customer as any).postalCode || '',
-                                                                contactPerson: customer.contactPerson,
-                                                                email: customer.email,
-                                                                phone: customer.phone,
-                                                                mobile: (customer as any).mobile || '',
-                                                                website: (customer as any).website || '',
-                                                                notes: (customer as any).notes || '',
-                                                                requestDetail: customer.requestDetail || '',
-                                                                calledPhone: customer.calledPhone || '',
-                                                                leadSource: customer.leadSource || '',
-                                                                leadStage: customer.leadStage || 'Aday'
-                                                            })
-                                                            setShowCustomerModal(true)
-                                                        }}
-                                                        className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                                                        title="Güncelle"
-                                                    >
-                                                        <RefreshCw className="w-4 h-4" />
-                                                    </button>
-                                                    {isAdmin && (
-                                                        <button
-                                                            onClick={() => handleDeleteCustomer(customer.id)}
-                                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                            title="Sil"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
+                <CustomerList
+                    customers={customers}
+                    customerViewType={customerViewType}
+                    setCustomerViewType={setCustomerViewType}
+                    setShowCustomerModal={setShowCustomerModal}
+                    setSelectedCustomer={setSelectedCustomer}
+                    setSelectedProposal={setSelectedProposal}
+                    setProposalItems={setProposalItems}
+                    setShowProposalModal={setShowProposalModal}
+                    setCustomerForm={setCustomerForm}
+                    handleDeleteCustomer={handleDeleteCustomer}
+                    getProductTypes={getProductTypes}
+                    isAdmin={isAdmin}
+                />
             )}
 
             {activeTab === 'proposals' && (
-                <div className="space-y-4">
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900">Bütçe Teklifleri</h3>
-                                <p className="text-sm text-gray-500">Hazırlanan ve revize bekleyen tüm teklifler</p>
-                            </div>
-                        </div>
-                        <div className="divide-y divide-gray-100">
-                            {proposals.length > 0 ? (
-                                proposals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((proposal) => (
-                                    <div key={proposal.id} className="p-6 hover:bg-gray-50 transition-colors">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <div className={`w-10 h-10 ${proposal.status === 'draft' ? 'bg-yellow-100' :
-                                                proposal.status === 'sent' ? 'bg-green-100' :
-                                                    proposal.status === 'approved' ? 'bg-blue-100' : 'bg-gray-100'
-                                                } rounded-lg flex items-center justify-center`}>
-                                                <FileText className={`w-5 h-5 ${proposal.status === 'draft' ? 'text-yellow-600' :
-                                                    proposal.status === 'sent' ? 'text-green-600' :
-                                                        proposal.status === 'approved' ? 'text-blue-600' : 'text-gray-600'
-                                                    } `} />
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <h4 className="font-medium text-gray-900">{proposal.proposalNumber ? `${proposal.proposalNumber} - ` : ''}{proposal.customerName}</h4>
-                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${proposal.status === 'draft' ? 'bg-yellow-100 text-yellow-700' :
-                                                        proposal.status === 'sent' ? 'bg-green-100 text-green-700' :
-                                                            proposal.status === 'approved' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
-                                                        } `}>
-                                                        {proposal.status === 'draft' ? 'TASLAK' :
-                                                            proposal.status === 'sent' ? 'GÖNDERİLDİ' :
-                                                                proposal.status === 'approved' ? 'ONAYLANDI' : proposal.status}
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm text-gray-500">Oluşturma: {proposal.createdAt}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <div className="text-right">
-                                                <p className="text-lg font-bold text-gray-900">₺{proposal.totalAmount.toLocaleString()}</p>
-                                                <p className="text-[10px] text-gray-400">KDV Dahil</p>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                {proposal.status === 'sent' && (
-                                                    <button
-                                                        onClick={() => handleApproveProposal(proposal.id)}
-                                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-sm"
-                                                    >
-                                                        <CheckCircle className="w-4 h-4" />
-                                                        Onayla
-                                                    </button>
-                                                )}
-                                                <button
-                                                    onClick={() => {
-                                                        const customer = customers.find(c => c.id === proposal.customerId)
-                                                        if (customer) {
-                                                            setSelectedCustomer(customer)
-                                                        }
-                                                        setSelectedProposal(proposal)
-                                                        setProposalItems([...proposal.items])
-                                                        setIsBlockList(proposal.isBlockList)
-
-                                                        const duration = parseInt(proposal.usagePeriod || '1')
-                                                        setDurationWeeks(isNaN(duration) ? 1 : duration)
-
-                                                        if (proposal.weekInfo) {
-                                                            const parts = proposal.weekInfo.split(' ')
-                                                            if (parts.length >= 2) {
-                                                                const mIdx = monthNames.indexOf(parts[0])
-                                                                if (mIdx !== -1) setStartMonth(mIdx + 1)
-                                                                const weekNum = parseInt(parts[1])
-                                                                if (!isNaN(weekNum)) setStartWeek(weekNum)
-                                                            }
-                                                        }
-
-                                                        setShowProposalModal(true)
-                                                    }}
-                                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors shadow-sm"
-                                                >
-                                                    <RefreshCw className="w-4 h-4" />
-                                                    Revize Et
-                                                </button>
-                                                {isAdmin && (
-                                                    <button
-                                                        onClick={() => {
-                                                            if (window.confirm('Bu teklifi silmek istediğinize emin misiniz?')) {
-                                                                handleDeleteProposal(proposal.id)
-                                                            }
-                                                        }}
-                                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                                                        title="Sil"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                        Sil
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2 ml-13">
-                                            {proposal.items.map((item, idx) => (
-                                                <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-primary-50 text-primary-700 border border-primary-100">
-                                                    {item.quantity} {item.code}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="p-12 text-center text-gray-500">
-                                    <FileText className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                                    <p>Henüz herhangi bir teklif oluşturulmamış.</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
+                <ProposalList
+                    proposals={proposals}
+                    customers={customers}
+                    handleApproveProposal={handleApproveProposal}
+                    setSelectedCustomer={setSelectedCustomer}
+                    setSelectedProposal={setSelectedProposal}
+                    setProposalItems={setProposalItems}
+                    setIsBlockList={setIsBlockList}
+                    setShowProposalModal={setShowProposalModal}
+                    setIsLocationModalOpen={setIsLocationModalOpen}
+                    setIsContractModalOpen={setIsContractModalOpen}
+                />
             )}
 
             {activeTab === 'sent' && (
@@ -1866,993 +1313,60 @@ export default function SalesPage() {
                     </div>
                 </div>
             )}
-            {
-                showCustomerModal && (
-                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl">
-                            {/* Header */}
-                            <div className="bg-gradient-to-r from-primary-600 to-secondary-600 p-5 rounded-t-2xl flex items-center justify-between">
-                                <h2 className="text-xl font-semibold text-white">{selectedCustomer ? 'Müşteri Güncelle' : 'Yeni Müşteri Ekle'}</h2>
-                                <button onClick={() => { setShowCustomerModal(false); setSelectedCustomer(null); }} className="text-white/80 hover:text-white">
-                                    <X className="w-6 h-6" />
-                                </button>
-                            </div>
+            <CustomerModal
+                showCustomerModal={showCustomerModal}
+                selectedCustomer={selectedCustomer}
+                setShowCustomerModal={setShowCustomerModal}
+                setSelectedCustomer={setSelectedCustomer}
+                customerModalTab={customerModalTab}
+                setCustomerModalTab={setCustomerModalTab}
+                customerForm={customerForm}
+                setCustomerForm={setCustomerForm}
+                showCompanySuggestions={showCompanySuggestions}
+                setShowCompanySuggestions={setShowCompanySuggestions}
+                incomingCalls={incomingCalls}
+                setPendingIncomingCallId={setPendingIncomingCallId}
+                noteInput={noteInput}
+                setNoteInput={setNoteInput}
+                noteFilterDate={noteFilterDate}
+                setNoteFilterDate={setNoteFilterDate}
+                handleSaveCustomer={handleSaveCustomer}
+            />
 
-                            {/* Tabs */}
-                            <div className="flex border-b border-gray-100 bg-gray-50/50 p-1 gap-1">
-                                <button
-                                    onClick={() => setCustomerModalTab('company')}
-                                    className={`flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-xl transition-all ${customerModalTab === 'company'
-                                        ? 'bg-white text-primary-600 shadow-sm border border-gray-100'
-                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    <Building className="w-4 h-4" />
-                                    Şirket Bilgileri
-                                </button>
-                                <button
-                                    onClick={() => setCustomerModalTab('address')}
-                                    className={`flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-xl transition-all ${customerModalTab === 'address'
-                                        ? 'bg-white text-primary-600 shadow-sm border border-gray-100'
-                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    <MapPin className="w-4 h-4" />
-                                    Adres
-                                </button>
-                                <button
-                                    onClick={() => setCustomerModalTab('contact')}
-                                    className={`flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-xl transition-all ${customerModalTab === 'contact'
-                                        ? 'bg-white text-primary-600 shadow-sm border border-gray-100'
-                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    <Phone className="w-4 h-4" />
-                                    İletişim
-                                </button>
-                                <button
-                                    onClick={() => setCustomerModalTab('notes')}
-                                    className={`flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-xl transition-all ${customerModalTab === 'notes'
-                                        ? 'bg-white text-primary-600 shadow-sm border border-gray-100'
-                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    <StickyNote className="w-4 h-4" />
-                                    Notlar
-                                </button>
-                                <button
-                                    onClick={() => setCustomerModalTab('crm')}
-                                    className={`flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-xl transition-all ${customerModalTab === 'crm'
-                                        ? 'bg-white text-primary-600 shadow-sm border border-gray-100'
-                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    <TrendingUp className="w-4 h-4" />
-                                    CRM & Talep
-                                </button>
-                            </div>
-
-                            {/* Tab Content */}
-                            <div className="p-6 space-y-4">
-                                {/* Şirket Bilgileri Tab */}
-                                {customerModalTab === 'company' && (
-                                    <>
-                                        <div className="relative">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Şirket Unvanı <span className="text-red-500">*</span>
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={customerForm.companyName}
-                                                onChange={(e) => {
-                                                    setCustomerForm({ ...customerForm, companyName: e.target.value })
-                                                    setShowCompanySuggestions(e.target.value.length > 0)
-                                                }}
-                                                onFocus={() => setShowCompanySuggestions(customerForm.companyName.length > 0 || incomingCalls.length > 0)}
-                                                onBlur={() => setTimeout(() => setShowCompanySuggestions(false), 200)}
-                                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                placeholder="Yazın veya Arayan Firmalardan seçin..."
-                                            />
-                                            {/* Arayan Firmalar Dropdown */}
-                                            {showCompanySuggestions && (
-                                                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-                                                    {incomingCalls
-                                                        .filter(call =>
-                                                            call.company_name?.toLowerCase().includes(customerForm.companyName.toLowerCase()) ||
-                                                            customerForm.companyName === ''
-                                                        )
-                                                        .slice(0, 10)
-                                                        .map((call) => (
-                                                            <button
-                                                                key={call.id}
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setCustomerForm({
-                                                                        ...customerForm,
-                                                                        companyName: call.company_name || '',
-                                                                        contactPerson: call.contact_person || customerForm.contactPerson,
-                                                                        phone: call.phone || customerForm.phone,
-                                                                        email: call.email || customerForm.email,
-                                                                        notes: call.notes || customerForm.notes,
-                                                                        requestDetail: call.request_detail || customerForm.requestDetail,
-                                                                        calledPhone: call.called_phone || customerForm.calledPhone,
-                                                                        leadSource: 'Arayan Firma',
-                                                                        leadStage: 'Aday'
-                                                                    })
-                                                                    setPendingIncomingCallId(call.id)
-                                                                    setShowCompanySuggestions(false)
-                                                                }}
-                                                                className="w-full px-4 py-3 text-left hover:bg-primary-50 border-b border-gray-100 last:border-b-0 transition-colors"
-                                                            >
-                                                                <div className="font-semibold text-gray-900">{call.company_name}</div>
-                                                                <div className="text-xs text-gray-500 flex items-center gap-2 mt-0.5">
-                                                                    {call.contact_person && <span>{call.contact_person}</span>}
-                                                                    {call.phone && <span>• {call.phone}</span>}
-                                                                </div>
-                                                            </button>
-                                                        ))
-                                                    }
-                                                    {incomingCalls.filter(call =>
-                                                        call.company_name?.toLowerCase().includes(customerForm.companyName.toLowerCase()) ||
-                                                        customerForm.companyName === ''
-                                                    ).length === 0 && (
-                                                            <div className="px-4 py-3 text-gray-500 text-sm">Eşleşen kayıt bulunamadı</div>
-                                                        )}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Ticari Unvan</label>
-                                                <input
-                                                    type="text"
-                                                    value={customerForm.tradeName}
-                                                    onChange={(e) => setCustomerForm({ ...customerForm, tradeName: e.target.value })}
-                                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                    placeholder="Örn: ABC Grup"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Sektör</label>
-                                                <select
-                                                    value={customerForm.sector}
-                                                    onChange={(e) => setCustomerForm({ ...customerForm, sector: e.target.value })}
-                                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                >
-                                                    <option value="">Seçiniz</option>
-                                                    <option value="Reklam">Reklam</option>
-                                                    <option value="Retail">Retail</option>
-                                                    <option value="FMCG">FMCG</option>
-                                                    <option value="Gıda">Gıda</option>
-                                                    <option value="Eğitim">Eğitim</option>
-                                                    <option value="İnşaat">İnşaat</option>
-                                                    <option value="Otomotiv">Otomotiv</option>
-                                                    <option value="Aksesuar">Aksesuar</option>
-                                                    <option value="Dayanıklı Tüketim">Dayanıklı Tüketim</option>
-                                                    <option value="Sağlık">Sağlık</option>
-                                                    <option value="Medya">Medya</option>
-                                                    <option value="Finans">Finans</option>
-                                                    <option value="Mobilya">Mobilya</option>
-                                                    <option value="Sanayi">Sanayi</option>
-                                                    <option value="Tekstil">Tekstil</option>
-                                                    <option value="Turizm">Turizm</option>
-                                                    <option value="Perakende">Perakende</option>
-                                                    <option value="Üretim">Üretim</option>
-                                                    <option value="Hizmet">Hizmet</option>
-                                                    <option value="Teknoloji">Teknoloji</option>
-                                                    <option value="Diğer">Diğer</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Vergi Dairesi</label>
-                                                <input
-                                                    type="text"
-                                                    value={customerForm.taxOffice}
-                                                    onChange={(e) => setCustomerForm({ ...customerForm, taxOffice: e.target.value })}
-                                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                    placeholder="Örn: Kordon"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Vergi Numarası</label>
-                                                <input
-                                                    type="text"
-                                                    value={customerForm.taxNumber}
-                                                    onChange={(e) => setCustomerForm({ ...customerForm, taxNumber: e.target.value })}
-                                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                    placeholder="10 haneli vergi numarası"
-                                                />
-                                            </div>
-                                        </div>
-
-                                    </>
-                                )}
-
-                                {/* Adres Tab */}
-                                {customerModalTab === 'address' && (
-                                    <>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Adres</label>
-                                            <textarea
-                                                value={customerForm.address}
-                                                onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })}
-                                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                placeholder="Sokak, Mahalle, Bina No"
-                                                rows={3}
-                                            />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">İl</label>
-                                                <input
-                                                    type="text"
-                                                    value={customerForm.city}
-                                                    onChange={(e) => setCustomerForm({ ...customerForm, city: e.target.value })}
-                                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                    placeholder="Örn: İzmir"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">İlçe</label>
-                                                <input
-                                                    type="text"
-                                                    value={customerForm.district}
-                                                    onChange={(e) => setCustomerForm({ ...customerForm, district: e.target.value })}
-                                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                    placeholder="Örn: Konak"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="w-1/2">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Posta Kodu</label>
-                                            <input
-                                                type="text"
-                                                value={customerForm.postalCode}
-                                                onChange={(e) => setCustomerForm({ ...customerForm, postalCode: e.target.value })}
-                                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                placeholder="Örn: 35000"
-                                            />
-                                        </div>
-                                    </>
-                                )}
-
-                                {/* İletişim Tab */}
-                                {customerModalTab === 'contact' && (
-                                    <>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Yetkili Kişi</label>
-                                            <input
-                                                type="text"
-                                                value={customerForm.contactPerson}
-                                                onChange={(e) => setCustomerForm({ ...customerForm, contactPerson: e.target.value })}
-                                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                placeholder="Örn: Ahmet Yılmaz"
-                                            />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
-                                                <input
-                                                    type="tel"
-                                                    value={customerForm.phone}
-                                                    onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
-                                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                    placeholder="+90 (XXX) XXX XX XX"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Mobil</label>
-                                                <input
-                                                    type="tel"
-                                                    value={customerForm.mobile}
-                                                    onChange={(e) => setCustomerForm({ ...customerForm, mobile: e.target.value })}
-                                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                    placeholder="+90 5XX XXX XX XX"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">E-posta</label>
-                                            <input
-                                                type="email"
-                                                value={customerForm.email}
-                                                onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
-                                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                placeholder="Örn: info@sirket.com"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
-                                            <input
-                                                type="url"
-                                                value={customerForm.website}
-                                                onChange={(e) => setCustomerForm({ ...customerForm, website: e.target.value })}
-                                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                placeholder="Örn: www.sirket.com"
-                                            />
-                                        </div>
-                                    </>
-                                )}
-
-                                {/* Notlar Tab */}
-                                {customerModalTab === 'notes' && (
-                                    <div className="space-y-6">
-                                        {/* Yeni Not Ekleme Formu */}
-                                        <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100 space-y-4">
-                                            <div className="flex items-center gap-2 text-amber-800 font-semibold mb-1">
-                                                <StickyNote className="w-5 h-5" />
-                                                <h4>Yeni Not Ekle</h4>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-xs font-medium text-amber-700 mb-1">Not Tarihi (Otomatik)</label>
-                                                    <div className="relative">
-                                                        <Calendar className="absolute left-3 top-2.5 w-4 h-4 text-amber-500" />
-                                                        <input
-                                                            type="date"
-                                                            value={noteInput.date}
-                                                            onChange={(e) => setNoteInput({ ...noteInput, date: e.target.value })}
-                                                            className="w-full pl-10 pr-4 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-medium text-amber-700 mb-1">Hatırlatıcı (Opsiyonel)</label>
-                                                    <div className="flex gap-2">
-                                                        <div className="relative flex-1">
-                                                            <Bell className="absolute left-3 top-2.5 w-4 h-4 text-amber-500" />
-                                                            <input
-                                                                type="date"
-                                                                value={noteInput.reminderDate}
-                                                                onChange={(e) => setNoteInput({ ...noteInput, reminderDate: e.target.value })}
-                                                                className="w-full pl-10 pr-4 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
-                                                            />
-                                                        </div>
-                                                        <div className="relative w-32">
-                                                            <Clock className="absolute left-3 top-2.5 w-4 h-4 text-amber-500" />
-                                                            <input
-                                                                type="time"
-                                                                value={noteInput.reminderTime}
-                                                                onChange={(e) => setNoteInput({ ...noteInput, reminderTime: e.target.value })}
-                                                                className="w-full pl-10 pr-4 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <textarea
-                                                    value={noteInput.content}
-                                                    onChange={(e) => setNoteInput({ ...noteInput, content: e.target.value })}
-                                                    className="w-full px-4 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
-                                                    placeholder="Notunuzu buraya yazın..."
-                                                    rows={3}
-                                                />
-                                            </div>
-
-                                            <div className="flex justify-between items-center">
-                                                <label className="flex items-center gap-2 cursor-pointer group">
-                                                    <input
-                                                        type="checkbox"
-                                                        className="w-4 h-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
-                                                        checked={noteInput.repeat}
-                                                        onChange={(e) => setNoteInput({ ...noteInput, repeat: e.target.checked })}
-                                                    />
-                                                    <span className="text-xs text-amber-700 group-hover:text-amber-800 transition-colors">Tekrarlı Uyarı</span>
-                                                </label>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        if (!noteInput.content.trim()) return;
-                                                        const notesStr = customerForm.notes || '[]';
-                                                        let notesArr = [];
-                                                        try {
-                                                            notesArr = notesStr.startsWith('[') ? JSON.parse(notesStr) : (notesStr ? [{ id: 'old', content: notesStr, date: 'Eski' }] : []);
-                                                        } catch (e) {
-                                                            notesArr = notesStr ? [{ id: 'old', content: notesStr, date: 'Eski' }] : [];
-                                                        }
-
-                                                        const newNoteObj = {
-                                                            id: Date.now().toString(),
-                                                            content: noteInput.content,
-                                                            date: noteInput.date,
-                                                            reminderDate: noteInput.reminderDate,
-                                                            reminderTime: noteInput.reminderTime,
-                                                            repeat: noteInput.repeat,
-                                                            isReminded: false,
-                                                            createdAt: new Date().toISOString()
-                                                        };
-
-                                                        const updatedNotes = JSON.stringify([...notesArr, newNoteObj]);
-                                                        setCustomerForm({ ...customerForm, notes: updatedNotes });
-                                                        setNoteInput({
-                                                            content: '',
-                                                            date: new Date().toISOString().split('T')[0],
-                                                            reminderDate: '',
-                                                            reminderTime: '10:00',
-                                                            repeat: false
-                                                        });
-                                                    }}
-                                                    className="flex items-center gap-1.5 px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all"
-                                                >
-                                                    <Plus className="w-3.5 h-3.5" />
-                                                    Notu Ekle
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* Not Filtreleme ve Liste */}
-                                        <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2 text-gray-700 font-semibold">
-                                                    <List className="w-4 h-4" />
-                                                    <h4>Kayıtlı Notlar</h4>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-gray-500">Tarihe Göre Filtrele:</span>
-                                                    <input
-                                                        type="date"
-                                                        value={noteFilterDate}
-                                                        onChange={(e) => setNoteFilterDate(e.target.value)}
-                                                        className="px-2 py-1 border border-gray-200 rounded text-xs focus:ring-2 focus:ring-primary-500"
-                                                    />
-                                                    {noteFilterDate && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setNoteFilterDate('')}
-                                                            className="text-xs text-primary-600 hover:underline ml-1"
-                                                        >
-                                                            Temizle
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                                {(() => {
-                                                    const notesStr = customerForm.notes || '[]';
-                                                    let notesArr = [];
-                                                    try {
-                                                        notesArr = notesStr.startsWith('[') ? JSON.parse(notesStr) : (notesStr ? [{ id: 'old', content: notesStr, date: 'Eski' }] : []);
-                                                    } catch (e) {
-                                                        notesArr = notesStr ? [{ id: 'old', content: notesStr, date: 'Eski' }] : [];
-                                                    }
-
-                                                    const filteredNotes = noteFilterDate
-                                                        ? notesArr.filter((n: any) => n.date === noteFilterDate)
-                                                        : notesArr;
-
-                                                    if (filteredNotes.length === 0) {
-                                                        return <div className="text-center py-8 text-gray-400 text-sm">Bu tarihte kayıtlı bir not bulunamadı.</div>;
-                                                    }
-
-                                                    return [...filteredNotes].sort((a: any, b: any) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime()).map((note: any) => (
-                                                        <div key={note.id} className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm hover:border-amber-200 transition-all group">
-                                                            <div className="flex justify-between items-start mb-2">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold rounded-full">
-                                                                        {note.date || 'Belirtilmedi'}
-                                                                    </span>
-                                                                    {note.reminderDate && (
-                                                                        <span className={`px-2 py-0.5 ${note.isReminded ? 'bg-gray-100 text-gray-400' : 'bg-red-50 text-red-600'} text-[10px] font-bold rounded-full flex items-center gap-1`}>
-                                                                            <Bell className="w-2.5 h-2.5" />
-                                                                            {note.reminderDate} {note.reminderTime}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const updatedNotes = JSON.stringify(notesArr.filter((n: any) => n.id !== note.id));
-                                                                        setCustomerForm({ ...customerForm, notes: updatedNotes });
-                                                                    }}
-                                                                    className="p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                                                                >
-                                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                                </button>
-                                                            </div>
-                                                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.content}</p>
-                                                        </div>
-                                                    ));
-                                                })()}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* CRM & Talep Tab */}
-                                {customerModalTab === 'crm' && (
-                                    <div className="space-y-4">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Müşteri Kaynağı</label>
-                                                <select
-                                                    value={customerForm.leadSource}
-                                                    onChange={(e) => setCustomerForm({ ...customerForm, leadSource: e.target.value })}
-                                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                >
-                                                    <option value="">Seçiniz</option>
-                                                    <option value="Arayan Firma">Arayan Firma</option>
-                                                    <option value="Web Sitesi">Web Sitesi</option>
-                                                    <option value="Referans">Referans</option>
-                                                    <option value="Sosyal Medya">Sosyal Medya</option>
-                                                    <option value="Dış Arama">Dış Arama</option>
-                                                    <option value="Fuar/Etkinlik">Fuar/Etkinlik</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Satış Aşaması</label>
-                                                <select
-                                                    value={customerForm.leadStage}
-                                                    onChange={(e) => setCustomerForm({ ...customerForm, leadStage: e.target.value })}
-                                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                >
-                                                    <option value="Aday">Aday</option>
-                                                    <option value="İletişim Kuruldu">İletişim Kuruldu</option>
-                                                    <option value="Teklif Verildi">Teklif Verildi</option>
-                                                    <option value="Pazarlık">Pazarlık</option>
-                                                    <option value="Kazandı">Kazandı</option>
-                                                    <option value="Kaybetti">Kaybetti</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Talep Detayı</label>
-                                            <textarea
-                                                value={customerForm.requestDetail}
-                                                onChange={(e) => setCustomerForm({ ...customerForm, requestDetail: e.target.value })}
-                                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                                placeholder="Müşterinin reklam talebi detayları..."
-                                                rows={3}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Aranan Numara (Gelen Çağrı)</label>
-                                            <input
-                                                type="text"
-                                                value={customerForm.calledPhone}
-                                                onChange={(e) => setCustomerForm({ ...customerForm, calledPhone: e.target.value })}
-                                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 bg-gray-50"
-                                                placeholder="Çağrının geldiği numara"
-                                                readOnly
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Footer */}
-                            <div className="p-6 border-t border-gray-100 flex gap-3 justify-end">
-                                <button
-                                    onClick={() => setShowCustomerModal(false)}
-                                    className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                >
-                                    İptal
-                                </button>
-                                <button
-                                    onClick={handleSaveCustomer}
-                                    className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-primary-600 to-secondary-600 rounded-lg hover:from-primary-700 hover:to-secondary-700 transition-all flex items-center gap-2"
-                                >
-                                    <Save className="w-4 h-4" />
-                                    Kaydı Tamamla
-                                </button>
-                            </div>
-                        </div>
-                    </div >
-                )
-            }
 
 
             {/* Bütçe Teklifi Modal */}
             {
-                showProposalModal && selectedCustomer && (
-                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
-                            <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
-                                <div>
-                                    <h2 className="text-xl font-semibold text-gray-900">Bütçe Teklifi Hazırla</h2>
-                                    <p className="text-sm text-gray-500">{selectedCustomer.companyName}</p>
-                                </div>
-                                <button onClick={() => setShowProposalModal(false)} className="text-gray-400 hover:text-gray-600">
-                                    <X className="w-6 h-6" />
-                                </button>
-                            </div>
-                            <div className="p-6 space-y-4">
-                                <div className="bg-gray-50 rounded-lg p-4">
-                                    <p className="text-sm text-gray-600">
-                                        <strong>Müşteri:</strong> {selectedCustomer.companyName}<br />
-                                        <strong>E-posta:</strong> {selectedCustomer.email}
-                                    </p>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="font-medium text-gray-900">Ürünler</h3>
-                                        <button
-                                            onClick={addProposalItem}
-                                            className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-                                        >
-                                            + Ürün Ekle
-                                        </button>
-                                    </div>
-
-                                    {/* Column Headers */}
-                                    <div className="flex gap-3 px-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                                        <div className="flex-1 min-w-[150px]">Ürün Tipi</div>
-                                        <div className="w-20">Dönem</div>
-                                        <div className="w-14">Adet</div>
-                                        <div className="w-20">Birim Fiyat</div>
-                                        <div className="w-20">İndirimli</div>
-                                        <div className="w-20">Baskı</div>
-                                        <div className="w-20">Op. Bedeli</div>
-                                        <div className="w-28 text-right">Toplam</div>
-                                        {proposalItems.length > 1 && <div className="w-8"></div>}
-                                    </div>
-
-                                    {proposalItems.map((item, index) => (
-                                        <div key={index} className="flex gap-3 items-center">
-                                            <div className="flex-1 min-w-[150px]">
-                                                <select
-                                                    value={item.type}
-                                                    onChange={(e) => updateProposalItem(index, 'type', e.target.value)}
-                                                    className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs"
-                                                >
-                                                    {getProductTypes().map((pt: any) => (
-                                                        <option key={pt.code} value={pt.code}>{pt.code} - {pt.name}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                value={item.weekLayout || ''}
-                                                onChange={(e) => updateProposalItem(index, 'weekLayout', e.target.value)}
-                                                className="w-20 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs text-center"
-                                                placeholder="Dönem"
-                                            />
-                                            <input
-                                                type="number"
-                                                value={item.quantity}
-                                                onChange={(e) => updateProposalItem(index, 'quantity', parseInt(e.target.value) || 0)}
-                                                className="w-14 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs"
-                                                placeholder="Adet"
-                                                readOnly={(item.type === 'BB' || item.type === 'GB') && !!item.network}
-                                                min="0"
-                                            />
-                                            <input
-                                                type="number"
-                                                value={item.unitPrice}
-                                                onChange={(e) => updateProposalItem(index, 'unitPrice', parseInt(e.target.value) || 0)}
-                                                className="w-20 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs"
-                                                placeholder="Birim"
-                                            />
-                                            <input
-                                                type="number"
-                                                value={item.discountedPrice || 0}
-                                                onChange={(e) => updateProposalItem(index, 'discountedPrice', parseInt(e.target.value) || 0)}
-                                                className="w-20 px-2 py-2 border border-blue-200 bg-blue-50/30 rounded-lg focus:ring-2 focus:ring-blue-500 text-xs font-medium text-blue-700"
-                                                placeholder="İndirim"
-                                            />
-                                            <input
-                                                type="number"
-                                                value={item.printingCost}
-                                                onChange={(e) => updateProposalItem(index, 'printingCost', parseInt(e.target.value) || 0)}
-                                                className="w-20 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs"
-                                                placeholder="Baskı"
-                                            />
-                                            <input
-                                                type="number"
-                                                value={item.operationCost}
-                                                onChange={(e) => updateProposalItem(index, 'operationCost', parseInt(e.target.value) || 0)}
-                                                className="w-20 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs"
-                                                placeholder="Op."
-                                            />
-                                            <span className="w-28 text-right font-bold text-gray-900 text-xs">
-                                                ₺{(() => {
-                                                    const period = parseInt(item.weekLayout || '1') || 1
-                                                    const price = (item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice
-                                                    return (((item.quantity * price) + (item.quantity * item.printingCost) + (item.quantity * item.operationCost)) * period).toLocaleString()
-                                                })()}
-                                            </span>
-                                            {proposalItems.length > 1 && (
-                                                <button
-                                                    onClick={() => removeProposalItem(index)}
-                                                    className="w-8 flex items-center justify-center text-red-500 hover:text-red-700"
-                                                >
-                                                    <X className="w-5 h-5" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Blok Liste Seçeneği */}
-                                <div className="space-y-3 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                                    <div className="flex items-center gap-3">
-                                        <input
-                                            type="checkbox"
-                                            id="blockList"
-                                            checked={isBlockList}
-                                            onChange={(e) => setIsBlockList(e.target.checked)}
-                                            className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                                        />
-                                        <label htmlFor="blockList" className="text-sm text-gray-700 font-bold">
-                                            Blok Liste Uygula
-                                        </label>
-                                    </div>
-
-                                    {isBlockList && (
-                                        <div className="flex items-center gap-4 pl-7 pt-2 border-t border-yellow-200">
-                                            <div className="flex-1">
-                                                <p className="text-xs text-yellow-800 mb-1">Operasyon maliyeti tüm ürünlerin birim operasyon bedellerinin toplamı üzerinden hesaplanır.</p>
-                                                <p className="text-sm font-medium text-yellow-900">Operasyon Adeti:</p>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="number"
-                                                    min="1"
-                                                    value={blockOperationQuantity}
-                                                    onChange={(e) => setBlockOperationQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                                                    className="w-20 px-3 py-1.5 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 bg-white"
-                                                />
-                                                <span className="text-sm text-yellow-800 font-medium">Kez</span>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-
-                                {/* KDV Seçimi */}
-                                <div className="flex items-center gap-4">
-                                    <span className="text-sm font-medium text-gray-700">KDV Oranı:</span>
-                                    <div className="flex gap-4">
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="kdvRate"
-                                                value="20"
-                                                checked={kdvRate === 20}
-                                                onChange={() => setKdvRate(20)}
-                                                className="w-4 h-4 text-primary-600 focus:ring-primary-500"
-                                            />
-                                            <span className="text-sm text-gray-700">%20</span>
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="kdvRate"
-                                                value="14"
-                                                checked={kdvRate === 14}
-                                                onChange={() => setKdvRate(14)}
-                                                className="w-4 h-4 text-primary-600 focus:ring-primary-500"
-                                            />
-                                            <span className="text-sm text-gray-700">%14</span>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                {/* Detaylı Hesaplama */}
-                                <div className="border-t border-gray-200 pt-4 space-y-3">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-gray-600">Ürün Bedeli:</span>
-                                        <span className="font-medium">₺{calculateProductTotal().toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-gray-600">Baskı Bedeli:</span>
-                                        <span className="font-medium text-blue-600">₺{calculatePrintingTotal().toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-gray-600">
-                                            Operasyon Maliyeti {isBlockList ? '(Blok)' : '(Adet Başı)'}:
-                                        </span>
-                                        <span className="font-medium text-orange-600">₺{calculateOperationTotal().toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm border-t border-gray-100 pt-2">
-                                        <span className="text-gray-600">Ara Toplam:</span>
-                                        <span className="font-medium">₺{calculateSubtotal().toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-gray-600">KDV (%{kdvRate}):</span>
-                                        <span className="font-medium">₺{calculateKDV().toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center bg-primary-50 rounded-lg p-3 -mx-2">
-                                        <span className="text-lg font-semibold text-gray-900">GENEL TOPLAM:</span>
-                                        <span className="text-2xl font-bold text-primary-600">₺{calculateGrandTotal().toLocaleString()}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="p-6 border-t border-gray-100 flex gap-3 justify-end sticky bottom-0 bg-white">
-                                <button
-                                    onClick={() => setShowProposalModal(false)}
-                                    className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                                >
-                                    İptal
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        const confirmed = window.confirm(
-                                            `${selectedCustomer?.companyName} için hazırlanan bütçe teklifi: \n\n` +
-                                            `Toplam: ₺${calculateGrandTotal().toLocaleString()} \n` +
-                                            `Süre: ${durationWeeks} Hafta\n\n` +
-                                            `Bu teklifi onaylayıp müşteriye e - posta ile göndermek istiyor musunuz ? `
-                                        );
-                                        if (confirmed) {
-                                            setShowProposalModal(false)
-                                            setShowEmailModal(true)
-                                        }
-                                    }}
-                                    className="px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-green-600 to-green-700 rounded-lg hover:from-green-700 hover:to-green-800 transition-all flex items-center gap-2"
-                                >
-                                    <Send className="w-4 h-4" />
-                                    Onaya Gönder
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )
+            <ProposalModal
+                showProposalModal={showProposalModal}
+                setShowProposalModal={setShowProposalModal}
+                selectedCustomer={selectedCustomer}
+                selectedProposal={selectedProposal}
+                proposalItems={proposalItems}
+                addProposalItem={addProposalItem}
+                removeProposalItem={removeProposalItem}
+                updateProposalItem={updateProposalItem}
+                isBlockList={isBlockList}
+                setIsBlockList={setIsBlockList}
+                blockOperationQuantity={blockOperationQuantity}
+                setBlockOperationQuantity={setBlockOperationQuantity}
+                kdvRate={kdvRate}
+                setKdvRate={setKdvRate}
+                durationWeeks={durationWeeks}
+                setShowEmailModal={setShowEmailModal}
+            />
             }
 
             {/* Yeni Müşteri Talebi Modalı */}
             {
-                showRequestModal && (
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <div className="bg-[#1e293b] rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-700">
-                            {/* Header */}
-                            <div className="bg-gradient-to-r from-violet-600 to-purple-600 p-6 flex items-center justify-between text-white">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-white/20 rounded-lg">
-                                        <FileText className="w-5 h-5" />
-                                    </div>
-                                    <h2 className="text-xl font-bold">Yeni Müşteri Talebi</h2>
-                                </div>
-                                <button onClick={() => setShowRequestModal(false)} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-
-                            <div className="p-8 grid grid-cols-2 gap-8 max-h-[70vh] overflow-y-auto">
-                                {/* Left Column */}
-                                <div className="space-y-6">
-                                    <div>
-                                        <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
-                                            <Hash className="w-4 h-4" />
-                                            Vergi Numarası ile Ara
-                                        </label>
-                                        <input
-                                            type="text"
-                                            placeholder="Vergi numarasını girin..."
-                                            value={requestForm.taxNumber}
-                                            onChange={(e) => {
-                                                const vkn = e.target.value
-                                                setRequestForm({ ...requestForm, taxNumber: vkn })
-                                                // VKN'ye göre müşteri bulma simülasyonu
-                                                // Gerçekte burada bir API çağrısı veya müşteriler listesinde arama olur
-                                            }}
-                                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all font-mono"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
-                                            <Users className="w-4 h-4" />
-                                            Müşteri *
-                                        </label>
-                                        <div className="relative">
-                                            <select
-                                                value={requestForm.customerId}
-                                                onChange={(e) => setRequestForm({ ...requestForm, customerId: e.target.value })}
-                                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all appearance-none"
-                                                required
-                                            >
-                                                <option value="">Müşteri Seçin...</option>
-                                                {customers.map(c => (
-                                                    <option key={c.id} value={c.id}>{c.companyName}</option>
-                                                ))}
-                                            </select>
-                                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-300 mb-2">Ürün Tipi *</label>
-                                        <div className="relative">
-                                            <select
-                                                value={requestForm.productType}
-                                                onChange={(e) => setRequestForm({ ...requestForm, productType: e.target.value })}
-                                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all appearance-none"
-                                            >
-                                                <option value="Billboard">Billboard</option>
-                                                <option value="Megalight">Megalight</option>
-                                                <option value="CLP">CLP Raket</option>
-                                                <option value="Giantboard">Giantboard</option>
-                                            </select>
-                                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-300 mb-2">Ürün Detayları</label>
-                                        <textarea
-                                            rows={3}
-                                            placeholder="Boyut, konum tercihi vb."
-                                            value={requestForm.productDetails}
-                                            onChange={(e) => setRequestForm({ ...requestForm, productDetails: e.target.value })}
-                                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all resize-none"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
-                                            <Hash className="w-4 h-4" />
-                                            Adet
-                                        </label>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            value={requestForm.quantity}
-                                            onChange={(e) => setRequestForm({ ...requestForm, quantity: parseInt(e.target.value) || 1 })}
-                                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Right Column */}
-                                <div className="space-y-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-300 mb-2">Notlar</label>
-                                        <textarea
-                                            rows={6}
-                                            placeholder="Ek notlar..."
-                                            value={requestForm.notes}
-                                            onChange={(e) => setRequestForm({ ...requestForm, notes: e.target.value })}
-                                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all resize-none"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
-                                            <DollarSign className="w-4 h-4" />
-                                            Bütçe Kaynağı
-                                        </label>
-                                        <div className="relative">
-                                            <select
-                                                value={requestForm.budgetSource}
-                                                onChange={(e) => setRequestForm({ ...requestForm, budgetSource: e.target.value })}
-                                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all appearance-none"
-                                            >
-                                                <option value="">Bütçe Seçin...</option>
-                                                <option value="Genel Pazarlama">Genel Pazarlama</option>
-                                                <option value="Tanıtım ve Etkinlik">Tanıtım ve Etkinlik</option>
-                                                <option value="Lokal Reklam">Lokal Reklam</option>
-                                            </select>
-                                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="p-8 border-t border-slate-700 bg-slate-800/50 flex justify-end gap-4">
-                                <button
-                                    onClick={() => setShowRequestModal(false)}
-                                    className="px-6 py-3 text-sm font-medium text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded-xl transition-all"
-                                >
-                                    İptal
-                                </button>
-                                <button
-                                    onClick={handleCreateRequest}
-                                    className="px-8 py-3 text-sm font-bold text-white bg-gradient-to-r from-violet-600 to-purple-600 rounded-xl hover:from-violet-700 hover:to-purple-700 transition-all shadow-lg shadow-violet-500/25 flex items-center gap-2"
-                                >
-                                    <Save className="w-4 h-4" />
-                                    Kaydet
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )
+            <CustomerRequestModal
+                showRequestModal={showRequestModal}
+                setShowRequestModal={setShowRequestModal}
+                requestForm={requestForm}
+                setRequestForm={setRequestForm}
+                customers={customers}
+                handleCreateRequest={handleCreateRequest}
+            />
             }
             {/* Modal for Location Request */}
             <LocationRequestModal
@@ -2925,109 +1439,20 @@ export default function SalesPage() {
             />
 
             {/* Email Modal */}
-            {
-                showEmailModal && (selectedProposal || selectedCustomer) && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 animate-in fade-in zoom-in duration-200">
-                            <div className="p-6 border-b border-gray-100">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
-                                            <Send className="w-5 h-5 text-white" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-lg font-bold text-gray-900">Teklifi E-posta ile Gönder</h3>
-                                            <p className="text-sm text-gray-500">{selectedSenderEmail} üzerinden</p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => setShowEmailModal(false)}
-                                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                    >
-                                        <X className="w-5 h-5 text-gray-500" />
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="p-4 space-y-3">
-                                <div className="bg-gray-50 rounded-xl p-3">
-                                    <p className="text-sm text-gray-600 mb-1">Teklif No</p>
-                                    <p className="font-semibold text-gray-900">
-                                        {selectedProposal?.proposalNumber || selectedProposal?.id || 'Yeni Teklif'}
-                                    </p>
-                                </div>
-                                <div className="bg-gray-50 rounded-xl p-3">
-                                    <p className="text-sm text-gray-600 mb-1">Müşteri</p>
-                                    <p className="font-semibold text-gray-900">
-                                        {selectedProposal?.customerName || selectedCustomer?.companyName}
-                                    </p>
-                                    <p className="text-sm text-gray-500">
-                                        {selectedCustomer?.email || 'E-posta bulunamadı'}
-                                    </p>
-                                </div>
-                                {!selectedProposal && (
-                                    <div className="bg-green-50 rounded-xl p-3 border border-green-200">
-                                        <p className="text-sm text-green-700 font-medium">
-                                            💡 Yeni teklif oluşturulacak ve e-posta ile gönderilecek.
-                                        </p>
-                                        <p className="text-sm text-green-600 mt-1">
-                                            Toplam: ₺{calculateGrandTotal().toLocaleString()} | Süre: {durationWeeks} Hafta
-                                        </p>
-                                    </div>
-                                )}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Gönderici Hesap</label>
-                                    <select
-                                        value={selectedSenderEmail}
-                                        onChange={(e) => setSelectedSenderEmail(e.target.value)}
-                                        className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white font-medium"
-                                    >
-                                        {emailAccounts.map(account => (
-                                            <option key={account.value} value={account.value}>
-                                                {account.label} - {account.value}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <p className="text-xs text-gray-500 mt-1">E-posta bu hesaptan gönderilecek</p>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Alıcı E-posta</label>
-                                    <input
-                                        type="email"
-                                        id="recipientEmail"
-                                        defaultValue={selectedCustomer?.email || ''}
-                                        placeholder="ornek@firma.com"
-                                        className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Ek Mesaj (Opsiyonel)</label>
-                                    <textarea
-                                        id="emailMessage"
-                                        rows={2}
-                                        placeholder="Müşteriye iletmek istediğiniz ek bir mesaj..."
-                                        className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
-                                    />
-                                </div>
-                            </div>
-                            <div className="p-6 border-t border-gray-100 flex justify-end gap-3">
-                                <button
-                                    onClick={() => setShowEmailModal(false)}
-                                    className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
-                                >
-                                    İptal
-                                </button>
-                                <button
-                                    onClick={handleSendEmail}
-                                    className="px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-500/25 flex items-center gap-2"
-                                >
-                                    <Send className="w-4 h-4" />
-                                    Gönder
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
+            {showEmailModal && (
+            <EmailModal
+                showEmailModal={showEmailModal}
+                setShowEmailModal={setShowEmailModal}
+                selectedProposal={selectedProposal}
+                selectedCustomer={selectedCustomer}
+                selectedSenderEmail={selectedSenderEmail}
+                setSelectedSenderEmail={setSelectedSenderEmail}
+                emailAccounts={emailAccounts}
+                durationWeeks={durationWeeks}
+                handleSendEmail={handleSendEmail}
+                grandTotal={grandTotalVal()}
+            />
+            )}
         </div >
     )
 }

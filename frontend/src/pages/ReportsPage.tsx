@@ -99,10 +99,14 @@ export default function ReportsPage() {
     const getMondayOfCurrentWeek = () => {
         const d = new Date();
         const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        // Adjust for Sunday (0) to be 7, and Monday (1) to be 1
+        const diff = d.getDate() - (day === 0 ? 6 : day - 1);
         const monday = new Date(d.setDate(diff));
-        monday.setHours(0, 0, 0, 0);
-        return monday.toISOString().split('T')[0];
+        
+        const year = monday.getFullYear();
+        const month = String(monday.getMonth() + 1).padStart(2, '0');
+        const date = String(monday.getDate()).padStart(2, '0');
+        return `${year}-${month}-${date}`;
     };
 
     const handleOpenSubmit = () => {
@@ -249,7 +253,7 @@ export default function ReportsPage() {
                                     <div className="relative w-full bg-white rounded-t-lg overflow-hidden h-full flex items-end border border-gray-100 shadow-sm">
                                         <div
                                             className="w-full bg-primary-500 hover:bg-primary-600 transition-all duration-500 rounded-t-sm relative"
-                                            style={{ height: `${(count / Math.max(...Object.values(reportData.breakdown))) * 100}%` }}
+                                            style={{ height: `${(count / (Math.max(...Object.values(reportData.breakdown)) || 1)) * 100}%` }}
                                         />
                                     </div>
                                     <span className="text-sm font-bold text-gray-700">{type}</span>

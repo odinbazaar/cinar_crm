@@ -24,7 +24,7 @@ import MainLayout from './components/layout/MainLayout'
 
 // Toast
 import ToastContainer from './components/ToastContainer'
-import { useToast } from './hooks/useToast'
+import { ToastProvider, useToast } from './context/ToastContext'
 
 // Create a client
 const queryClient = new QueryClient({
@@ -36,9 +36,14 @@ const queryClient = new QueryClient({
     },
 })
 
-function App() {
-    const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('user'))
+// Separate component to handle toast display inside the provider
+function ToastDisplay() {
     const { toasts, removeToast } = useToast()
+    return <ToastContainer toasts={toasts} onRemove={removeToast} />
+}
+
+function AppContent() {
+    const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('user'))
 
     return (
         <QueryClientProvider client={queryClient}>
@@ -91,10 +96,17 @@ function App() {
                     <Route path="*" element={<Navigate to="/login" replace />} />
                 </Routes>
 
-                {/* Global Toast Notifications */}
-                <ToastContainer toasts={toasts} onRemove={removeToast} />
+                <ToastDisplay />
             </BrowserRouter>
         </QueryClientProvider>
+    )
+}
+
+function App() {
+    return (
+        <ToastProvider>
+            <AppContent />
+        </ToastProvider>
     )
 }
 
