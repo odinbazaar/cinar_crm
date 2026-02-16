@@ -13,13 +13,11 @@ export interface SystemLog {
 
 export const logsService = {
     getAll: async (): Promise<SystemLog[]> => {
-        const response = await api.get('/logs');
-        return response.data;
+        return api.get<SystemLog[]>('/logs');
     },
 
     create: async (log: Omit<SystemLog, 'id' | 'created_at'>): Promise<SystemLog> => {
-        const response = await api.post('/logs', log);
-        return response.data;
+        return api.post<SystemLog>('/logs', log);
     },
 
     clear: async (): Promise<void> => {
