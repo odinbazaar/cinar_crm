@@ -156,7 +156,7 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
                                     ₺{(() => {
                                         const period = parseInt(item.weekLayout || '1') || 1
                                         const price = (item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice
-                                        return (((item.quantity * price) + (item.quantity * item.printingCost) + (item.quantity * item.operationCost)) * period).toLocaleString()
+                                        return ((item.quantity * price * period) + (item.quantity * item.printingCost) + (item.quantity * item.operationCost)).toLocaleString()
                                     })()}
                                 </span>
                                 {proposalItems.length > 1 && (

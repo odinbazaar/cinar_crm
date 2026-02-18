@@ -1,0 +1,123 @@
+﻿­şöğ Initializing Supabase Client...
+   URL: https://laltmysfkyppkqykggmh.supabase.co
+   Key Length: 219
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +18ms[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUsersModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mClientsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mProjectsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mInventoryModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBookingsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTasksModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTimeEntriesModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCustomerRequestsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mFinanceModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDashboardModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mLogsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mReportsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[MailService] [39m[32m­şôğ Mail config: smtp.yandex.com.tr:465 (secure: true)[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[MailService] [39m[32m­şôğ Mail user: pazarlama@izmiracikhavareklam.com[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMailModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mProposalsModule dependencies initialized[39m[38;5;3m +0ms[39m
+­şÜÇ Starting Mail Activation Tests...
+
+­şôğ Testing [Pazarlama] (pazarlama@izmiracikhavareklam.com)...
+[32m[Nest] 4412  - [39m18.02.2026 09:39:55 [32m    LOG[39m [38;5;3m[MailService] [39m[32m­şôğ Attempt 1/3: Sending email to odindev@gmail.com from pazarlama@izmiracikhavareklam.com...[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:57 [32m    LOG[39m [38;5;3m[MailService] [39m[32mÔ£à Email sent to odindev@gmail.com: <a39f9149-61d4-637e-8636-12154e969c90@izmiracikhavareklam.com>[39m
+Ô£à [Pazarlama] is ACTIVE!
+
+­şôğ Testing [Ali ├ç─▒nar] (ali@izmiracikhavareklam.com)...
+[32m[Nest] 4412  - [39m18.02.2026 09:39:57 [32m    LOG[39m [38;5;3m[MailService] [39m[32m­şôğ Using Ali credentials for sending.[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:57 [32m    LOG[39m [38;5;3m[MailService] [39m[32m­şôğ Attempt 1/3: Sending email to odindev@gmail.com from ali@izmiracikhavareklam.com...[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:58 [32m    LOG[39m [38;5;3m[MailService] [39m[32mÔ£à Email sent to odindev@gmail.com: <bd3525bd-72f1-62dc-d28c-3a2b11bd8e06@izmiracikhavareklam.com>[39m
+Ô£à [Ali ├ç─▒nar] is ACTIVE!
+
+­şôğ Testing [Simge] (simge@izmiracikhavareklam.com)...
+[32m[Nest] 4412  - [39m18.02.2026 09:39:58 [32m    LOG[39m [38;5;3m[MailService] [39m[32m­şôğ Using Simge credentials for sending.[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:39:58 [32m    LOG[39m [38;5;3m[MailService] [39m[32m­şôğ Attempt 1/3: Sending email to odindev@gmail.com from simge@izmiracikhavareklam.com...[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:40:00 [32m    LOG[39m [38;5;3m[MailService] [39m[32mÔ£à Email sent to odindev@gmail.com: <202c8cdf-ae74-2e46-6703-e3107f961b1d@izmiracikhavareklam.com>[39m
+Ô£à [Simge] is ACTIVE!
+
+­şôğ Testing [Ay┼şe] (ayse@izmiracikhavareklam.com)...
+[32m[Nest] 4412  - [39m18.02.2026 09:40:00 [32m    LOG[39m [38;5;3m[MailService] [39m[32m­şôğ Using Ay┼şe credentials for sending.[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:40:00 [32m    LOG[39m [38;5;3m[MailService] [39m[32m­şôğ Attempt 1/3: Sending email to odindev@gmail.com from ayse@izmiracikhavareklam.com...[39m
+node.exe : [31m[Nest] 4412 
+ - [39m18.02.2026 09:40:01 
+[31m  ERROR[39m [38;5;3m[
+MailService] [39m[31mÔØî A
+ttempt 1/3 failed:[39m
+At C:\Program Files\nodejs\n
+px.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS 
+$args
++   ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo          
+    : NotSpecified: ([31m  
+  [Nest] 441.../3 failed:   
+ [39m:String) [], Remot    
+eException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
+Invalid login: 535 5.7.8 Err
+or: authentication failed: I
+nvalid user or password! 177
+1396801-0eTo8hFGLqM0
+[32m[Nest] 4412  - [39m18.02.2026 09:40:01 [32m    LOG[39m [38;5;3m[MailService] [39m[32m­şôğ Attempt 2/3: Sending email to odindev@gmail.com from ayse@izmiracikhavareklam.com...[39m
+[31m[Nest] 4412  - [39m18.
+02.2026 09:40:02 [31m  ERRO
+R[39m [38;5;3m[MailService
+] [39m[31mÔØî Attempt 2/3 
+failed:[39m
+Invalid login: 535 5.7.8 Err
+or: authentication failed: I
+nvalid user or password! 177
+1396802-1eTb4ZIGvOs0
+[32m[Nest] 4412  - [39m18.02.2026 09:40:02 [32m    LOG[39m [38;5;3m[MailService] [39m[32m­şôğ Attempt 3/3: Sending email to odindev@gmail.com from ayse@izmiracikhavareklam.com...[39m
+[31m[Nest] 4412  - [39m18.
+02.2026 09:40:02 [31m  ERRO
+R[39m [38;5;3m[MailService
+] [39m[31mÔØî Attempt 3/3 
+failed:[39m
+Invalid login: 535 5.7.8 Err
+or: authentication failed: I
+nvalid user or password! 177
+1396802-2eT3GtJGoeA0
+[31m[Nest] 4412  - [39m18.
+02.2026 09:40:02 [31m  ERRO
+R[39m [38;5;3m[MailService
+] [39m[31mÔØî All 3 attemp
+ts failed for odindev@gmail.
+com:[39m
+[31m[Nest] 4412  - [39m18.
+02.2026 09:40:02 [31m  ERRO
+R[39m [38;5;3m[MailService
+] [39m[31mError: Invalid l
+ogin: 535 5.7.8 Error: authe
+ntication failed: Invalid us
+er or password! 1771396802-2
+eT3GtJGoeA0[39m
+ÔØî [Ay┼şe] FAILED: Invalid 
+login: 535 5.7.8 Error: auth
+entication failed: Invalid u
+ser or password! 1771396802-
+2eT3GtJGoeA0
+
+­şôğ Testing [Can] (can@izmiracikhavareklam.com)...
+[32m[Nest] 4412  - [39m18.02.2026 09:40:02 [32m    LOG[39m [38;5;3m[MailService] [39m[32m­şôğ Using Can credentials for sending.[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:40:02 [32m    LOG[39m [38;5;3m[MailService] [39m[32m­şôğ Attempt 1/3: Sending email to odindev@gmail.com from can@izmiracikhavareklam.com...[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:40:04 [32m    LOG[39m [38;5;3m[MailService] [39m[32mÔ£à Email sent to odindev@gmail.com: <d929ad8c-b177-79bc-dd0f-f66d33678f5b@izmiracikhavareklam.com>[39m
+Ô£à [Can] is ACTIVE!
+
+­şôğ Testing [Rezervasyon] (rezervasyon@izmiracikhavareklam.com)...
+[32m[Nest] 4412  - [39m18.02.2026 09:40:04 [32m    LOG[39m [38;5;3m[MailService] [39m[32m­şôğ Using Rezervasyon credentials for sending.[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:40:04 [32m    LOG[39m [38;5;3m[MailService] [39m[32m­şôğ Attempt 1/3: Sending email to odindev@gmail.com from rezervasyon@izmiracikhavareklam.com...[39m
+[32m[Nest] 4412  - [39m18.02.2026 09:40:07 [32m    LOG[39m [38;5;3m[MailService] [39m[32mÔ£à Email sent to odindev@gmail.com: <c7a40fff-8a95-9ec0-b166-a64ecd0f7dd0@izmiracikhavareklam.com>[39m
+Ô£à [Rezervasyon] is ACTIVE!
+
+­şÅü Mail tests completed.

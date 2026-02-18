@@ -79,37 +79,33 @@ export default function ReservationsPage() {
     // Dinamik Filtre Seçenekleri
     const monthOptions = allMonths
 
-    const weekOptions = useMemo(() => {
-        // Seçilen ayın numarasını bul (1-12)
-        const monthIndex = allMonths.indexOf(selectedMonth);
+    const generateWeekOptions = (year: number, month: string) => {
+        const monthIndex = allMonths.indexOf(month);
         if (monthIndex === -1) return [];
 
-        // Seçilen yılın tüm Pazartesi günlerini üret (52 veya 53 hafta)
         const generatedWeeks: { value: string; label: string; month: string }[] = []
-        const startOfYear = new Date(selectedYear, 0, 1)
+        const startOfYear = new Date(year, 0, 1)
 
-        // Yılın ilk Pazartesi'sini bul
         let curr = new Date(startOfYear)
         while (curr.getDay() !== 1) {
             curr.setDate(curr.getDate() + 1)
         }
 
-        // Yıl bitene kadar haftalık ilerle
-        while (curr.getFullYear() <= selectedYear) {
+        while (curr.getFullYear() <= year) {
             const day = String(curr.getDate()).padStart(2, '0')
-            const month = String(curr.getMonth() + 1).padStart(2, '0')
-            const dateStr = `${day}.${month}.${curr.getFullYear()}`
-
-            // Bu haftanın hangi aya ait olduğunu belirle
-            // Pazartesi günü hangi aya denk geliyorsa o ayın haftası kabul edilir
+            const m = String(curr.getMonth() + 1).padStart(2, '0')
+            const dateStr = `${day}.${m}.${curr.getFullYear()}`
             const weekMonthName = allMonths[curr.getMonth()];
 
             generatedWeeks.push({ value: dateStr, label: dateStr, month: weekMonthName })
             curr.setDate(curr.getDate() + 7)
         }
 
-        // Sadece seçilen aya ait olan haftaları döndür
-        return generatedWeeks.filter(w => w.month === selectedMonth);
+        return generatedWeeks.filter(w => w.month === month);
+    };
+
+    const weekOptions = useMemo(() => {
+        return generateWeekOptions(selectedYear, selectedMonth);
     }, [selectedYear, selectedMonth])
 
     // Ay değiştiğinde haftayı o ayın ilk haftasına ayarla
@@ -347,10 +343,7 @@ export default function ReservationsPage() {
         return () => window.removeEventListener('storage', handleStorageChange)
     }, []);
 
-    // Müsaitlik kontrolü yap ve modalı aç
-    const handleOpenProcessModal = async (request: any) => {
-        setSelectedRequest(request);
-        setShowProcessModal(true);
+    const checkAvailability = async (request: any) => {
         setIsCheckingAvailability(true);
 
         try {
@@ -428,6 +421,30 @@ export default function ReservationsPage() {
             setIsCheckingAvailability(false);
         }
     };
+
+    // Müsaitlik kontrolü yap ve modalı aç
+    const handleOpenProcessModal = async (request: any) => {
+        setSelectedRequest({
+            ...request,
+            // Normalize week date for select consistency
+            week: normalizeDate(request.week)
+        });
+        setShowProcessModal(true);
+    };
+
+    // Watch for changes while modal is open to re-check availability
+    useEffect(() => {
+        if (showProcessModal && selectedRequest) {
+            checkAvailability(selectedRequest);
+        }
+    }, [
+        showProcessModal,
+        selectedRequest?.year,
+        selectedRequest?.month,
+        selectedRequest?.week,
+        selectedRequest?.productType,
+        selectedRequest?.network
+    ]);
 
     // Onaydan sonra talebi işle
     const handleConfirmProcessRequest = async () => {
@@ -2069,23 +2086,45 @@ export default function ReservationsPage() {
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                            {/* Talep Bilgileri */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                    <p className="text-[10px] text-gray-500 font-bold uppercase">Dönem</p>
-                                    <p className="text-sm font-bold text-gray-900">{selectedRequest.year} / {selectedRequest.month}</p>
+                            {/* Talep Bilgileri - Tarih ve Ürün Seçimi */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
+                                    <label className="block text-[10px] text-gray-400 font-black uppercase mb-1">Ürün Tipi</label>
+                                    <select
+                                        value={selectedRequest.productType}
+                                        onChange={(e) => setSelectedRequest({ ...selectedRequest, productType: e.target.value })}
+                                        className="w-full text-xs font-bold text-gray-900 bg-transparent border-0 p-0 focus:ring-0 cursor-pointer"
+                                    >
+                                        {productTypes.filter(t => t !== 'Tümü').map(t => <option key={t} value={t}>{t}</option>)}
+                                    </select>
                                 </div>
-                                <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                    <p className="text-[10px] text-gray-500 font-bold uppercase">Hafta</p>
-                                    <p className="text-sm font-bold text-gray-900">{normalizeDate(selectedRequest.week)}</p>
+                                <div className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
+                                    <label className="block text-[10px] text-gray-400 font-black uppercase mb-1">Network</label>
+                                    <select
+                                        value={selectedRequest.network}
+                                        onChange={(e) => setSelectedRequest({ ...selectedRequest, network: e.target.value })}
+                                        className="w-full text-xs font-bold text-gray-900 bg-transparent border-0 p-0 focus:ring-0 cursor-pointer"
+                                    >
+                                        {availableNetworks.filter(n => n !== 'Tümü').map(n => <option key={n} value={n}>Net {n}</option>)}
+                                    </select>
                                 </div>
-                                <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                    <p className="text-[10px] text-gray-500 font-bold uppercase">Ürün Tipi</p>
-                                    <p className="text-sm font-bold text-gray-900">{selectedRequest.productType}</p>
+                                <div className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
+                                    <label className="block text-[10px] text-gray-400 font-black uppercase mb-1">Başlangıç Tarihi</label>
+                                    <input 
+                                        type="date"
+                                        value={selectedRequest.week.includes('.') ? toBackendDate(selectedRequest.week) : selectedRequest.week.split('T')[0]}
+                                        onChange={(e) => setSelectedRequest({ ...selectedRequest, week: e.target.value })}
+                                        className="w-full text-xs font-bold text-gray-900 bg-transparent border-0 p-0 focus:ring-0 cursor-pointer"
+                                    />
                                 </div>
-                                <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                    <p className="text-[10px] text-gray-500 font-bold uppercase">Network</p>
-                                    <p className="text-sm font-bold text-gray-900">Net {selectedRequest.network}</p>
+                                <div className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
+                                    <label className="block text-[10px] text-gray-400 font-black uppercase mb-1">Bitiş Tarihi</label>
+                                    <input 
+                                        type="date"
+                                        value={selectedRequest.endDate?.includes('.') ? toBackendDate(selectedRequest.endDate) : (selectedRequest.endDate?.split('T')[0] || '')}
+                                        onChange={(e) => setSelectedRequest({ ...selectedRequest, endDate: e.target.value })}
+                                        className="w-full text-xs font-bold text-gray-900 bg-transparent border-0 p-0 focus:ring-0 cursor-pointer"
+                                    />
                                 </div>
                             </div>
 

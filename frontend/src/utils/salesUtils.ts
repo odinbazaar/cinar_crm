@@ -51,15 +51,13 @@ export const calculateOperationTotal = (proposalItems: any[], isBlockList: boole
         return proposalItems.reduce((sum, item) => sum + item.operationCost, 0) * blockOperationQuantity
     }
     return proposalItems.reduce((sum, item) => {
-        const period = parseInt(item.weekLayout || '1') || 1
-        return sum + (item.quantity * item.operationCost * period)
+        return sum + (item.quantity * item.operationCost)
     }, 0)
 }
 
 export const calculatePrintingTotal = (proposalItems: any[]) => {
     return proposalItems.reduce((sum, item) => {
-        const period = parseInt(item.weekLayout || '1') || 1
-        return sum + (item.quantity * item.printingCost * period)
+        return sum + (item.quantity * item.printingCost)
     }, 0)
 }
 

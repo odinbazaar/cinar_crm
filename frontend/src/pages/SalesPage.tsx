@@ -675,11 +675,26 @@ export default function SalesPage() {
             if (selectedCustomer) {
                 const userId = localStorage.getItem('userId') || '95959c2d-c5e1-454c-834f-3746d0a401c5';
 
-                const finalItems = proposalItems.map(item => ({
-                    description: `${item.network ? `${item.code} - Network ${item.network}` : item.code} (${durationWeeks} Hafta)`,
-                    quantity: item.quantity,
-                    unit_price: item.unitPrice * durationWeeks + (!isBlockList ? item.operationCost : 0),
-                }));
+                const finalItems = proposalItems.map(item => {
+                    const price = (item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice;
+                    const durationVal = parseInt(item.weekLayout || durationWeeks.toString()) || durationWeeks;
+                    const unitPrice = (price * durationVal) + item.printingCost + (!isBlockList ? item.operationCost : 0);
+                    
+                    return {
+                        description: `${item.network ? `${item.code} - Network ${item.network}` : item.code} (${durationVal} Hafta)`,
+                        quantity: item.quantity,
+                        unit_price: unitPrice,
+                        metadata: {
+                            type: item.type,
+                            code: item.code,
+                            duration: durationVal,
+                            unit_price_base: item.unitPrice,
+                            discounted_price: item.discountedPrice,
+                            printing_cost: item.printingCost,
+                            operation_cost: item.operationCost
+                        }
+                    };
+                });
 
                 if (isBlockList) {
                     const totalOpCost = proposalItems.reduce((sum, item) => sum + item.operationCost, 0) * blockOperationQuantity;
@@ -687,7 +702,16 @@ export default function SalesPage() {
                         finalItems.push({
                             description: `Operasyon Maliyeti (Blok Liste - ${blockOperationQuantity} Adet)`,
                             quantity: 1,
-                            unit_price: totalOpCost
+                            unit_price: totalOpCost,
+                            metadata: {
+                                type: 'OP',
+                                code: 'OPERASYON',
+                                duration: 1,
+                                unit_price_base: totalOpCost,
+                                discounted_price: totalOpCost,
+                                printing_cost: 0,
+                                operation_cost: totalOpCost
+                            }
                         });
                     }
                 }
@@ -869,11 +893,26 @@ export default function SalesPage() {
         try {
             const userId = localStorage.getItem('userId') || '95959c2d-c5e1-454c-834f-3746d0a401c5' // Fallback to Ali's ID if not found
 
-            const finalItems = proposalItems.map(item => ({
-                description: `${item.network ? `${item.code} - Network ${item.network}` : item.code} (${durationWeeks} Hafta)`,
-                quantity: item.quantity,
-                unit_price: item.unitPrice * durationWeeks + (!isBlockList ? item.operationCost : 0),
-            }));
+            const finalItems = proposalItems.map(item => {
+                const price = (item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice;
+                const durationVal = parseInt(item.weekLayout || durationWeeks.toString()) || durationWeeks;
+                const unitPrice = (price * durationVal) + item.printingCost + (!isBlockList ? item.operationCost : 0);
+                
+                return {
+                    description: `${item.network ? `${item.code} - Network ${item.network}` : item.code} (${durationVal} Hafta)`,
+                    quantity: item.quantity,
+                    unit_price: unitPrice,
+                    metadata: {
+                        type: item.type,
+                        code: item.code,
+                        duration: durationVal,
+                        unit_price_base: item.unitPrice,
+                        discounted_price: item.discountedPrice,
+                        printing_cost: item.printingCost,
+                        operation_cost: item.operationCost
+                    }
+                };
+            });
 
             if (isBlockList) {
                 const totalOpCost = proposalItems.reduce((sum, item) => sum + item.operationCost, 0) * blockOperationQuantity;
@@ -881,7 +920,16 @@ export default function SalesPage() {
                     finalItems.push({
                         description: `Operasyon Maliyeti (Blok Liste - ${blockOperationQuantity} Adet)`,
                         quantity: 1,
-                        unit_price: totalOpCost
+                        unit_price: totalOpCost,
+                        metadata: {
+                            type: 'OP',
+                            code: 'OPERASYON',
+                            duration: 1,
+                            unit_price_base: totalOpCost,
+                            discounted_price: totalOpCost,
+                            printing_cost: 0,
+                            operation_cost: totalOpCost
+                        }
                     });
                 }
             }

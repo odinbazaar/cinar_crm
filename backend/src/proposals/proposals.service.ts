@@ -427,22 +427,27 @@ export class ProposalsService {
                 // Fazla boşlukları temizle
                 cleanDescription = cleanDescription.replace(/\s+/g, ' ').trim();
 
-                // Dönem bilgisini çıkar
                 const metadata = item.metadata || {};
-                let period = metadata.period || metadata.duration || '1';
-                // [DÖNEM: ...] varsa al
-                const periodMatch = (item.description || '').match(/\[DÖNEM:\s*(.*?)\]/);
-                if (periodMatch) period = periodMatch[1];
+                const period = metadata.duration || metadata.period || '1';
+                
+                // Metadata varsa oradan al, yoksa mevcut logic
+                let unitPrice = Number(metadata.unit_price_base) || Number(item.unit_price) || 0;
+                let discountedPrice = Number(metadata.discounted_price) || unitPrice;
+                let itemOpCost = Number(metadata.operation_cost) || Math.round(opPerItem);
+                let itemBaskiCost = Number(metadata.printing_cost) || Math.round(baskiPerItem);
+                
+                // Eğer metadata varsa ve unit_price içinde bunlar zaten varsa (SalesPage baking), 
+                // PDF'de sadece baz fiyatı göstermek için unit_price'ı temizle
+                if (metadata.unit_price_base) {
+                   unitPrice = Number(metadata.unit_price_base);
+                   discountedPrice = Number(metadata.discounted_price) || unitPrice;
+                }
 
-                const unitPrice = Number(item.unit_price) || 0;
-                const discountedPrice = unitPrice;
-                const itemOpCost = Math.round(opPerItem);
-                const itemBaskiCost = Math.round(baskiPerItem);
                 const itemTotal = Number(item.total) || 0;
 
                 doc.text(cleanDescription, colX.product + 3, rowY + 8, { width: colWidths.product - 3 });
                 doc.text(item.quantity.toString(), colX.qty, rowY + 8, { width: colWidths.qty, align: 'center' });
-                doc.text(period, colX.period, rowY + 8, { width: colWidths.period, align: 'center' });
+                doc.text(period.toString(), colX.period, rowY + 8, { width: colWidths.period, align: 'center' });
                 doc.text(`₺${unitPrice.toLocaleString('tr-TR')}`, colX.unitPrice, rowY + 8, { width: colWidths.unitPrice, align: 'center' });
                 doc.text(`₺${discountedPrice.toLocaleString('tr-TR')}`, colX.discPrice, rowY + 8, { width: colWidths.discPrice, align: 'center' });
                 doc.text(`₺${itemOpCost.toLocaleString('tr-TR')}`, colX.opCost, rowY + 8, { width: colWidths.opCost, align: 'center' });
@@ -537,14 +542,19 @@ export class ProposalsService {
             cleanDescription = cleanDescription.replace(/\(\d+\s*(Hafta|hafta|GÜN|gün|Gün)\)/g, '').trim();
             cleanDescription = cleanDescription.replace(/\s+/g, ' ').trim();
 
-            // Dönem bilgisini çıkar
             const metadata = (item as any).metadata || {};
-            let period = metadata.period || metadata.duration || '1';
-            const periodMatch = (item.description || '').match(/\[DÖNEM:\s*(.*?)\]/);
-            if (periodMatch) period = periodMatch[1];
+            const period = metadata.duration || metadata.period || '1';
+            
+            let unitPrice = Number(metadata.unit_price_base) || Number(item.unit_price) || 0;
+            let discountedPrice = Number(metadata.discounted_price) || unitPrice;
+            let itemOpCost = Number(metadata.operation_cost) || opPerItem;
+            let itemBaskiCost = Number(metadata.printing_cost) || baskiPerItem;
 
-            const unitPrice = Number(item.unit_price) || 0;
-            const discountedPrice = unitPrice;
+            if (metadata.unit_price_base) {
+                unitPrice = Number(metadata.unit_price_base);
+                discountedPrice = Number(metadata.discounted_price) || unitPrice;
+            }
+
             const itemTotal = Number(item.total) || 0;
 
             return `
@@ -554,8 +564,8 @@ export class ProposalsService {
                     <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${period}</td>
                     <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">₺${unitPrice.toLocaleString('tr-TR')}</td>
                     <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">₺${discountedPrice.toLocaleString('tr-TR')}</td>
-                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">₺${opPerItem.toLocaleString('tr-TR')}</td>
-                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">₺${baskiPerItem.toLocaleString('tr-TR')}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">₺${itemOpCost.toLocaleString('tr-TR')}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">₺${itemBaskiCost.toLocaleString('tr-TR')}</td>
                     <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">₺${itemTotal.toLocaleString('tr-TR')}</td>
                 </tr>
             `;
