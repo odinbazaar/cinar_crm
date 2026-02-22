@@ -156,7 +156,9 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
                                     ₺{(() => {
                                         const period = parseInt(item.weekLayout || '1') || 1
                                         const price = (item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice
-                                        return ((item.quantity * price * period) + (item.quantity * item.printingCost) + (item.quantity * item.operationCost)).toLocaleString()
+                                        const opMultiplier = isBlockList ? blockOperationQuantity : 1
+                                        const prMultiplier = isBlockList ? blockOperationQuantity : 1
+                                        return ((item.quantity * price * period) + (item.quantity * item.printingCost * prMultiplier) + (item.quantity * item.operationCost * opMultiplier)).toLocaleString()
                                     })()}
                                 </span>
                                 {proposalItems.length > 1 && (
@@ -244,7 +246,7 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-gray-600">Baskı Bedeli:</span>
-                            <span className="font-medium text-blue-600">₺{calculatePrintingTotal(proposalItems).toLocaleString()}</span>
+                            <span className="font-medium text-blue-600">₺{calculatePrintingTotal(proposalItems, isBlockList, blockOperationQuantity).toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-gray-600">

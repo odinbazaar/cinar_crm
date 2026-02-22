@@ -48,23 +48,28 @@ export const calculateProductTotal = (proposalItems: any[]) => {
 
 export const calculateOperationTotal = (proposalItems: any[], isBlockList: boolean, blockOperationQuantity: number) => {
     if (isBlockList) {
-        return proposalItems.reduce((sum, item) => sum + item.operationCost, 0) * blockOperationQuantity
+        return proposalItems.reduce((sum, item) => sum + (item.operationCost * item.quantity), 0) * blockOperationQuantity
     }
     return proposalItems.reduce((sum, item) => {
         return sum + (item.quantity * item.operationCost)
     }, 0)
 }
 
-export const calculatePrintingTotal = (proposalItems: any[]) => {
-    return proposalItems.reduce((sum, item) => {
+export const calculatePrintingTotal = (proposalItems: any[], isBlockList: boolean = false, blockOperationQuantity: number = 1) => {
+    const total = proposalItems.reduce((sum, item) => {
         return sum + (item.quantity * item.printingCost)
     }, 0)
+    
+    if (isBlockList) {
+        return total * blockOperationQuantity
+    }
+    return total
 }
 
 export const calculateSubtotal = (proposalItems: any[], isBlockList: boolean, blockOperationQuantity: number) => {
     return calculateProductTotal(proposalItems) + 
            calculateOperationTotal(proposalItems, isBlockList, blockOperationQuantity) + 
-           calculatePrintingTotal(proposalItems)
+           calculatePrintingTotal(proposalItems, isBlockList, blockOperationQuantity)
 }
 
 export const calculateKDV = (proposalItems: any[], isBlockList: boolean, blockOperationQuantity: number, kdvRate: number) => {

@@ -678,7 +678,7 @@ export default function SalesPage() {
                 const finalItems = proposalItems.map(item => {
                     const price = (item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice;
                     const durationVal = parseInt(item.weekLayout || durationWeeks.toString()) || durationWeeks;
-                    const unitPrice = (price * durationVal) + item.printingCost + (!isBlockList ? item.operationCost : 0);
+                    const unitPrice = (price * durationVal) + (!isBlockList ? item.printingCost : 0) + (!isBlockList ? item.operationCost : 0);
                     
                     return {
                         description: `${item.network ? `${item.code} - Network ${item.network}` : item.code} (${durationVal} Hafta)`,
@@ -697,7 +697,7 @@ export default function SalesPage() {
                 });
 
                 if (isBlockList) {
-                    const totalOpCost = proposalItems.reduce((sum, item) => sum + item.operationCost, 0) * blockOperationQuantity;
+                    const totalOpCost = calculateOperationTotal(proposalItems, true, blockOperationQuantity);
                     if (totalOpCost > 0) {
                         finalItems.push({
                             description: `Operasyon Maliyeti (Blok Liste - ${blockOperationQuantity} Adet)`,
@@ -711,6 +711,24 @@ export default function SalesPage() {
                                 discounted_price: totalOpCost,
                                 printing_cost: 0,
                                 operation_cost: totalOpCost
+                            }
+                        });
+                    }
+
+                    const totalPrintingCost = calculatePrintingTotal(proposalItems, true, blockOperationQuantity);
+                    if (totalPrintingCost > 0) {
+                        finalItems.push({
+                            description: `Baskı Bedeli (Blok Liste - ${blockOperationQuantity} Adet)`,
+                            quantity: 1,
+                            unit_price: totalPrintingCost,
+                            metadata: {
+                                type: 'BASKI',
+                                code: 'BASKI',
+                                duration: 1,
+                                unit_price_base: totalPrintingCost,
+                                discounted_price: totalPrintingCost,
+                                printing_cost: totalPrintingCost,
+                                operation_cost: 0
                             }
                         });
                     }
@@ -896,7 +914,7 @@ export default function SalesPage() {
             const finalItems = proposalItems.map(item => {
                 const price = (item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice;
                 const durationVal = parseInt(item.weekLayout || durationWeeks.toString()) || durationWeeks;
-                const unitPrice = (price * durationVal) + item.printingCost + (!isBlockList ? item.operationCost : 0);
+                const unitPrice = (price * durationVal) + (!isBlockList ? item.printingCost : 0) + (!isBlockList ? item.operationCost : 0);
                 
                 return {
                     description: `${item.network ? `${item.code} - Network ${item.network}` : item.code} (${durationVal} Hafta)`,
@@ -915,7 +933,7 @@ export default function SalesPage() {
             });
 
             if (isBlockList) {
-                const totalOpCost = proposalItems.reduce((sum, item) => sum + item.operationCost, 0) * blockOperationQuantity;
+                const totalOpCost = calculateOperationTotal(proposalItems, true, blockOperationQuantity);
                 if (totalOpCost > 0) {
                     finalItems.push({
                         description: `Operasyon Maliyeti (Blok Liste - ${blockOperationQuantity} Adet)`,
@@ -929,6 +947,24 @@ export default function SalesPage() {
                             discounted_price: totalOpCost,
                             printing_cost: 0,
                             operation_cost: totalOpCost
+                        }
+                    });
+                }
+
+                const totalPrintingCost = calculatePrintingTotal(proposalItems, true, blockOperationQuantity);
+                if (totalPrintingCost > 0) {
+                    finalItems.push({
+                        description: `Baskı Bedeli (Blok Liste - ${blockOperationQuantity} Adet)`,
+                        quantity: 1,
+                        unit_price: totalPrintingCost,
+                        metadata: {
+                            type: 'BASKI',
+                            code: 'BASKI',
+                            duration: 1,
+                            unit_price_base: totalPrintingCost,
+                            discounted_price: totalPrintingCost,
+                            printing_cost: totalPrintingCost,
+                            operation_cost: 0
                         }
                     });
                 }
