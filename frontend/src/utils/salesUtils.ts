@@ -40,45 +40,45 @@ export const getWeekStartDate = (month: number, week: number, year: number = 202
 
 export const calculateProductTotal = (proposalItems: any[]) => {
     return proposalItems.reduce((sum, item) => {
+        const qty = Number(item.quantity) || 0
+        if (qty <= 0) return sum
         const period = parseInt(item.weekLayout || '1') || 1
-        const price = (item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice
-        return sum + (item.quantity * price * period)
+        const price = (Number(item.discountedPrice) > 0) ? Number(item.discountedPrice) : (Number(item.unitPrice) || 0)
+        return sum + (qty * price * period)
     }, 0)
 }
 
-export const calculateOperationTotal = (proposalItems: any[], isBlockList: boolean, blockOperationQuantity: number) => {
-    if (isBlockList) {
-        return proposalItems.reduce((sum, item) => sum + (item.operationCost * item.quantity), 0) * blockOperationQuantity
-    }
+export const calculateOperationTotal = (proposalItems: any[]) => {
     return proposalItems.reduce((sum, item) => {
-        return sum + (item.quantity * item.operationCost)
+        const qty = Number(item.quantity) || 0
+        if (qty <= 0) return sum
+        const opQty = Number(item.opQty) || 1
+        return sum + ((Number(item.operationCost) || 0) * opQty)
     }, 0)
 }
 
-export const calculatePrintingTotal = (proposalItems: any[], isBlockList: boolean = false, blockOperationQuantity: number = 1) => {
-    const total = proposalItems.reduce((sum, item) => {
-        return sum + (item.quantity * item.printingCost)
+export const calculatePrintingTotal = (proposalItems: any[]) => {
+    return proposalItems.reduce((sum, item) => {
+        const qty = Number(item.quantity) || 0
+        if (qty <= 0) return sum
+        const opQty = Number(item.opQty) || 1
+        return sum + ((Number(item.printingCost) || 0) * opQty)
     }, 0)
-    
-    if (isBlockList) {
-        return total * blockOperationQuantity
-    }
-    return total
 }
 
-export const calculateSubtotal = (proposalItems: any[], isBlockList: boolean, blockOperationQuantity: number) => {
+export const calculateSubtotal = (proposalItems: any[]) => {
     return calculateProductTotal(proposalItems) + 
-           calculateOperationTotal(proposalItems, isBlockList, blockOperationQuantity) + 
-           calculatePrintingTotal(proposalItems, isBlockList, blockOperationQuantity)
+           calculateOperationTotal(proposalItems) + 
+           calculatePrintingTotal(proposalItems)
 }
 
-export const calculateKDV = (proposalItems: any[], isBlockList: boolean, blockOperationQuantity: number, kdvRate: number) => {
-    return calculateSubtotal(proposalItems, isBlockList, blockOperationQuantity) * (kdvRate / 100)
+export const calculateKDV = (proposalItems: any[], kdvRate: number) => {
+    return calculateSubtotal(proposalItems) * (kdvRate / 100)
 }
 
-export const calculateGrandTotal = (proposalItems: any[], isBlockList: boolean, blockOperationQuantity: number, kdvRate: number) => {
-    return calculateSubtotal(proposalItems, isBlockList, blockOperationQuantity) + 
-           calculateKDV(proposalItems, isBlockList, blockOperationQuantity, kdvRate)
+export const calculateGrandTotal = (proposalItems: any[], kdvRate: number) => {
+    return calculateSubtotal(proposalItems) + 
+           calculateKDV(proposalItems, kdvRate)
 }
 
 export const calculateTotalWeeks = (startMonth: number, startWeek: number, duration: number) => {

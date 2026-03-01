@@ -55,6 +55,7 @@ export interface ProposalItem {
     discountedPrice?: number
     printingCost: number
     operationCost: number
+    opQty?: number
     network?: string
     weekLayout?: string
 }

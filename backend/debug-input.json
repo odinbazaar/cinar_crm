@@ -1,27 +1,42 @@
 {
-  "title": "Folkart Yapı Sanayi A.Ş. - Bütçe Teklifi",
-  "description": "Ocak 1.Hafta - 1 Hafta",
-  "client_id": "c3b9fc89-55cd-492f-b753-cff8a9b5d89b",
-  "created_by_id": "052fb95b-9139-431b-8d41-78d975f49e5a",
-  "subtotal": 392000,
+  "title": "DYT. RÜMEYSA DİKBAŞ  - Bütçe Teklifi",
+  "description": "5 Ocak 2026 - 11 Ocak 2026",
+  "client_id": "825daa75-4739-485d-bcb7-55f55b063068",
+  "created_by_id": "89b8aaf7-cbd8-47ee-90bd-1ad0188dde87",
+  "subtotal": 222500,
   "tax_rate": 20,
-  "tax_amount": 78400,
-  "total": 470400,
+  "tax_amount": 44500,
+  "total": 267000,
   "items": [
     {
-      "description": "BILLBOARD (1 Hafta)",
-      "quantity": 10,
-      "unit_price": 7000
+      "description": "BILLBOARD (2 Hafta)",
+      "quantity": 2,
+      "unit_price": 8500,
+      "total": 17900,
+      "metadata": {
+        "type": "BB",
+        "code": "BILLBOARD",
+        "duration": 2,
+        "unit_price_base": 6500,
+        "discounted_price": 4250,
+        "printing_cost": 400,
+        "operation_cost": 500
+      }
     },
     {
-      "description": "CLP RAKET (1 Hafta)",
-      "quantity": 10,
-      "unit_price": 3250
-    },
-    {
-      "description": "MEGABOARD (1 Hafta)",
-      "quantity": 3,
-      "unit_price": 176500
+      "description": "KULEBOARD (1 Hafta)",
+      "quantity": 1,
+      "unit_price": 180000,
+      "total": 204600,
+      "metadata": {
+        "type": "KB",
+        "code": "KULEBOARD",
+        "duration": 1,
+        "unit_price_base": 250000,
+        "discounted_price": 180000,
+        "printing_cost": 9600,
+        "operation_cost": 15000
+      }
     }
   ]
 }

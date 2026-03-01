@@ -5,6 +5,7 @@ import { useToast } from '../hooks/useToast'
 import { useAuth } from '../hooks/useAuth'
 import { inventoryService, bookingsService, customerRequestsService, proposalsService, clientsService } from '../services'
 import LocationRequestModal from '../components/proposals/LocationRequestModal'
+import { WeeklyAvailabilityCard } from '../components/reservations/WeeklyAvailabilityCard'
 import * as XLSX from 'xlsx'
 
 // Lokasyon tipi
@@ -135,6 +136,7 @@ export default function ReservationsPage() {
     const [selectedRequest, setSelectedRequest] = useState<any>(null)
     const [processAvailability, setProcessAvailability] = useState<{ available: any[], options: any[], occupied: any[] }>({ available: [], options: [], occupied: [] })
     const [isCheckingAvailability, setIsCheckingAvailability] = useState(false)
+    const [showAvailabilityCard, setShowAvailabilityCard] = useState(false)
 
     const [showEmailModal, setShowEmailModal] = useState(false)
     const [selectedEmails, setSelectedEmails] = useState<string[]>([])
@@ -194,6 +196,7 @@ export default function ReservationsPage() {
                     year: details.year || 2026,
                     month: details.month || 'Ocak',
                     week: details.week || req.start_date,
+                    endDate: req.end_date || details.endDate,
                     network: details.network || '1',
                     availableCount: details.availableCount || 0,
                     optionsCount: details.optionsCount || 0,
@@ -224,7 +227,10 @@ export default function ReservationsPage() {
 
             // Envanterdeki tüm benzersiz network değerlerini al
             const uniqueNetworks = Array.from(new Set(
-                inventory.map((item: any) => String(item.network || '1'))
+                inventory.map((item: any) => {
+                    const n = item.network;
+                    return (!n || n === 'null' || n === 'undefined' || n === 'Yok') ? 'Yok' : String(n);
+                })
             )).sort();
 
             // 'Tümü' seçeneğini her zaman en başa ekle
@@ -356,9 +362,10 @@ export default function ReservationsPage() {
 
             // Filter matching inventory
             const matchingInventory = inventory.filter(item => {
-                const itemNet = String(item.network).toUpperCase();
-                const reqNet = String(request.network).toUpperCase();
-                const isNetMatch = itemNet === reqNet ||
+                const normalizeNet = (n: any) => (!n || n === 'null' || n === 'undefined' || n === 'Yok' || n === 'YOK') ? 'YOK' : String(n).toUpperCase();
+                const itemNet = normalizeNet(item.network);
+                const reqNet = normalizeNet(request.network);
+                const isNetMatch = reqNet === 'TÜMÜ' || itemNet === reqNet ||
                     (itemNet === 'BELEDİYE' && reqNet === 'BLD') ||
                     (itemNet === 'BLD' && reqNet === 'BELEDİYE');
                 return isNetMatch && item.type === request.productType;
@@ -629,9 +636,10 @@ export default function ReservationsPage() {
         loc.hafta === selectedWeek &&
         (() => {
             if (selectedNetwork === 'Tümü') return true;
-            const itemNet = String(loc.network).toUpperCase();
-            const filterNet = String(selectedNetwork).toUpperCase();
-            return itemNet === filterNet ||
+            const normalizeNet = (n: any) => (!n || n === 'null' || n === 'undefined' || n === 'Yok' || n === 'YOK') ? 'YOK' : String(n).toUpperCase();
+            const itemNet = normalizeNet(loc.network);
+            const filterNet = normalizeNet(selectedNetwork);
+            return itemNet === 'TÜMÜ' || itemNet === filterNet ||
                 (itemNet === 'BELEDİYE' && filterNet === 'BLD') ||
                 (itemNet === 'BLD' && filterNet === 'BELEDİYE');
         })() &&
@@ -1082,7 +1090,7 @@ export default function ReservationsPage() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Rezervasyon Yönetimi</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Rezervasyon</h1>
                     <p className="text-gray-500">Hafta ve network bazlı lokasyon ataması ve liste yönetimi</p>
                 </div>
             </div>
@@ -1102,23 +1110,6 @@ export default function ReservationsPage() {
                     </div>
                 </button>
                 <button
-                    onClick={() => setActiveTab('proposals')}
-                    className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'proposals'
-                        ? 'border-primary-600 text-primary-600 bg-primary-50'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 font-bold'
-                        } `}
-                >
-                    <div className="flex items-center gap-2">
-                        <FileSpreadsheet className="w-4 h-4" />
-                        Onaylı Teklifler
-                        {(approvedProposals.length + reservationRequests.filter(r => r.status === 'approved').length) > 0 && (
-                            <span className="bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                                {approvedProposals.length + reservationRequests.filter(r => r.status === 'approved').length}
-                            </span>
-                        )}
-                    </div>
-                </button>
-                <button
                     onClick={() => setActiveTab('requests')}
                     className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'requests'
                         ? 'border-primary-600 text-primary-600 bg-primary-50'
@@ -1127,7 +1118,7 @@ export default function ReservationsPage() {
                 >
                     <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4" />
-                        Talepleri İşle
+                        Bekleyen İşler
                         {reservationRequests.filter(r => r.status === 'pending').length > 0 && (
                             <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">
                                 {reservationRequests.filter(r => r.status === 'pending').length}
@@ -1211,7 +1202,7 @@ export default function ReservationsPage() {
                                 >
                                     {availableNetworks.map(net => (
                                         <option key={net} value={net}>
-                                            {net === 'Tümü' ? 'Tüm Networkler' : `Network ${net}`}
+                                            {net === 'Tümü' ? 'Tüm Networkler' : net === 'Yok' ? 'Network Yok' : `Network ${net}`}
                                         </option>
                                     ))}
                                 </select>
@@ -2101,11 +2092,15 @@ export default function ReservationsPage() {
                                 <div className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
                                     <label className="block text-[10px] text-gray-400 font-black uppercase mb-1">Network</label>
                                     <select
-                                        value={selectedRequest.network}
+                                        value={selectedRequest.network || 'Tümü'}
                                         onChange={(e) => setSelectedRequest({ ...selectedRequest, network: e.target.value })}
                                         className="w-full text-xs font-bold text-gray-900 bg-transparent border-0 p-0 focus:ring-0 cursor-pointer"
                                     >
-                                        {availableNetworks.filter(n => n !== 'Tümü').map(n => <option key={n} value={n}>Net {n}</option>)}
+                                        {availableNetworks.map(n => (
+                                            <option key={n} value={n}>
+                                                {n === 'Tümü' ? 'Tümü' : n === 'Yok' ? 'Yok' : `Net ${n}`}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
@@ -2128,12 +2123,20 @@ export default function ReservationsPage() {
                                 </div>
                             </div>
 
-                            {/* Müsaitlik Kontrolü */}
                             <div className="space-y-4">
-                                <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                                    <Search className="w-4 h-4 text-primary-600" />
-                                    Müsaitlik Kontrol Sonucu
-                                </h3>
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                                        <Search className="w-4 h-4 text-primary-600" />
+                                        Müsaitlik Kontrol Sonucu
+                                    </h3>
+                                    <button
+                                        onClick={() => setShowAvailabilityCard(!showAvailabilityCard)}
+                                        className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-colors flex items-center gap-1"
+                                    >
+                                        <MapPin className="w-3.5 h-3.5" />
+                                        Müsaitlik Listesini Gör
+                                    </button>
+                                </div>
 
                                 {isCheckingAvailability ? (
                                     <div className="flex items-center justify-center py-8">
@@ -2227,6 +2230,37 @@ export default function ReservationsPage() {
                                 İptal
                             </button>
                             <button
+                                onClick={() => {
+                                    let targetWeek = selectedRequest.week;
+                                    if (targetWeek.includes('-')) {
+                                        const parts = targetWeek.split('T')[0].split('-');
+                                        targetWeek = `${parts[2]}.${parts[1]}.${parts[0]}`;
+                                    }
+                                    
+                                    // Gelen talebin ürün tipi ve network bilgisini de filtreye set et
+                                    setSelectedProductType(selectedRequest.productType || 'Tümü');
+                                    setSelectedNetwork(String(selectedRequest.network) === 'Tümü' || !selectedRequest.network ? 'Tümü' : String(selectedRequest.network));
+                                    setSelectedWeek(targetWeek);
+                                    
+                                    // Yıl ve ay'ı ayarla
+                                    const monthPart = parseInt(targetWeek.split('.')[1]);
+                                    if (!isNaN(monthPart) && monthPart > 0 && monthPart <= 12) {
+                                        const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+                                        setSelectedMonth(months[monthPart - 1]);
+                                    }
+
+                                    const yearPart = parseInt(targetWeek.split('.')[2]);
+                                    if (!isNaN(yearPart)) setSelectedYear(yearPart);
+
+                                    setActiveTab('list');
+                                    setShowProcessModal(false);
+                                }}
+                                className="px-6 py-2.5 text-sm font-bold text-teal-600 bg-teal-50 border border-teal-200 rounded-xl hover:bg-teal-100 transition-all flex items-center gap-2"
+                            >
+                                <CalendarDays className="w-5 h-5" />
+                                Haftaya Git
+                            </button>
+                            <button
                                 onClick={handleSendResultsToSales}
                                 disabled={isCheckingAvailability || isLoadingRequests || (processAvailability.available.length === 0 && processAvailability.options.length === 0)}
                                 className="px-6 py-2.5 text-sm font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-xl hover:bg-indigo-100 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -2252,9 +2286,18 @@ export default function ReservationsPage() {
                                 )}
                             </button>
                         </div>
+                        
+                        <WeeklyAvailabilityCard 
+                            isOpen={showAvailabilityCard}
+                            onClose={() => setShowAvailabilityCard(false)}
+                            productType={selectedRequest.productType}
+                            network={String(selectedRequest.network)}
+                            week={selectedRequest.week}
+                        />
                     </div>
                 </div>
             )}
+            
             {/* Mail Gönder Modalı (SalesPage Stilinde) */}
             {showEmailModal && (
                 <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">

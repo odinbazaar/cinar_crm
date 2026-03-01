@@ -1,5 +1,5 @@
 import React from 'react'
-import { X, Send } from 'lucide-react'
+import { X, Send, Plus, ShoppingBag } from 'lucide-react'
 import type { Customer, Proposal, ProposalItem } from '../../types/sales'
 import { 
     getProductTypes, 
@@ -22,12 +22,12 @@ interface ProposalModalProps {
     updateProposalItem: (index: number, field: keyof ProposalItem, value: any) => void
     isBlockList: boolean
     setIsBlockList: (value: boolean) => void
-    blockOperationQuantity: number
-    setBlockOperationQuantity: (value: number) => void
     kdvRate: 20 | 14
     setKdvRate: (value: 20 | 14) => void
     durationWeeks: number
-    setShowEmailModal: (show: boolean) => void
+    onAddToMainProposal: (items: ProposalItem[], isBlock: boolean, rate: 20 | 14) => void
+    onShowMainProposal?: () => void
+    showShowMainProposal?: boolean
 }
 
 export const ProposalModal: React.FC<ProposalModalProps> = ({
@@ -41,18 +41,18 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
     updateProposalItem,
     isBlockList,
     setIsBlockList,
-    blockOperationQuantity,
-    setBlockOperationQuantity,
     kdvRate,
     setKdvRate,
     durationWeeks,
-    setShowEmailModal
+    onAddToMainProposal,
+    onShowMainProposal,
+    showShowMainProposal
 }) => {
     if (!showProposalModal || !selectedCustomer) return null
 
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 text-left">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
                 <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
                     <div>
                         <h2 className="text-xl font-semibold text-gray-900">Bütçe Teklifi Hazırla</h2>
@@ -72,35 +72,30 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
 
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                            <h3 className="font-medium text-gray-900">Ürünler</h3>
-                            <button
-                                onClick={addProposalItem}
-                                className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-                            >
-                                + Ürün Ekle
-                            </button>
+                            <h3 className="font-medium text-gray-900">Ürün</h3>
                         </div>
 
                         {/* Column Headers */}
-                        <div className="flex gap-3 px-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                            <div className="flex-1 min-w-[150px]">Ürün Tipi</div>
-                            <div className="w-20">Dönem</div>
-                            <div className="w-14">Adet</div>
-                            <div className="w-20">Birim Fiyat</div>
-                            <div className="w-20">İndirimli</div>
-                            <div className="w-20">Baskı</div>
-                            <div className="w-20">Op. Bedeli</div>
-                            <div className="w-28 text-right">Toplam</div>
-                            {proposalItems.length > 1 && <div className="w-8"></div>}
+                        <div className="flex gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">
+                            <div className="flex-1 min-w-[140px]">Ürün Tipi</div>
+                            <div className="w-14 flex-none">Dönem</div>
+                            <div className="w-12 flex-none">Adet</div>
+                            <div className="w-20 flex-none">Birim F.</div>
+                            <div className="w-20 flex-none text-blue-500">İndirimli</div>
+                            <div className="w-20 flex-none">Baskı</div>
+                            <div className="w-20 flex-none">Op. Bedel</div>
+                            <div className="w-16 flex-none text-orange-500">Op. Adet</div>
+                            <div className="w-28 flex-none text-right">Toplam</div>
+                            {proposalItems.length > 1 && <div className="w-8 flex-none"></div>}
                         </div>
 
                         {proposalItems.map((item, index) => (
-                            <div key={index} className="flex gap-3 items-center">
-                                <div className="flex-1 min-w-[150px]">
+                            <div key={index} className="flex gap-2 items-center">
+                                <div className="flex-1 min-w-[140px]">
                                     <select
                                         value={item.type}
                                         onChange={(e) => updateProposalItem(index, 'type', e.target.value)}
-                                        className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs"
+                                        className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-[11px]"
                                     >
                                         {getProductTypes().map((pt: any) => (
                                             <option key={pt.code} value={pt.code}>{pt.code} - {pt.name}</option>
@@ -112,15 +107,15 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
                                     min="1"
                                     value={item.weekLayout || ''}
                                     onChange={(e) => updateProposalItem(index, 'weekLayout', e.target.value)}
-                                    className="w-20 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs text-center"
-                                    placeholder="Dönem"
+                                    className="w-14 flex-none px-1.5 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-[11px] text-center"
+                                    placeholder="W"
                                 />
                                 <input
                                     type="number"
                                     value={item.quantity}
                                     onChange={(e) => updateProposalItem(index, 'quantity', parseInt(e.target.value) || 0)}
-                                    className="w-14 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs"
-                                    placeholder="Adet"
+                                    className="w-12 flex-none px-1.5 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-[11px] text-center"
+                                    placeholder="Q"
                                     readOnly={(item.type === 'BB' || item.type === 'GB') && !!item.network}
                                     min="0"
                                 />
@@ -128,171 +123,140 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
                                     type="number"
                                     value={item.unitPrice}
                                     onChange={(e) => updateProposalItem(index, 'unitPrice', parseInt(e.target.value) || 0)}
-                                    className="w-20 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs"
+                                    className="w-20 flex-none px-1.5 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-[11px]"
                                     placeholder="Birim"
                                 />
                                 <input
                                     type="number"
                                     value={item.discountedPrice || 0}
                                     onChange={(e) => updateProposalItem(index, 'discountedPrice', parseInt(e.target.value) || 0)}
-                                    className="w-20 px-2 py-2 border border-blue-200 bg-blue-50/30 rounded-lg focus:ring-2 focus:ring-blue-500 text-xs font-medium text-blue-700"
-                                    placeholder="İndirim"
+                                    className="w-20 flex-none px-1.5 py-2 border border-blue-200 bg-blue-50/30 rounded-lg focus:ring-2 focus:ring-blue-500 text-[11px] font-medium text-blue-700"
+                                    placeholder="İnd"
                                 />
                                 <input
                                     type="number"
                                     value={item.printingCost}
                                     onChange={(e) => updateProposalItem(index, 'printingCost', parseInt(e.target.value) || 0)}
-                                    className="w-20 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs"
+                                    className="w-20 flex-none px-1.5 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-[11px]"
                                     placeholder="Baskı"
                                 />
                                 <input
                                     type="number"
                                     value={item.operationCost}
                                     onChange={(e) => updateProposalItem(index, 'operationCost', parseInt(e.target.value) || 0)}
-                                    className="w-20 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs"
-                                    placeholder="Op."
+                                    className="w-20 flex-none px-1.5 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-[11px]"
+                                    placeholder="Op"
                                 />
-                                <span className="w-28 text-right font-bold text-gray-900 text-xs">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={item.opQty || 1}
+                                    onChange={(e) => updateProposalItem(index, 'opQty', parseInt(e.target.value) || 1)}
+                                    className="w-16 flex-none px-1.5 py-2 border border-orange-200 bg-orange-50/30 rounded-lg focus:ring-2 focus:ring-orange-500 text-[11px] font-bold text-orange-700 text-center"
+                                    placeholder="Adet"
+                                />
+                                <span className="w-28 flex-none text-right font-bold text-gray-900 text-[11px] whitespace-nowrap">
                                     ₺{(() => {
-                                        const period = parseInt(item.weekLayout || '1') || 1
-                                        const price = (item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice
-                                        const opMultiplier = isBlockList ? blockOperationQuantity : 1
-                                        const prMultiplier = isBlockList ? blockOperationQuantity : 1
-                                        return ((item.quantity * price * period) + (item.quantity * item.printingCost * prMultiplier) + (item.quantity * item.operationCost * opMultiplier)).toLocaleString()
+                                        const qty = Number(item.quantity) || 0;
+                                        if (qty <= 0) return "0";
+                                        const period = parseInt(item.weekLayout || '1') || 1;
+                                        const price = (item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice;
+                                        const opMultiplier = Number(item.opQty) || 1;
+                                        return ((qty * price * period) + (item.printingCost * opMultiplier) + (item.operationCost * opMultiplier)).toLocaleString();
                                     })()}
                                 </span>
                                 {proposalItems.length > 1 && (
                                     <button
                                         onClick={() => removeProposalItem(index)}
-                                        className="w-8 flex items-center justify-center text-red-500 hover:text-red-700"
+                                        className="w-8 flex-none flex items-center justify-center text-red-500 hover:text-red-700 transition-colors"
                                     >
-                                        <X className="w-5 h-5" />
+                                        <X className="w-4 h-4" />
                                     </button>
                                 )}
                             </div>
                         ))}
                     </div>
 
-                    {/* Blok Liste Seçeneği */}
-                    <div className="space-y-3 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <div className="flex items-center gap-3">
-                            <input
-                                type="checkbox"
-                                id="blockList"
-                                checked={isBlockList}
-                                onChange={(e) => setIsBlockList(e.target.checked)}
-                                className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                            />
-                            <label htmlFor="blockList" className="text-sm text-gray-700 font-bold">
-                                Blok Liste Uygula
-                            </label>
-                        </div>
-
-                        {isBlockList && (
-                            <div className="flex items-center gap-4 pl-7 pt-2 border-t border-yellow-200">
-                                <div className="flex-1">
-                                    <p className="text-xs text-yellow-800 mb-1">Operasyon maliyeti tüm ürünlerin birim operasyon bedellerinin toplamı üzerinden hesaplanır.</p>
-                                    <p className="text-sm font-medium text-yellow-900">Operasyon Adeti:</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        value={blockOperationQuantity}
-                                        onChange={(e) => setBlockOperationQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                                        className="w-20 px-3 py-1.5 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 bg-white"
-                                    />
-                                    <span className="text-sm text-yellow-800 font-medium">Kez</span>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-
                     {/* KDV Seçimi */}
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 py-2 border-y border-gray-100">
                         <span className="text-sm font-medium text-gray-700">KDV Oranı:</span>
                         <div className="flex gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="kdvRate"
-                                    value="20"
-                                    checked={kdvRate === 20}
-                                    onChange={() => setKdvRate(20)}
-                                    className="w-4 h-4 text-primary-600 focus:ring-primary-500"
-                                />
-                                <span className="text-sm text-gray-700">%20</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="kdvRate"
-                                    value="14"
-                                    checked={kdvRate === 14}
-                                    onChange={() => setKdvRate(14)}
-                                    className="w-4 h-4 text-primary-600 focus:ring-primary-500"
-                                />
-                                <span className="text-sm text-gray-700">%14</span>
-                            </label>
+                            {[20, 14].map(rate => (
+                                <label key={rate} className="flex items-center gap-2 cursor-pointer group">
+                                    <input
+                                        type="radio"
+                                        name="kdvRate"
+                                        value={rate}
+                                        checked={kdvRate === rate}
+                                        onChange={() => setKdvRate(rate as 20 | 14)}
+                                        className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm text-gray-700 group-hover:text-blue-600 transition-colors">%{rate}</span>
+                                </label>
+                            ))}
                         </div>
                     </div>
 
                     {/* Detaylı Hesaplama */}
-                    <div className="border-t border-gray-200 pt-4 space-y-3">
+                    <div className="pt-2 space-y-2.5">
                         <div className="flex justify-between text-sm">
                             <span className="text-gray-600">Ürün Bedeli:</span>
-                            <span className="font-medium">₺{calculateProductTotal(proposalItems).toLocaleString()}</span>
+                            <span className="font-medium text-gray-900">₺{calculateProductTotal(proposalItems).toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Baskı Bedeli:</span>
-                            <span className="font-medium text-blue-600">₺{calculatePrintingTotal(proposalItems, isBlockList, blockOperationQuantity).toLocaleString()}</span>
+                            <span className="text-gray-600">Baskı Bedeli (Toplam):</span>
+                            <span className="font-medium text-blue-600">₺{calculatePrintingTotal(proposalItems).toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">
-                                Operasyon Maliyeti {isBlockList ? '(Blok)' : '(Adet Başı)'}:
-                            </span>
-                            <span className="font-medium text-orange-600">₺{calculateOperationTotal(proposalItems, isBlockList, blockOperationQuantity).toLocaleString()}</span>
+                            <span className="text-gray-600">Operasyon Maliyeti (Toplam):</span>
+                            <span className="font-medium text-orange-600">₺{calculateOperationTotal(proposalItems).toLocaleString()}</span>
                         </div>
-                        <div className="flex justify-between text-sm border-t border-gray-100 pt-2">
-                            <span className="text-gray-600">Ara Toplam:</span>
-                            <span className="font-medium">₺{calculateSubtotal(proposalItems, isBlockList, blockOperationQuantity).toLocaleString()}</span>
+                        <div className="flex justify-between text-base border-t border-gray-100 pt-3">
+                            <span className="text-gray-600 font-medium">Ara Toplam:</span>
+                            <span className="font-semibold text-gray-900">₺{calculateSubtotal(proposalItems).toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-gray-600">KDV (%{kdvRate}):</span>
-                            <span className="font-medium">₺{calculateKDV(proposalItems, isBlockList, blockOperationQuantity, kdvRate).toLocaleString()}</span>
+                            <span className="font-medium text-gray-900">₺{calculateKDV(proposalItems, kdvRate).toLocaleString()}</span>
                         </div>
-                        <div className="flex justify-between items-center bg-primary-50 rounded-lg p-3 -mx-2">
-                            <span className="text-lg font-semibold text-gray-900">GENEL TOPLAM:</span>
-                            <span className="text-2xl font-bold text-primary-600">₺{calculateGrandTotal(proposalItems, isBlockList, blockOperationQuantity, kdvRate).toLocaleString()}</span>
+                        <div className="flex justify-between items-center bg-blue-50 rounded-xl p-4 -mx-2 mt-2 border border-blue-100">
+                            <span className="text-lg font-bold text-gray-900">GENEL TOPLAM:</span>
+                            <span className="text-3xl font-black text-blue-600">
+                                ₺{(() => {
+                                    const hasValidItems = proposalItems.some(item => Number(item.quantity) > 0);
+                                    if (!hasValidItems) return "0";
+                                    return calculateGrandTotal(proposalItems, kdvRate).toLocaleString();
+                                })()}
+                            </span>
                         </div>
                     </div>
                 </div>
-                <div className="p-6 border-t border-gray-100 flex gap-3 justify-end shrink-0">
+                <div className="p-6 border-t border-gray-100 flex gap-3 justify-end shrink-0 bg-gray-50/50">
                     <button
                         onClick={() => setShowProposalModal(false)}
-                        className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                        className="px-6 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm"
                     >
                         İptal
                     </button>
                     <button
                         onClick={() => {
-                            const confirmed = window.confirm(
-                                `${selectedCustomer?.companyName} için hazırlanan bütçe teklifi: \n\n` +
-                                `Toplam: ₺${calculateGrandTotal(proposalItems, isBlockList, blockOperationQuantity, kdvRate).toLocaleString()} \n` +
-                                `Süre: ${durationWeeks} Hafta\n\n` +
-                                `Bu teklifi onaylayıp müşteriye e - posta ile göndermek istiyor musunuz ? `
-                            );
-                            if (confirmed) {
-                                setShowProposalModal(false)
-                                setShowEmailModal(true)
-                            }
+                            onAddToMainProposal(proposalItems, isBlockList, kdvRate);
+                            setShowProposalModal(false);
                         }}
-                        className="px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-green-600 to-green-700 rounded-lg hover:from-green-700 hover:to-green-800 transition-all flex items-center gap-2"
+                        className="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-200/50 flex items-center gap-2"
                     >
-                        <Send className="w-4 h-4" />
-                        Onaya Gönder
+                        <Plus className="w-4.5 h-4.5" />
+                        Teklife Ekle
                     </button>
+                    {onShowMainProposal && showShowMainProposal && (
+                        <button
+                            onClick={onShowMainProposal}
+                            className="px-6 py-2.5 text-sm font-bold text-blue-700 bg-blue-50 rounded-xl hover:bg-blue-100 transition-all flex items-center gap-2"
+                        >
+                            <ShoppingBag className="w-4.5 h-4.5" />
+                            Ana Teklifi Göster
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

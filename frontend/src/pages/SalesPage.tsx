@@ -1,37 +1,37 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
-import { 
-    ShoppingBag, 
-    TrendingUp, 
-    DollarSign, 
-    Users, 
-    Plus, 
-    Search, 
-    Filter, 
-    UserPlus, 
-    FileText, 
-    Send, 
-    Mail, 
-    X, 
-    Check, 
-    Building2, 
-    Phone, 
-    MapPin, 
-    Building, 
-    StickyNote, 
-    Save, 
-    Hash, 
-    AlertCircle, 
-    CheckCircle2, 
-    ChevronDown, 
-    RefreshCw, 
-    CheckCircle, 
-    Loader2, 
-    Trash2, 
-    LayoutGrid, 
-    List, 
-    Calendar, 
-    Bell, 
+import {
+    ShoppingBag,
+    TrendingUp,
+    DollarSign,
+    Users,
+    Plus,
+    Search,
+    Filter,
+    UserPlus,
+    FileText,
+    Send,
+    Mail,
+    X,
+    Check,
+    Building2,
+    Phone,
+    MapPin,
+    Building,
+    StickyNote,
+    Save,
+    Hash,
+    AlertCircle,
+    CheckCircle2,
+    ChevronDown,
+    RefreshCw,
+    CheckCircle,
+    Loader2,
+    Trash2,
+    LayoutGrid,
+    List,
+    Calendar,
+    Bell,
     Clock,
     RefreshCw as RefreshIcon
 } from 'lucide-react'
@@ -77,6 +77,8 @@ import { CustomerRequestModal } from '../components/sales/CustomerRequestModal'
 import { SalesStats } from '../components/sales/SalesStats'
 import { CustomerList } from '../components/sales/CustomerList'
 import { ProposalList } from '../components/sales/ProposalList'
+import { MainProposalCard } from '../components/sales/MainProposalCard'
+import { ApproveProposalModal } from '../components/sales/ApproveProposalModal'
 
 
 export default function SalesPage() {
@@ -86,6 +88,7 @@ export default function SalesPage() {
     const [showProposalModal, setShowProposalModal] = useState(false)
     const [showEmailModal, setShowEmailModal] = useState(false)
     const [showReservationModal, setShowReservationModal] = useState(false)
+    const [showApproveModal, setShowApproveModal] = useState(false)
     const [showLocationListModal, setShowLocationListModal] = useState(false)
     const [showRequestModal, setShowRequestModal] = useState(false)
     const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
@@ -354,7 +357,7 @@ export default function SalesPage() {
     const [noteFilterDate, setNoteFilterDate] = useState('')
 
     const [proposalItems, setProposalItems] = useState<ProposalItem[]>([
-        { type: 'BB', code: 'Billboard', quantity: 0, unitPrice: 6500, printingCost: 400, operationCost: 500, network: '' }
+        { type: 'BB', code: 'Billboard', quantity: 1, unitPrice: 6500, printingCost: 400, operationCost: 500, network: '', weekLayout: '1', opQty: 1 }
     ])
     const [isBlockList, setIsBlockList] = useState(false)
     const [kdvRate, setKdvRate] = useState<20 | 14>(20)
@@ -362,7 +365,11 @@ export default function SalesPage() {
     const [startMonth, setStartMonth] = useState(1)
     const [startWeek, setStartWeek] = useState(1)
     const [durationWeeks, setDurationWeeks] = useState(1)
-    const [blockOperationQuantity, setBlockOperationQuantity] = useState(1)
+
+    // Ana Teklif Kartı State'leri
+    const [mainProposalItems, setMainProposalItems] = useState<ProposalItem[]>([])
+    const [mainProposalIsBlock, setMainProposalIsBlock] = useState(false)
+    const [mainProposalKdvRate, setMainProposalKdvRate] = useState<20 | 14>(20)
 
     // Örnek müşteriler
     const [customers, setCustomers] = useState<Customer[]>([
@@ -494,12 +501,13 @@ export default function SalesPage() {
         setProposalItems([...proposalItems, {
             type: defaultProduct.code,
             code: defaultProduct.name,
-            quantity: 0,
             unitPrice: defaultProduct.unitPrice,
             discountedPrice: defaultProduct.discountedPrice || 0,
             printingCost: defaultProduct.printingCost,
             operationCost: defaultProduct.operationCost,
-            weekLayout: ''
+            quantity: 1,
+            weekLayout: '1',
+            opQty: 1
         }])
     }
 
@@ -652,9 +660,9 @@ export default function SalesPage() {
 
     // Hesaplama fonksiyonları
     const getWeekRangeVal = () => getWeekRangeText(startMonth, startWeek, durationWeeks)
-    const subtotalVal = () => calculateSubtotal(proposalItems, isBlockList, blockOperationQuantity)
-    const kdvVal = () => calculateKDV(proposalItems, isBlockList, blockOperationQuantity, kdvRate)
-    const grandTotalVal = () => calculateGrandTotal(proposalItems, isBlockList, blockOperationQuantity, kdvRate)
+    const subtotalVal = () => calculateSubtotal(proposalItems)
+    const kdvVal = () => calculateKDV(proposalItems, kdvRate)
+    const grandTotalVal = () => calculateGrandTotal(proposalItems, kdvRate)
 
     const handleSendEmail = async () => {
         try {
@@ -675,15 +683,20 @@ export default function SalesPage() {
             if (selectedCustomer) {
                 const userId = localStorage.getItem('userId') || '95959c2d-c5e1-454c-834f-3746d0a401c5';
 
-                const finalItems = proposalItems.map(item => {
+                const finalItems = proposalItems.filter(item => item.quantity > 0).map(item => {
                     const price = (item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice;
                     const durationVal = parseInt(item.weekLayout || durationWeeks.toString()) || durationWeeks;
-                    const unitPrice = (price * durationVal) + (!isBlockList ? item.printingCost : 0) + (!isBlockList ? item.operationCost : 0);
+                    const itemBasePrice = (price * durationVal);
+                    
+                    // Her ürün için ayrı OP/BASKI satırları yerine metadata'da saklamak yeterli (veya ürün birim fiyatına dahil etme)
+                    // Ancak tablo tasarımına sadık kalarak, ürüne her şeyi dahil ediyoruz:
+                    const totalOp = (item.operationCost * (item.opQty || 1));
+                    const totalPr = (item.printingCost * (item.opQty || 1));
                     
                     return {
                         description: `${item.network ? `${item.code} - Network ${item.network}` : item.code} (${durationVal} Hafta)`,
                         quantity: item.quantity,
-                        unit_price: unitPrice,
+                        unit_price: itemBasePrice,
                         metadata: {
                             type: item.type,
                             code: item.code,
@@ -691,48 +704,34 @@ export default function SalesPage() {
                             unit_price_base: item.unitPrice,
                             discounted_price: item.discountedPrice,
                             printing_cost: item.printingCost,
-                            operation_cost: item.operationCost
+                            operation_cost: item.operationCost,
+                            op_multiplier: item.opQty || 1
                         }
                     };
                 });
 
-                if (isBlockList) {
-                    const totalOpCost = calculateOperationTotal(proposalItems, true, blockOperationQuantity);
-                    if (totalOpCost > 0) {
+                // Toplam operasyon ve baskı kalemlerini ayrı ekleyelim (tercih: tek fatura satırı veya ürün içine gömülü)
+                // Kullanıcı "her ürün için ayrı" istediği için, ya metadata'da ya da ayrı satırlarda göstermeliyiz.
+                // PDF'de düzgün görünmesi için ayrı satır olarak ekleyelim (her ürün sonrası):
+                proposalItems.filter(item => item.quantity > 0).forEach(item => {
+                    const opMult = item.opQty || 1;
+                    if (item.operationCost > 0) {
                         finalItems.push({
-                            description: `Operasyon Maliyeti (Blok Liste - ${blockOperationQuantity} Adet)`,
+                            description: `${item.code} Operasyon Maliyeti (${opMult} Adet/Kez)`,
                             quantity: 1,
-                            unit_price: totalOpCost,
-                            metadata: {
-                                type: 'OP',
-                                code: 'OPERASYON',
-                                duration: 1,
-                                unit_price_base: totalOpCost,
-                                discounted_price: totalOpCost,
-                                printing_cost: 0,
-                                operation_cost: totalOpCost
-                            }
-                        });
+                            unit_price: item.operationCost * opMult,
+                            metadata: { type: 'OP', source_code: item.code, multiplier: opMult }
+                        } as any);
                     }
-
-                    const totalPrintingCost = calculatePrintingTotal(proposalItems, true, blockOperationQuantity);
-                    if (totalPrintingCost > 0) {
+                    if (item.printingCost > 0) {
                         finalItems.push({
-                            description: `Baskı Bedeli (Blok Liste - ${blockOperationQuantity} Adet)`,
+                            description: `${item.code} Baskı Bedeli (${opMult} Adet/Kez)`,
                             quantity: 1,
-                            unit_price: totalPrintingCost,
-                            metadata: {
-                                type: 'BASKI',
-                                code: 'BASKI',
-                                duration: 1,
-                                unit_price_base: totalPrintingCost,
-                                discounted_price: totalPrintingCost,
-                                printing_cost: totalPrintingCost,
-                                operation_cost: 0
-                            }
-                        });
+                            unit_price: item.printingCost * opMult,
+                            metadata: { type: 'BASKI', source_code: item.code, multiplier: opMult }
+                        } as any);
                     }
-                }
+                });
 
                 if (proposalId) {
                     // Mevcut teklifi güncelle
@@ -779,6 +778,7 @@ export default function SalesPage() {
                 success(`Teklif ${recipientEmail} adresine ${senderEmail} üzerinden gönderildi.`);
                 setShowEmailModal(false);
                 setShowProposalModal(false);
+                setMainProposalItems([]); // Clear main draft on success
                 fetchData(); // Listeyi yenile
                 setActiveTab('sent'); // Gönderilen Teklifler sekmesine geç
             } else {
@@ -792,24 +792,59 @@ export default function SalesPage() {
         }
     }
 
+    // Satış temsilcisi Onayla diyince sadece modal açılır
     const handleApproveProposal = async (id: string) => {
+        const proposal = proposals.find(p => p.id === id);
+        if (proposal) {
+            setSelectedProposal(proposal);
+            setShowApproveModal(true);
+        }
+    }
+
+    // Modal içerisinden "Rezervasyona Gönder" butonuna basınca çalışır
+    const handleSendToReservationFromApprove = async (proposalId: string, itemsData: any[]) => {
         try {
             setIsLoading(true);
-            await proposalsService.updateStatus(id, 'APPROVED');
+            
+            // 1. Teklifin durumunu APPROVED yap
+            await proposalsService.updateStatus(proposalId, 'APPROVED');
 
-            // Onaylandığında otomatik olarak rezervasyon talebi gönder (simülasyon)
-            const proposal = proposals.find(p => p.id === id);
+            // 2. Rezervasyon sistemine aktarmak için yeni bir Customer Request (Yer Talebi) oluşturuyoruz.
+            const proposal = proposals.find(p => p.id === proposalId);
             if (proposal) {
-                const customer = customers.find(c => c.id === proposal.customerId);
-                if (customer) {
-                    const reservationEmail = 'pazarlama@izmiracikhavareklam.com'
-                    const itemsSummary = proposal.items.map(item => {
-                        const label = item.network ? `${item.code} (Network ${item.network})` : item.code
-                        return `${item.quantity} ${label} `
-                    }).join(', ')
+                // Her ürün için ayrı bir json özeti hazırlıyoruz veya tek seferde details'in içine gömüyoruz.
+                // Rezervasyon Yetkilisi bu bilgileri görecek.
+                const details = {
+                    approvedItems: itemsData.map(item => ({
+                        productType: item.type,
+                        productCode: item.code,
+                        quantity: item.quantity,
+                        startDate: item.startDate,
+                        durationWeeks: item.durationWeeks,
+                    })),
+                    source: 'sale_approved'
+                };
 
-                    success(`Teklif #${proposal.proposalNumber} onaylandı ve yer listesi talebi ${reservationEmail} adresine iletildi.`);
-                }
+                // Asıl request oluşturulur (Talebi Rezervasyon Yönetimine Düşür)
+                await customerRequestsService.create({
+                    request_number: proposal.proposalNumber || `REV-${Date.now()}`,
+                    client_id: proposal.customerId,
+                    product_type: itemsData[0]?.type || 'BB', // İlk ürünün tipini ana tip olarak alıyoruz
+                    product_details: JSON.stringify(details),
+                    quantity: itemsData.reduce((acc, curr) => acc + curr.quantity, 0),
+                    start_date: itemsData[0]?.startDate || new Date().toISOString().split('T')[0],
+                    end_date: new Date(new Date(itemsData[0]?.startDate || new Date()).getTime() + (itemsData[0]?.durationWeeks || 1) * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    priority: 'high',
+                    status: 'pending', // Bekleyen iş olarak düşecek
+                    notes: JSON.stringify({
+                        type: 'sale_approved_to_reservation',
+                        proposal_id: proposalId,
+                        message: 'Satış temsilcisi teklifi onayladı ve işlem yapılmasını bekliyor.',
+                        createdAt: new Date().toISOString()
+                    })
+                });
+
+                success(`Teklif #${proposal.proposalNumber} onaylandı ve rezervasyon birimine iletildi.`);
             }
 
             fetchData();
@@ -833,19 +868,77 @@ export default function SalesPage() {
                 setSelectedCustomer(customer);
             }
             setSelectedProposal(proposal);
-            setProposalItems([...proposal.items]);
-            setIsBlockList(proposal.isBlockList);
+            
+            // Backend'den gelen verileri ProposalItem formatına dönüştür
+            const productTypesList = getProductTypes();
+            const rawItems = proposal.items || [];
+            
+            const mappedItems = rawItems
+                .filter((item: any) => {
+                    const desc = (item.description || '').toLowerCase();
+                    return !desc.includes('operasyon maliyeti') && !desc.includes('baskı bedeli');
+                })
+                .map((item: any) => {
+                    const meta = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : (item.metadata || {});
+                    
+                    // Metadata'dan fiyatları almaya çalış
+                    let unitPrice = Number(meta.unit_price_base);
+                    let discountedPrice = Number(meta.discounted_price);
+                    
+                    // Metadata yoksa veya eksikse logic:
+                    if (!unitPrice) {
+                        // Backend'den gelen unit_price aslında satılan fiyattır (indirimli)
+                        const bakedPrice = Number(item.unit_price) || 0;
+                        
+                        // Ürün tipini açıklamaya göre bulmaya çalış
+                        const descUpper = (item.description || '').toUpperCase();
+                        const prodType = productTypesList.find((p: any) => 
+                            descUpper.includes(p.name) || meta.code === p.code || meta.type === p.code
+                        );
 
-            // Blok liste operasyon adetini ayıkla (eğer açıklamada varsa)
-            const opItem = proposal.items.find(item => item.description?.includes('Operasyon Maliyeti (Blok Liste'));
-            if (opItem && opItem.description) {
-                const qMatch = opItem.description.match(/- (\d+) Adet/);
-                if (qMatch) setBlockOperationQuantity(parseInt(qMatch[1]));
-            } else {
-                setBlockOperationQuantity(1);
-            }
+                        if (prodType) {
+                            unitPrice = prodType.unitPrice;
+                            discountedPrice = bakedPrice; // Satılan fiyat indirimli alana
+                        } else {
+                            unitPrice = bakedPrice;
+                            discountedPrice = 0;
+                        }
+                    }
 
-            // Süreyi ayıkla (Örn: "2 Hafta" -> 2)
+                    // Operasyon çarpanını metadata'dan veya açıklamadan ayıkla
+                    let itemOpQty = Number(meta.op_multiplier) || 1;
+                    if (!meta.op_multiplier) {
+                        // Eğer global çarpan varsa (eski sistem) ondan alabiliriz
+                        const globalOpItem = rawItems.find((ri: any) => ri.description?.includes('Operasyon Adedi') || ri.description?.includes('Operasyon Maliyeti'));
+                        if (globalOpItem) {
+                            const qMatch = globalOpItem.description?.match(/(\d+)\s*Adet/i) || globalOpItem.description?.match(/(\d+)\s*Kez/i);
+                            if (qMatch) itemOpQty = parseInt(qMatch[1]);
+                        }
+                    }
+
+                    return {
+                        type: meta.type || (
+                            (item.description || '').toUpperCase().includes('BILLBOARD') ? 'BB' : 
+                            (item.description || '').toUpperCase().includes('RAKET') ? 'CLP' :
+                            (item.description || '').toUpperCase().includes('MEGALIGHT') ? 'MGL' :
+                            (item.description || '').toUpperCase().includes('LED') ? 'LB' : 
+                            (item.description || '').toUpperCase().includes('GIANT') ? 'GB' : 'BB'
+                        ),
+                        code: meta.code || item.description?.split(' (')[0] || item.description,
+                        quantity: Number(item.quantity) || 0,
+                        unitPrice: unitPrice,
+                        discountedPrice: discountedPrice,
+                        printingCost: Number(meta.printing_cost) || Number(item.printing_cost) || 0,
+                        operationCost: Number(meta.operation_cost) || Number(item.operation_cost) || 0,
+                        opQty: itemOpQty,
+                        weekLayout: meta.duration?.toString() || item.description?.match(/\((\d+)\s*Hafta\)/i)?.[1] || '1',
+                        network: meta.network
+                    };
+                });
+            
+            setProposalItems(mappedItems);
+
+            // Süreyi ayıkla
             const duration = parseInt(proposal.usagePeriod || '1');
             setDurationWeeks(isNaN(duration) ? 1 : duration);
 
@@ -864,7 +957,7 @@ export default function SalesPage() {
             setActiveTab('proposals'); // Bütçe Teklifleri sekmesine yönlendir (taslak olduğu için)
 
             fetchData();
-            success(`Teklif #${proposal.proposalNumber} revize edilmek üzere taslaklara taşındı.`);
+            success(`Teklif #${proposal.proposalNumber || proposal.id} revize edilmek üzere hazırlandı.`);
         } catch (error: any) {
             console.error('Revise error:', error);
             alert('Teklif revize edilirken hata oluştu.');
@@ -905,21 +998,47 @@ export default function SalesPage() {
         }
     }
 
+    const handleAddToMainProposal = (items: ProposalItem[], isBlock: boolean, rate: 20 | 14) => {
+        // Mevcut ana teklife yeni kalemleri ekle
+        setMainProposalItems(prev => [...prev, ...items]);
+        setMainProposalIsBlock(isBlock);
+        setMainProposalKdvRate(rate);
+        success('Ürünler ana teklif taslağına eklendi.');
+    }
+
+    const handleRemoveFromMainProposal = (index: number) => {
+        setMainProposalItems(prev => prev.filter((_, i) => i !== index));
+    }
+
+    const handleSendMainProposal = () => {
+        if (!selectedCustomer) return;
+        
+        // Modal'daki state'leri ana tekliften gelenlerle senkronize et ki handleSendEmail doğru çalışsın
+        setProposalItems(mainProposalItems);
+        setIsBlockList(mainProposalIsBlock);
+        setKdvRate(mainProposalKdvRate);
+        
+        setShowEmailModal(true);
+    }
+
     const handleSaveProposal = async () => {
         if (!selectedCustomer) return
 
         try {
             const userId = localStorage.getItem('userId') || '95959c2d-c5e1-454c-834f-3746d0a401c5' // Fallback to Ali's ID if not found
 
-            const finalItems = proposalItems.map(item => {
+            // Her zaman true olarak kabul ediyoruz (Multiplier mantığı)
+            const isMultiplierMode = true;
+
+            const finalItems = proposalItems.filter(item => item.quantity > 0).map(item => {
                 const price = (item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice;
-                const durationVal = parseInt(item.weekLayout || durationWeeks.toString()) || durationWeeks;
-                const unitPrice = (price * durationVal) + (!isBlockList ? item.printingCost : 0) + (!isBlockList ? item.operationCost : 0);
+                const durationVal = parseInt(item.weekLayout || '1') || 1;
+                const bakedUnitPrice = (price * durationVal);
                 
                 return {
                     description: `${item.network ? `${item.code} - Network ${item.network}` : item.code} (${durationVal} Hafta)`,
                     quantity: item.quantity,
-                    unit_price: unitPrice,
+                    unit_price: bakedUnitPrice,
                     metadata: {
                         type: item.type,
                         code: item.code,
@@ -927,58 +1046,46 @@ export default function SalesPage() {
                         unit_price_base: item.unitPrice,
                         discounted_price: item.discountedPrice,
                         printing_cost: item.printingCost,
-                        operation_cost: item.operationCost
+                        operation_cost: item.operationCost,
+                        op_multiplier: item.opQty || 1
                     }
                 };
             });
 
-            if (isBlockList) {
-                const totalOpCost = calculateOperationTotal(proposalItems, true, blockOperationQuantity);
-                if (totalOpCost > 0) {
+            // Per-item service rows
+            proposalItems.filter(item => item.quantity > 0).forEach(item => {
+                const opMult = item.opQty || 1;
+                if (item.operationCost > 0) {
                     finalItems.push({
-                        description: `Operasyon Maliyeti (Blok Liste - ${blockOperationQuantity} Adet)`,
+                        description: `${item.code} Operasyon Maliyeti (${opMult} Adet/Kez)`,
                         quantity: 1,
-                        unit_price: totalOpCost,
-                        metadata: {
-                            type: 'OP',
-                            code: 'OPERASYON',
-                            duration: 1,
-                            unit_price_base: totalOpCost,
-                            discounted_price: totalOpCost,
-                            printing_cost: 0,
-                            operation_cost: totalOpCost
-                        }
-                    });
+                        unit_price: item.operationCost * opMult,
+                        metadata: { type: 'OP', source_code: item.code, multiplier: opMult }
+                    } as any);
                 }
+                if (item.printingCost > 0) {
+                    finalItems.push({
+                        description: `${item.code} Baskı Bedeli (${opMult} Adet/Kez)`,
+                        quantity: 1,
+                        unit_price: item.printingCost * opMult,
+                        metadata: { type: 'BASKI', source_code: item.code, multiplier: opMult }
+                    } as any);
+                }
+            });
 
-                const totalPrintingCost = calculatePrintingTotal(proposalItems, true, blockOperationQuantity);
-                if (totalPrintingCost > 0) {
-                    finalItems.push({
-                        description: `Baskı Bedeli (Blok Liste - ${blockOperationQuantity} Adet)`,
-                        quantity: 1,
-                        unit_price: totalPrintingCost,
-                        metadata: {
-                            type: 'BASKI',
-                            code: 'BASKI',
-                            duration: 1,
-                            unit_price_base: totalPrintingCost,
-                            discounted_price: totalPrintingCost,
-                            printing_cost: totalPrintingCost,
-                            operation_cost: 0
-                        }
-                    });
-                }
-            }
+            const subtotal = subtotalVal();
+            const tax = kdvVal();
+            const total = grandTotalVal();
 
             if (selectedProposal) {
                 // Mevcut teklifi güncelle
                 await proposalsService.update(selectedProposal.id, {
                     title: `${selectedCustomer.companyName} - Bütçe Teklifi`,
                     description: getWeekRangeVal(),
-                    subtotal: subtotalVal(),
+                    subtotal,
                     tax_rate: kdvRate,
-                    tax_amount: kdvVal(),
-                    total: grandTotalVal(),
+                    tax_amount: tax,
+                    total,
                     items: finalItems
                 })
                 success('Teklif başarıyla güncellendi.')
@@ -989,10 +1096,10 @@ export default function SalesPage() {
                     description: getWeekRangeVal(),
                     client_id: selectedCustomer.id,
                     created_by_id: userId,
-                    subtotal: subtotalVal(),
+                    subtotal,
                     tax_rate: kdvRate,
-                    tax_amount: kdvVal(),
-                    total: grandTotalVal(),
+                    tax_amount: tax,
+                    total,
                     items: finalItems
                 })
                 success('Teklif taslağı başarıyla kaydedildi.')
@@ -1419,27 +1526,24 @@ export default function SalesPage() {
 
 
 
-            {/* Bütçe Teklifi Modal */}
-            {
-            <ProposalModal
-                showProposalModal={showProposalModal}
-                setShowProposalModal={setShowProposalModal}
-                selectedCustomer={selectedCustomer}
-                selectedProposal={selectedProposal}
-                proposalItems={proposalItems}
-                addProposalItem={addProposalItem}
-                removeProposalItem={removeProposalItem}
-                updateProposalItem={updateProposalItem}
-                isBlockList={isBlockList}
-                setIsBlockList={setIsBlockList}
-                blockOperationQuantity={blockOperationQuantity}
-                setBlockOperationQuantity={setBlockOperationQuantity}
-                kdvRate={kdvRate}
-                setKdvRate={setKdvRate}
-                durationWeeks={durationWeeks}
-                setShowEmailModal={setShowEmailModal}
-            />
-            }
+                <ProposalModal
+                    showProposalModal={showProposalModal}
+                    setShowProposalModal={setShowProposalModal}
+                    selectedCustomer={selectedCustomer}
+                    selectedProposal={selectedProposal}
+                    proposalItems={proposalItems}
+                    addProposalItem={addProposalItem}
+                    removeProposalItem={removeProposalItem}
+                    updateProposalItem={updateProposalItem}
+                    isBlockList={isBlockList}
+                    setIsBlockList={setIsBlockList}
+                    kdvRate={kdvRate}
+                    setKdvRate={setKdvRate}
+                    durationWeeks={durationWeeks}
+                    onAddToMainProposal={handleAddToMainProposal}
+                    showShowMainProposal={mainProposalItems.length > 0}
+                    onShowMainProposal={() => setShowProposalModal(false)}
+                />
 
             {/* Yeni Müşteri Talebi Modalı */}
             {
@@ -1487,6 +1591,15 @@ export default function SalesPage() {
                         ))
                     }
                 }}
+            />
+
+
+            {/* Approve Proposal Modal */}
+            <ApproveProposalModal
+                isOpen={showApproveModal}
+                onClose={() => setShowApproveModal(false)}
+                proposal={selectedProposal}
+                onApprove={handleSendToReservationFromApprove}
             />
 
             {/* Modal for Proposal Contract/View */}
@@ -1537,6 +1650,14 @@ export default function SalesPage() {
                 grandTotal={grandTotalVal()}
             />
             )}
+            
+            <MainProposalCard 
+                items={mainProposalItems}
+                onRemoveItem={handleRemoveFromMainProposal}
+                onSend={handleSendMainProposal}
+                customerName={selectedCustomer?.companyName || ''}
+                totalAmount={calculateGrandTotal(mainProposalItems, mainProposalKdvRate)}
+            />
         </div >
     )
 }
