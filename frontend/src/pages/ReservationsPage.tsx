@@ -138,6 +138,7 @@ export default function ReservationsPage() {
     const [isCheckingAvailability, setIsCheckingAvailability] = useState(false)
     const [showAvailabilityCard, setShowAvailabilityCard] = useState(false)
     const [showCustomersPanel, setShowCustomersPanel] = useState(false)
+    const [showRequestsPanel, setShowRequestsPanel] = useState(false)
 
     const [showEmailModal, setShowEmailModal] = useState(false)
     const [selectedEmails, setSelectedEmails] = useState<string[]>([])
@@ -191,18 +192,21 @@ export default function ReservationsPage() {
 
                 return {
                     id: req.id,
+                    request_number: req.request_number || `#${req.id.slice(0, 8)}`,
                     customerName: req.client?.company_name || 'Bilinmeyen',
-                    brandName: details.brandName || 'Bilinmeyen',
+                    brandName: details.brandName || req.brand_name || req.client?.company_name || 'Bilinmeyen',
                     productType: req.product_type,
                     year: details.year || 2026,
                     month: details.month || 'Ocak',
                     week: details.week || req.start_date,
                     endDate: req.end_date || details.endDate,
                     network: details.network || '1',
+                    totalAmount: req.quantity || details.quantity || details.totalAmount || 0,
                     availableCount: details.availableCount || 0,
                     optionsCount: details.optionsCount || 0,
                     status: req.status,
                     createdAt: req.created_at,
+                    notes: req.notes || '',
                     selectedLocations: details.selectedLocations || []
                 };
             });
@@ -1138,23 +1142,6 @@ export default function ReservationsPage() {
                         Haftalık Liste
                     </div>
                 </button>
-                <button
-                    onClick={() => setActiveTab('requests')}
-                    className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'requests'
-                        ? 'border-primary-600 text-primary-600 bg-primary-50'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 font-bold'
-                        }`}
-                >
-                    <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        Bekleyen İşler
-                        {reservationRequests.filter(r => r.status === 'pending').length > 0 && (
-                            <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">
-                                {reservationRequests.filter(r => r.status === 'pending').length}
-                            </span>
-                        )}
-                    </div>
-                </button>
             </div>
 
             {activeTab === 'list' && (
@@ -1365,7 +1352,7 @@ export default function ReservationsPage() {
                             Mail Gönder
                         </button>
                         <button
-                            onClick={() => setActiveTab('requests')}
+                            onClick={() => setShowRequestsPanel(true)}
                             className="inline-flex items-center gap-2 px-4 py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors shadow-lg relative"
                         >
                             <Clock className="w-5 h-5" />
@@ -1903,31 +1890,87 @@ export default function ReservationsPage() {
                 </div>
             )}
 
-            {activeTab === 'requests' && (
-                <div className="space-y-6">
-                    {/* Gelen Talepler Sekmesi */}
-                    <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                        <div className="flex items-center gap-3">
-                            <Clock className="w-5 h-5 text-primary-600" />
-                            <h3 className="font-bold text-gray-900">Gelen Yer Listesi Talepleri</h3>
+            {/* Yana Yapışık Kayan Bekleyen İşler Butonu (Sadece panel kapalıyken) */}
+            {!showRequestsPanel && (
+                <div 
+                    onClick={() => setShowRequestsPanel(true)}
+                    className="fixed right-0 top-1/2 -translate-y-1/2 z-[55] p-3 bg-gradient-to-l from-orange-600 to-amber-600 text-white rounded-l-xl cursor-pointer shadow-[-5px_0_15px_rgba(234,88,12,0.3)] hover:pr-4 transition-all group flex items-center justify-center animate-in slide-in-from-right"
+                    title="Bekleyen İşleri Aç"
+                >
+                    <Clock className="w-6 h-6 group-hover:-scale-x-100 transition-transform duration-500" />
+                    {reservationRequests.filter(r => r.status === 'pending').length > 0 && (
+                        <span className="absolute -top-2 -left-2 w-5 h-5 bg-white text-orange-600 rounded-full flex items-center justify-center text-[10px] font-black shadow border border-orange-200 animate-pulse">
+                            {reservationRequests.filter(r => r.status === 'pending').length}
+                        </span>
+                    )}
+                </div>
+            )}
+
+            {/* Bekleyen İşler Slide-Over Panel */}
+            {showRequestsPanel && (
+                <div className="fixed inset-0 z-[60] flex justify-end">
+                    <div className="absolute inset-0 bg-transparent" onClick={() => setShowRequestsPanel(false)} /> {/* Saydam arka plan, tabloyu kapatmasın */}
+                    <div className="relative w-full max-w-lg bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-gray-100">
+                        {/* Header */}
+                        <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-md">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div 
+                                        className="p-2 bg-white/20 rounded-xl cursor-pointer hover:bg-white/30 hover:scale-105 transition-all shadow-sm"
+                                        onClick={() => setShowRequestsPanel(false)}
+                                        title="Sağa Gizle"
+                                    >
+                                        <Clock className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-bold drop-shadow-sm">Bekleyen İşler</h2>
+                                        <p className="text-orange-100 text-xs mt-0.5 font-medium">
+                                            Gelen Yer Listesi Talepleri
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setShowRequestsPanel(false)}
+                                    className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            {/* Özet */}
+                            <div className="grid grid-cols-3 gap-2 mt-4">
+                                <div className="bg-white/10 rounded-xl p-2.5 text-center">
+                                    <div className="text-xl font-black">{reservationRequests.filter(r => r.status === 'pending').length}</div>
+                                    <div className="text-[10px] text-orange-200 uppercase font-bold">Yeni</div>
+                                </div>
+                                <div className="bg-white/10 rounded-xl p-2.5 text-center">
+                                    <div className="text-xl font-black">{reservationRequests.filter(r => r.status === 'checked_by_ops').length}</div>
+                                    <div className="text-[10px] text-orange-200 uppercase font-bold">İletildi</div>
+                                </div>
+                                <div className="bg-white/10 rounded-xl p-2.5 text-center">
+                                    <div className="text-xl font-black">{reservationRequests.filter(r => r.status === 'completed').length}</div>
+                                    <div className="text-[10px] text-orange-200 uppercase font-bold">İşlendi</div>
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
+
+                        {/* Action Buttons */}
+                        <div className="p-3 border-b border-gray-100 flex items-center gap-2 flex-wrap bg-gray-50">
                             <button
                                 onClick={() => {
                                     fetchData();
                                     toastInfo('Talepler güncellendi.')
                                 }}
-                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors border border-primary-100"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors border border-primary-100"
                             >
-                                <RefreshCw className={`w-4 h-4 ${isLoadingRequests || isLoadingLocations ? 'animate-spin' : ''}`} />
-                                Talepleri Yenile
+                                <RefreshCw className={`w-3.5 h-3.5 ${isLoadingRequests || isLoadingLocations ? 'animate-spin' : ''}`} />
+                                Yenile
                             </button>
                             <button
                                 onClick={handleMigrateInventory}
                                 disabled={isLoadingLocations}
-                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors border border-amber-100"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors border border-amber-100"
                             >
-                                <Download className="w-4 h-4" />
+                                <Download className="w-3.5 h-3.5" />
                                 Envanteri Aktar
                             </button>
                             <button
@@ -1946,120 +1989,132 @@ export default function ReservationsPage() {
                                         }
                                     }
                                 }}
-                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
                             >
-                                <X className="w-4 h-4" />
-                                İşlenenleri Temizle
+                                <X className="w-3.5 h-3.5" />
+                                Temizle
                             </button>
                         </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {reservationRequests.filter(r => r.status !== 'approved').length > 0 ? (
-                            reservationRequests.filter(r => r.status !== 'approved').map((req) => (
-                                <div key={req.id} className={`bg-white rounded-2xl shadow-sm border-2 p-6 transition-all hover:shadow-md ${req.status === 'completed' ? 'border-green-100 opacity-75' : 'border-blue-100 shadow-blue-100/50'}`}>
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-                                            <FileSpreadsheet className="w-6 h-6" />
-                                        </div>
-                                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                                            req.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                                req.status === 'checked_by_ops' ? 'bg-indigo-100 text-indigo-700' :
-                                                    req.status === 'approved' ? 'bg-amber-100 text-amber-700' :
-                                                        'bg-blue-100 text-blue-700 animate-pulse'
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                            {reservationRequests.filter(r => r.status !== 'approved').length > 0 ? (
+                                reservationRequests.filter(r => r.status !== 'approved').map((req) => (
+                                    <div key={req.id} className={`bg-white rounded-xl shadow-sm border-2 p-4 transition-all hover:shadow-md ${req.status === 'completed' ? 'border-green-100 opacity-75' : 'border-blue-100 shadow-blue-100/50'}`}>
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white shadow-lg">
+                                                <FileSpreadsheet className="w-5 h-5" />
+                                            </div>
+                                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                                                req.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                                    req.status === 'checked_by_ops' ? 'bg-indigo-100 text-indigo-700' :
+                                                        req.status === 'approved' ? 'bg-amber-100 text-amber-700' :
+                                                            'bg-blue-100 text-blue-700 animate-pulse'
                                             }`}>
-                                            {req.status === 'completed' ? 'İŞLENDİ' :
-                                                req.status === 'checked_by_ops' ? 'SATIŞA İLETİLDİ' :
-                                                    req.status === 'approved' ? 'SATIŞ ONAYLADI' :
-                                                        'YENİ TALEP'}
-                                        </span>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <div>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Müşteri & Marka</p>
-                                            <h3 className="font-bold text-gray-900 text-lg leading-tight">{req.customerName}</h3>
-                                            <p className="text-sm text-indigo-600 font-medium">{req.brandName}</p>
+                                                {req.status === 'completed' ? 'İŞLENDİ' :
+                                                    req.status === 'checked_by_ops' ? 'SATIŞA İLETİLDİ' :
+                                                        req.status === 'approved' ? 'SATIŞ ONAYLADI' :
+                                                            'YENİ TALEP'}
+                                            </span>
                                         </div>
 
-                                        <div className="p-3 bg-gray-50 rounded-xl space-y-2 border border-gray-100">
-                                            <div className="flex justify-between items-center text-xs">
-                                                <span className="text-gray-500">Dönem:</span>
-                                                <span className="font-bold text-gray-700">{req.year} / {req.month}</span>
+                                        <div className="space-y-2">
+                                            <div>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Müşteri & Marka</p>
+                                                <h3 className="font-bold text-gray-900 text-sm leading-tight">{req.customerName}</h3>
+                                                <p className="text-xs text-indigo-600 font-medium">{req.brandName}</p>
                                             </div>
-                                            <div className="flex justify-between items-center text-xs">
-                                                <span className="text-gray-500">Hafta:</span>
-                                                <span className="font-bold text-gray-700">{req.week?.split(' ')[0]}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center text-xs">
-                                                <span className="text-gray-500">Ürün / Network:</span>
-                                                <span className="font-bold text-gray-700">{req.productType} - Net {req.network}</span>
-                                            </div>
-                                        </div>
 
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div className="p-2 bg-green-50 rounded-lg border border-green-100 text-center">
-                                                <p className="text-[10px] text-green-600 font-bold">BOŞ YER</p>
-                                                <p className="text-lg font-black text-green-700">{req.availableCount}</p>
-                                            </div>
-                                            <div className="p-2 bg-orange-50 rounded-lg border border-orange-100 text-center">
-                                                <p className="text-[10px] text-orange-600 font-bold">OPSİYON</p>
-                                                <p className="text-lg font-black text-orange-700">{req.optionsCount}</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Seçilen Yerler Listesi */}
-                                        {req.selectedLocations && req.selectedLocations.length > 0 && (
-                                            <div className="mt-3 p-2 bg-indigo-50/50 rounded-lg border border-indigo-100">
-                                                <p className="text-[10px] text-indigo-600 font-bold uppercase mb-1">Talep Edilen Yerler ({req.selectedLocations.length} adet)</p>
-                                                <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
-                                                    {req.selectedLocations.slice(0, 8).map((loc: any, idx: number) => (
-                                                        <span key={idx} className="text-[9px] bg-white px-1.5 py-0.5 rounded border border-indigo-100 text-indigo-700 font-mono">
-                                                            {loc.kod}
-                                                        </span>
-                                                    ))}
-                                                    {req.selectedLocations.length > 8 && (
-                                                        <span className="text-[9px] text-indigo-500">+{req.selectedLocations.length - 8} daha...</span>
-                                                    )}
+                                            <div className="p-2.5 bg-gray-50 rounded-lg space-y-1.5 border border-gray-100">
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="text-gray-500">Dönem:</span>
+                                                    <span className="font-bold text-gray-700">{req.year} / {req.month}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="text-gray-500">Hafta:</span>
+                                                    <span className="font-bold text-gray-700">{req.week?.split(' ')[0]}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="text-gray-500">Ürün / Network:</span>
+                                                    <span className="font-bold text-gray-700">{req.productType} - Net {req.network}</span>
                                                 </div>
                                             </div>
-                                        )}
 
-                                        <div className="pt-4 flex items-center justify-between border-t border-gray-100">
-                                            <span className="text-[10px] text-gray-400 italic">Talep: {new Date(req.createdAt).toLocaleDateString()}</span>
-                                            {req.status === 'completed' ? (
-                                                <div className="flex items-center gap-1 text-green-600 text-xs font-bold">
-                                                    <CheckCircle className="w-4 h-4" />
-                                                    İşlendi
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="p-1.5 bg-green-50 rounded-lg border border-green-100 text-center">
+                                                    <p className="text-[9px] text-green-600 font-bold">BOŞ YER</p>
+                                                    <p className="text-base font-black text-green-700">{req.availableCount}</p>
                                                 </div>
-                                            ) : req.status === 'checked_by_ops' ? (
-                                                <div className="flex items-center gap-1 text-indigo-600 text-xs font-bold">
-                                                    <Clock className="w-4 h-4" />
-                                                    Satış Onayı Bekliyor
+                                                <div className="p-1.5 bg-orange-50 rounded-lg border border-orange-100 text-center">
+                                                    <p className="text-[9px] text-orange-600 font-bold">OPSİYON</p>
+                                                    <p className="text-base font-black text-orange-700">{req.optionsCount}</p>
                                                 </div>
-                                            ) : (
-                                                <button
-                                                    onClick={() => handleOpenProcessModal(req)}
-                                                    className={`px-4 py-2 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-2 shadow-md ${req.status === 'approved' ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-200' : 'bg-primary-600 hover:bg-primary-700 shadow-primary-200'
-                                                        }`}
-                                                >
-                                                    <Check className="w-3.5 h-3.5" />
-                                                    {req.status === 'approved' ? 'Onaylı Talebi İşle' : 'Talebi İşle'}
-                                                </button>
+                                            </div>
+
+                                            {/* Seçilen Yerler Listesi */}
+                                            {req.selectedLocations && req.selectedLocations.length > 0 && (
+                                                <div className="p-2 bg-indigo-50/50 rounded-lg border border-indigo-100">
+                                                    <p className="text-[9px] text-indigo-600 font-bold uppercase mb-1">Talep Edilen Yerler ({req.selectedLocations.length} adet)</p>
+                                                    <div className="flex flex-wrap gap-1 max-h-12 overflow-y-auto">
+                                                        {req.selectedLocations.slice(0, 6).map((loc: any, idx: number) => (
+                                                            <span key={idx} className="text-[8px] bg-white px-1 py-0.5 rounded border border-indigo-100 text-indigo-700 font-mono">
+                                                                {loc.kod}
+                                                            </span>
+                                                        ))}
+                                                        {req.selectedLocations.length > 6 && (
+                                                            <span className="text-[8px] text-indigo-500">+{req.selectedLocations.length - 6} daha...</span>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             )}
+
+                                            <div className="pt-3 flex items-center justify-between border-t border-gray-100">
+                                                <span className="text-[10px] text-gray-400 italic">Talep: {new Date(req.createdAt).toLocaleDateString()}</span>
+                                                {req.status === 'completed' ? (
+                                                    <div className="flex items-center gap-1 text-green-600 text-xs font-bold">
+                                                        <CheckCircle className="w-3.5 h-3.5" />
+                                                        İşlendi
+                                                    </div>
+                                                ) : req.status === 'checked_by_ops' ? (
+                                                    <div className="flex items-center gap-1 text-indigo-600 text-xs font-bold">
+                                                        <Clock className="w-3.5 h-3.5" />
+                                                        Satış Onayı Bekliyor
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => {
+                                                            setShowRequestsPanel(false);
+                                                            handleOpenProcessModal(req);
+                                                        }}
+                                                        className={`px-3 py-1.5 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 shadow-md ${req.status === 'approved' ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-200' : 'bg-primary-600 hover:bg-primary-700 shadow-primary-200'
+                                                            }`}
+                                                    >
+                                                        <Check className="w-3 h-3" />
+                                                        {req.status === 'approved' ? 'Onaylı Talebi İşle' : 'Talebi İşle'}
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
+                                ))
+                            ) : (
+                                <div className="py-12 text-center">
+                                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <Clock className="w-8 h-8 text-gray-300" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-gray-900">Bekleyen Talep Yok</h3>
+                                    <p className="text-sm text-gray-500">Satış departmanından gelen yeni yer talepleri burada listelenecek.</p>
                                 </div>
-                            ))
-                        ) : (
-                            <div className="col-span-full py-12 text-center bg-white rounded-3xl border-2 border-dashed border-gray-100">
-                                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <Clock className="w-10 h-10 text-gray-300" />
-                                </div>
-                                <h3 className="text-xl font-bold text-gray-900">Bekleyen Talep Yok</h3>
-                                <p className="text-gray-500">Satış departmanından gelen yeni yer talepleri burada listelenecek.</p>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-4 border-t border-gray-100 bg-gray-50">
+                            <div className="flex items-center justify-between text-xs text-gray-500">
+                                <span>Toplam {reservationRequests.length} talep</span>
+                                <span>{reservationRequests.filter(r => r.status === 'pending').length} bekleyen</span>
                             </div>
-                        )}
+                        </div>
                     </div>
                 </div>
             )}
@@ -2120,8 +2175,38 @@ export default function ReservationsPage() {
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                            {/* Müşteri ve Talep No Özeti */}
+                            <div className="flex items-center justify-between p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
+                                <div>
+                                    <p className="text-[10px] text-indigo-400 font-black uppercase mb-0.5 tracking-widest">Müşteri / Marka</p>
+                                    <h3 className="text-lg font-black text-indigo-900">{selectedRequest.customerName}</h3>
+                                    <p className="text-sm font-bold text-indigo-600">{selectedRequest.brandName}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase mb-0.5">Talep No</p>
+                                    <p className="text-sm font-mono font-black text-gray-700">{selectedRequest.request_number || `#${selectedRequest.id.slice(0, 8)}`}</p>
+                                </div>
+                            </div>
+
+                            {/* Satış Notu */}
+                            {selectedRequest.notes && (
+                                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-start gap-4">
+                                    <div className="p-2 bg-amber-100 rounded-xl text-amber-600 shadow-sm">
+                                        <Clock className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-amber-500 font-black uppercase mb-1 tracking-widest">Satış Departmanı Notu</p>
+                                        <p className="text-sm text-amber-900 leading-relaxed italic font-medium">
+                                            {typeof selectedRequest.notes === 'string' && selectedRequest.notes.startsWith('{') 
+                                                ? 'Özel teknik bilgiler içeriyor...' 
+                                                : selectedRequest.notes}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Talep Bilgileri - Tarih ve Ürün Seçimi */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div className="grid grid-cols-5 gap-3 items-end">
                                 <div className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
                                     <label className="block text-[10px] text-gray-400 font-black uppercase mb-1">Ürün Tipi</label>
                                     <select
@@ -2164,6 +2249,36 @@ export default function ReservationsPage() {
                                         className="w-full text-xs font-bold text-gray-900 bg-transparent border-0 p-0 focus:ring-0 cursor-pointer"
                                     />
                                 </div>
+                                <button
+                                    onClick={() => {
+                                        let targetWeek = selectedRequest.week;
+                                        if (targetWeek.includes('-')) {
+                                            const parts = targetWeek.split('T')[0].split('-');
+                                            targetWeek = `${parts[2]}.${parts[1]}.${parts[0]}`;
+                                        }
+                                        
+                                        setSelectedProductType(selectedRequest.productType || 'Tümü');
+                                        setSelectedNetwork(String(selectedRequest.network) === 'Tümü' || !selectedRequest.network ? 'Tümü' : String(selectedRequest.network));
+                                        setSelectedWeek(targetWeek);
+                                        
+                                        const monthPart = parseInt(targetWeek.split('.')[1]);
+                                        if (!isNaN(monthPart) && monthPart > 0 && monthPart <= 12) {
+                                            const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+                                            setSelectedMonth(months[monthPart - 1]);
+                                        }
+
+                                        const yearPart = parseInt(targetWeek.split('.')[2]);
+                                        if (!isNaN(yearPart)) setSelectedYear(yearPart);
+
+                                        setActiveTab('list');
+                                        setShowProcessModal(false);
+                                    }}
+                                    className="p-3 bg-teal-50 rounded-xl border border-teal-200 shadow-sm hover:bg-teal-100 transition-all flex flex-col items-center justify-center gap-1 cursor-pointer group"
+                                    title="Bu tarihe ve ürün tipine git"
+                                >
+                                    <CalendarDays className="w-4 h-4 text-teal-600 group-hover:scale-110 transition-transform" />
+                                    <span className="text-[10px] font-bold text-teal-700 uppercase whitespace-nowrap">Haftaya Git</span>
+                                </button>
                             </div>
 
                             <div className="space-y-4">
@@ -2271,37 +2386,6 @@ export default function ReservationsPage() {
                                 className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
                             >
                                 İptal
-                            </button>
-                            <button
-                                onClick={() => {
-                                    let targetWeek = selectedRequest.week;
-                                    if (targetWeek.includes('-')) {
-                                        const parts = targetWeek.split('T')[0].split('-');
-                                        targetWeek = `${parts[2]}.${parts[1]}.${parts[0]}`;
-                                    }
-                                    
-                                    // Gelen talebin ürün tipi ve network bilgisini de filtreye set et
-                                    setSelectedProductType(selectedRequest.productType || 'Tümü');
-                                    setSelectedNetwork(String(selectedRequest.network) === 'Tümü' || !selectedRequest.network ? 'Tümü' : String(selectedRequest.network));
-                                    setSelectedWeek(targetWeek);
-                                    
-                                    // Yıl ve ay'ı ayarla
-                                    const monthPart = parseInt(targetWeek.split('.')[1]);
-                                    if (!isNaN(monthPart) && monthPart > 0 && monthPart <= 12) {
-                                        const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
-                                        setSelectedMonth(months[monthPart - 1]);
-                                    }
-
-                                    const yearPart = parseInt(targetWeek.split('.')[2]);
-                                    if (!isNaN(yearPart)) setSelectedYear(yearPart);
-
-                                    setActiveTab('list');
-                                    setShowProcessModal(false);
-                                }}
-                                className="px-6 py-2.5 text-sm font-bold text-teal-600 bg-teal-50 border border-teal-200 rounded-xl hover:bg-teal-100 transition-all flex items-center gap-2"
-                            >
-                                <CalendarDays className="w-5 h-5" />
-                                Haftaya Git
                             </button>
                             <button
                                 onClick={handleSendResultsToSales}
@@ -2457,19 +2541,44 @@ export default function ReservationsPage() {
                     </div>
                 </div>
             )}
+            {/* Yana Yapışık Kayan Müşterilerim Butonu (Sadece panel kapalıyken) */}
+            {!showCustomersPanel && (
+                <div 
+                    onClick={() => setShowCustomersPanel(true)}
+                    className="fixed right-0 top-[60%] -translate-y-1/2 z-[55] p-3 bg-gradient-to-l from-purple-600 to-indigo-600 text-white rounded-l-xl cursor-pointer shadow-[-5px_0_15px_rgba(147,51,234,0.3)] hover:pr-4 transition-all group flex items-center justify-center animate-in slide-in-from-right"
+                    title="Müşterilerimi Aç"
+                >
+                    <Smartphone className="w-6 h-6 group-hover:-scale-x-100 transition-transform duration-500" />
+                    {networkCustomers.length > 0 && (
+                        <span className="absolute -top-2 -left-2 w-5 h-5 bg-white text-purple-600 rounded-full flex items-center justify-center text-[10px] font-black shadow border border-purple-200">
+                            {networkCustomers.length}
+                        </span>
+                    )}
+                </div>
+            )}
+
             {/* Network Müşterilerim Paneli */}
             {showCustomersPanel && (
                 <div className="fixed inset-0 z-[60] flex justify-end">
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCustomersPanel(false)} />
-                    <div className="relative w-full max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+                    <div className="absolute inset-0 bg-transparent" onClick={() => setShowCustomersPanel(false)} /> {/* Saydam arka plan */}
+                    <div className="relative w-full max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-gray-100">
                         {/* Header */}
-                        <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
+                        <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md">
                             <div className="flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-lg font-bold">Müşterilerim</h2>
-                                    <p className="text-purple-200 text-xs mt-0.5">
-                                        {selectedWeek} - Network {selectedNetwork}
-                                    </p>
+                                <div className="flex items-center gap-3">
+                                    <div 
+                                        className="p-2 bg-white/20 rounded-xl cursor-pointer hover:bg-white/30 hover:scale-105 transition-all shadow-sm"
+                                        onClick={() => setShowCustomersPanel(false)}
+                                        title="Sağa Gizle"
+                                    >
+                                        <Smartphone className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-bold drop-shadow-sm">Müşterilerim</h2>
+                                        <p className="text-purple-100 text-xs mt-0.5 font-medium">
+                                            {selectedWeek} - Network {selectedNetwork}
+                                        </p>
+                                    </div>
                                 </div>
                                 <button
                                     onClick={() => setShowCustomersPanel(false)}
