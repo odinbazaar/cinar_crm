@@ -53,7 +53,7 @@ export const calculateOperationTotal = (proposalItems: any[]) => {
         const qty = Number(item.quantity) || 0
         if (qty <= 0) return sum
         const opQty = Number(item.opQty) || 1
-        return sum + ((Number(item.operationCost) || 0) * opQty)
+        return sum + ((Number(item.operationCost) || 0) * qty * opQty)
     }, 0)
 }
 
@@ -62,7 +62,7 @@ export const calculatePrintingTotal = (proposalItems: any[]) => {
         const qty = Number(item.quantity) || 0
         if (qty <= 0) return sum
         const opQty = Number(item.opQty) || 1
-        return sum + ((Number(item.printingCost) || 0) * opQty)
+        return sum + ((Number(item.printingCost) || 0) * qty * opQty)
     }, 0)
 }
 

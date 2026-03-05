@@ -137,6 +137,7 @@ export default function ReservationsPage() {
     const [processAvailability, setProcessAvailability] = useState<{ available: any[], options: any[], occupied: any[] }>({ available: [], options: [], occupied: [] })
     const [isCheckingAvailability, setIsCheckingAvailability] = useState(false)
     const [showAvailabilityCard, setShowAvailabilityCard] = useState(false)
+    const [showCustomersPanel, setShowCustomersPanel] = useState(false)
 
     const [showEmailModal, setShowEmailModal] = useState(false)
     const [selectedEmails, setSelectedEmails] = useState<string[]>([])
@@ -1086,6 +1087,34 @@ export default function ReservationsPage() {
         return proposals.filter(p => p.status?.toLowerCase() === 'approved' || p.status?.toLowerCase() === 'sent');
     }, [proposals]);
 
+    // Network Müşterileri - seçili haftadaki tüm marka atamalarını hesapla
+    const networkCustomers = useMemo(() => {
+        const brandMap = new Map<string, { count: number, opsiyon: number, kesin: number, locations: string[] }>();
+        filteredLocations.forEach(loc => {
+            const brands = [
+                loc.marka1Opsiyon,
+                loc.marka2Opsiyon,
+                loc.marka3Opsiyon,
+                loc.marka4Opsiyon
+            ].filter(b => b && b.trim() !== '');
+
+            brands.forEach(brand => {
+                const key = brand.trim().toUpperCase();
+                if (!brandMap.has(key)) {
+                    brandMap.set(key, { count: 0, opsiyon: 0, kesin: 0, locations: [] });
+                }
+                const entry = brandMap.get(key)!;
+                entry.count++;
+                if (loc.durum === 'KESİN') entry.kesin++;
+                else if (loc.durum === 'OPSİYON') entry.opsiyon++;
+                if (!entry.locations.includes(loc.kod)) entry.locations.push(loc.kod);
+            });
+        });
+        return Array.from(brandMap.entries())
+            .map(([brand, data]) => ({ brand, ...data }))
+            .sort((a, b) => b.count - a.count);
+    }, [filteredLocations]);
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1336,14 +1365,28 @@ export default function ReservationsPage() {
                             Mail Gönder
                         </button>
                         <button
-                            onClick={() => {
-                                setSelectedProposal(null);
-                                setIsLocationModalOpen(true);
-                            }}
-                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-lg"
+                            onClick={() => setActiveTab('requests')}
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors shadow-lg relative"
                         >
-                            <Search className="w-5 h-5" />
-                            Müsaitlik Sorgula
+                            <Clock className="w-5 h-5" />
+                            Bekleyen İşler
+                            {reservationRequests.filter(r => r.status === 'pending').length > 0 && (
+                                <span className="absolute -top-2 -right-2 w-5 h-5 bg-white text-orange-600 rounded-full flex items-center justify-center text-[10px] font-black shadow border border-orange-200 animate-pulse">
+                                    {reservationRequests.filter(r => r.status === 'pending').length}
+                                </span>
+                            )}
+                        </button>
+                        <button
+                            onClick={() => setShowCustomersPanel(true)}
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-lg relative"
+                        >
+                            <Smartphone className="w-5 h-5" />
+                            Müşterilerim
+                            {networkCustomers.length > 0 && (
+                                <span className="absolute -top-2 -right-2 w-5 h-5 bg-white text-purple-600 rounded-full flex items-center justify-center text-[10px] font-black shadow border border-purple-200">
+                                    {networkCustomers.length}
+                                </span>
+                            )}
                         </button>
                         {isAdmin && (
                             <button
@@ -2290,9 +2333,7 @@ export default function ReservationsPage() {
                         <WeeklyAvailabilityCard 
                             isOpen={showAvailabilityCard}
                             onClose={() => setShowAvailabilityCard(false)}
-                            productType={selectedRequest.productType}
-                            network={String(selectedRequest.network)}
-                            week={selectedRequest.week}
+                            onProcess={(req: any) => handleOpenProcessModal(req)}
                         />
                     </div>
                 </div>
@@ -2416,6 +2457,110 @@ export default function ReservationsPage() {
                     </div>
                 </div>
             )}
+            {/* Network Müşterilerim Paneli */}
+            {showCustomersPanel && (
+                <div className="fixed inset-0 z-[60] flex justify-end">
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCustomersPanel(false)} />
+                    <div className="relative w-full max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+                        {/* Header */}
+                        <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-lg font-bold">Müşterilerim</h2>
+                                    <p className="text-purple-200 text-xs mt-0.5">
+                                        {selectedWeek} - Network {selectedNetwork}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setShowCustomersPanel(false)}
+                                    className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            {/* Özet */}
+                            <div className="grid grid-cols-3 gap-2 mt-4">
+                                <div className="bg-white/10 rounded-xl p-2.5 text-center">
+                                    <div className="text-xl font-black">{networkCustomers.length}</div>
+                                    <div className="text-[10px] text-purple-200 uppercase font-bold">Marka</div>
+                                </div>
+                                <div className="bg-white/10 rounded-xl p-2.5 text-center">
+                                    <div className="text-xl font-black">{stats.kesin}</div>
+                                    <div className="text-[10px] text-purple-200 uppercase font-bold">Kesin</div>
+                                </div>
+                                <div className="bg-white/10 rounded-xl p-2.5 text-center">
+                                    <div className="text-xl font-black">{stats.opsiyon}</div>
+                                    <div className="text-[10px] text-purple-200 uppercase font-bold">Opsiyon</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                            {networkCustomers.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <Smartphone className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                    <p className="text-sm text-gray-500 font-medium">Bu dönemde atanmış müşteri bulunmuyor</p>
+                                    <p className="text-xs text-gray-400 mt-1">Lokasyonlara marka atadığınızda burada görünecektir</p>
+                                </div>
+                            ) : (
+                                networkCustomers.map((customer, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => {
+                                            setSearchTerm(customer.brand);
+                                            setShowCustomersPanel(false);
+                                        }}
+                                        className="w-full text-left p-4 bg-white border border-gray-100 rounded-xl hover:border-purple-200 hover:shadow-md transition-all group"
+                                    >
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h3 className="font-bold text-gray-900 text-sm group-hover:text-purple-700 transition-colors">
+                                                {customer.brand}
+                                            </h3>
+                                            <span className="text-lg font-black text-purple-600">{customer.count}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {customer.kesin > 0 && (
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-bold rounded-lg border border-green-100">
+                                                    <CheckCircle className="w-3 h-3" />
+                                                    {customer.kesin} Kesin
+                                                </span>
+                                            )}
+                                            {customer.opsiyon > 0 && (
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-50 text-yellow-700 text-[10px] font-bold rounded-lg border border-yellow-100">
+                                                    <Clock className="w-3 h-3" />
+                                                    {customer.opsiyon} Opsiyon
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="mt-2 flex flex-wrap gap-1">
+                                            {customer.locations.slice(0, 8).map(code => (
+                                                <span key={code} className="text-[9px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded font-mono">
+                                                    {code}
+                                                </span>
+                                            ))}
+                                            {customer.locations.length > 8 && (
+                                                <span className="text-[9px] text-purple-500 bg-purple-50 px-1.5 py-0.5 rounded font-bold">
+                                                    +{customer.locations.length - 8} daha
+                                                </span>
+                                            )}
+                                        </div>
+                                    </button>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-4 border-t border-gray-100 bg-gray-50">
+                            <div className="flex items-center justify-between text-xs text-gray-500">
+                                <span>Toplam {filteredLocations.length} lokasyon</span>
+                                <span>{stats.bos} boş yer</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div >
     )
 }

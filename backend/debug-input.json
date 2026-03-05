@@ -1,18 +1,17 @@
 {
-  "title": "DYT. RÜMEYSA DİKBAŞ  - Bütçe Teklifi",
+  "title": "ÇINAR MEDIA - Bütçe Teklifi",
   "description": "5 Ocak 2026 - 11 Ocak 2026",
-  "client_id": "825daa75-4739-485d-bcb7-55f55b063068",
+  "client_id": "e7810387-9b24-4cef-ba57-2e2529c201d1",
   "created_by_id": "89b8aaf7-cbd8-47ee-90bd-1ad0188dde87",
-  "subtotal": 222500,
+  "subtotal": 51500,
   "tax_rate": 20,
-  "tax_amount": 44500,
-  "total": 267000,
+  "tax_amount": 10300,
+  "total": 61800,
   "items": [
     {
       "description": "BILLBOARD (2 Hafta)",
-      "quantity": 2,
+      "quantity": 5,
       "unit_price": 8500,
-      "total": 17900,
       "metadata": {
         "type": "BB",
         "code": "BILLBOARD",
@@ -20,22 +19,30 @@
         "unit_price_base": 6500,
         "discounted_price": 4250,
         "printing_cost": 400,
-        "operation_cost": 500
+        "operation_cost": 500,
+        "op_multiplier": 2
       }
     },
     {
-      "description": "KULEBOARD (1 Hafta)",
+      "description": "BILLBOARD Operasyon Maliyeti (5 Adet x 2 Kez)",
       "quantity": 1,
-      "unit_price": 180000,
-      "total": 204600,
+      "unit_price": 5000,
       "metadata": {
-        "type": "KB",
-        "code": "KULEBOARD",
-        "duration": 1,
-        "unit_price_base": 250000,
-        "discounted_price": 180000,
-        "printing_cost": 9600,
-        "operation_cost": 15000
+        "type": "OP",
+        "source_code": "BILLBOARD",
+        "multiplier": 2,
+        "item_quantity": 5
+      }
+    },
+    {
+      "description": "BILLBOARD Baskı Bedeli (5 Adet x 2 Kez)",
+      "quantity": 1,
+      "unit_price": 4000,
+      "metadata": {
+        "type": "BASKI",
+        "source_code": "BILLBOARD",
+        "multiplier": 2,
+        "item_quantity": 5
       }
     }
   ]

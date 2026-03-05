@@ -411,54 +411,71 @@ export class ProposalsService {
                 return true;
             });
 
-            // Her ana ürün için OP ve Baskı bedelini hesapla
-            const opPerItem = mainItems.length > 0 ? opTotal / mainItems.length : 0;
-            const baskiPerItem = mainItems.length > 0 ? baskiTotal / mainItems.length : 0;
-
             mainItems.forEach((item: any) => {
-                // Açıklamayı temizle - parantez içindeki süre ibarelerini kaldır
-                let cleanDescription = item.description || '';
-                // [DÖNEM: ...] temizle
-                cleanDescription = cleanDescription.replace(/\[DÖNEM:.*?\]/g, '').trim();
-                // [BAŞLANGIÇ: ...] temizle
-                cleanDescription = cleanDescription.replace(/\[BAŞLANGIÇ:.*?\]/g, '').trim();
-                // (1 Hafta), (2 Hafta) gibi parantez içindekilerini temizle
-                cleanDescription = cleanDescription.replace(/\(\d+\s*(Hafta|hafta|GÜN|gün|Gün)\)/g, '').trim();
-                // Fazla boşlukları temizle
-                cleanDescription = cleanDescription.replace(/\s+/g, ' ').trim();
-
-                const metadata = item.metadata || {};
-                const period = metadata.duration || metadata.period || '1';
-                
-                // Metadata varsa oradan al, yoksa mevcut logic
-                let unitPrice = Number(metadata.unit_price_base) || Number(item.unit_price) || 0;
-                let discountedPrice = Number(metadata.discounted_price) || unitPrice;
-                let itemOpCost = Number(metadata.operation_cost) || Math.round(opPerItem);
-                let itemBaskiCost = Number(metadata.printing_cost) || Math.round(baskiPerItem);
-                
-                // Eğer metadata varsa ve unit_price içinde bunlar zaten varsa (SalesPage baking), 
-                // PDF'de sadece baz fiyatı göstermek için unit_price'ı temizle
-                if (metadata.unit_price_base) {
-                   unitPrice = Number(metadata.unit_price_base);
-                   discountedPrice = Number(metadata.discounted_price) || unitPrice;
+                // Parse metadata correctly
+                let metadata = item.metadata || {};
+                if (typeof metadata === 'string') {
+                    try { metadata = JSON.parse(metadata); } catch (e) { metadata = {}; }
                 }
 
-                const itemTotal = Number(item.total) || 0;
+                // Match OP and BASKI rows for this specific product
+                const itemCode = metadata.code || '';
+                const itemOpRow = items.find((ri: any) => {
+                    let rMeta = ri.metadata || {};
+                    if (typeof rMeta === 'string') { try { rMeta = JSON.parse(rMeta); } catch (e) {} }
+                    return (rMeta.type === 'OP' && rMeta.source_code === itemCode) || 
+                           (ri.description.toLowerCase().includes('operasyon') && ri.description.includes(itemCode));
+                });
+                const itemBaskiRow = items.find((ri: any) => {
+                    let rMeta = ri.metadata || {};
+                    if (typeof rMeta === 'string') { try { rMeta = JSON.parse(rMeta); } catch (e) {} }
+                    return (rMeta.type === 'BASKI' && rMeta.source_code === itemCode) || 
+                           (ri.description.toLowerCase().includes('baskı') && ri.description.includes(itemCode));
+                });
+
+                const itemOpTotal = itemOpRow ? Number(itemOpRow.total) : 0;
+                const itemBaskiTotal = itemBaskiRow ? Number(itemBaskiRow.total) : 0;
+
+                // Individual unit service costs (shown in columns)
+                const opPerUnit = item.quantity > 0 ? Math.round(itemOpTotal / item.quantity) : 0;
+                const baskiPerUnit = item.quantity > 0 ? Math.round(itemBaskiTotal / item.quantity) : 0;
+
+                // Standard prices from metadata
+                let listPrice = Number(metadata.unit_price_base);
+                let discPrice = Number(metadata.discounted_price);
+
+                // Fallback to item prices if metadata is missing
+                if (isNaN(listPrice) || listPrice === 0) {
+                    listPrice = Number(item.unit_price);
+                    discPrice = listPrice;
+                } else if (isNaN(discPrice) || discPrice === 0) {
+                    discPrice = listPrice;
+                }
+
+                const period = metadata.duration || metadata.period || '1';
+                // Row Total = (Price * Qty * Period) + (Total Op) + (Total Baski)
+                const rowTotal = (Number(item.total) || 0) + itemOpTotal + itemBaskiTotal;
+
+                // Clean description
+                let cleanDescription = item.description || '';
+                cleanDescription = cleanDescription.replace(/\[DÖNEM:.*?\]/g, '').trim();
+                cleanDescription = cleanDescription.replace(/\[BAŞLANGIÇ:.*?\]/g, '').trim();
+                cleanDescription = cleanDescription.replace(/\(\d+\s*(Hafta|hafta|GÜN|gün|Gün)\)/g, '').trim();
+                cleanDescription = cleanDescription.replace(/\s+/g, ' ').trim();
 
                 doc.text(cleanDescription, colX.product + 3, rowY + 8, { width: colWidths.product - 3 });
                 doc.text(item.quantity.toString(), colX.qty, rowY + 8, { width: colWidths.qty, align: 'center' });
                 doc.text(period.toString(), colX.period, rowY + 8, { width: colWidths.period, align: 'center' });
-                doc.text(`₺${unitPrice.toLocaleString('tr-TR')}`, colX.unitPrice, rowY + 8, { width: colWidths.unitPrice, align: 'center' });
-                doc.text(`₺${discountedPrice.toLocaleString('tr-TR')}`, colX.discPrice, rowY + 8, { width: colWidths.discPrice, align: 'center' });
-                doc.text(`₺${itemOpCost.toLocaleString('tr-TR')}`, colX.opCost, rowY + 8, { width: colWidths.opCost, align: 'center' });
-                doc.text(`₺${itemBaskiCost.toLocaleString('tr-TR')}`, colX.printCost, rowY + 8, { width: colWidths.printCost, align: 'center' });
-                doc.font(safeFontBold).text(`₺${itemTotal.toLocaleString('tr-TR')}`, colX.total + 5, rowY + 8, { width: colWidths.total - 5, align: 'right' });
+                doc.text(`₺${listPrice.toLocaleString('tr-TR')}`, colX.unitPrice, rowY + 8, { width: colWidths.unitPrice, align: 'center' });
+                doc.text(`₺${discPrice.toLocaleString('tr-TR')}`, colX.discPrice, rowY + 8, { width: colWidths.discPrice, align: 'center' });
+                doc.text(`₺${opPerUnit.toLocaleString('tr-TR')}`, colX.opCost, rowY + 8, { width: colWidths.opCost, align: 'center' });
+                doc.text(`₺${baskiPerUnit.toLocaleString('tr-TR')}`, colX.printCost, rowY + 8, { width: colWidths.printCost, align: 'center' });
+                doc.font(safeFontBold).text(`₺${rowTotal.toLocaleString('tr-TR')}`, colX.total + 5, rowY + 8, { width: colWidths.total - 5, align: 'right' });
                 doc.font(safeFontRegular);
 
                 rowY += 25;
                 doc.moveTo(40, rowY).lineTo(555, rowY).stroke('#f3f4f6');
 
-                // Check for page break
                 if (rowY > 700) {
                     doc.addPage();
                     rowY = 50;
@@ -531,42 +548,61 @@ export class ProposalsService {
             return true;
         });
 
-        const opPerItem = mainItems.length > 0 ? Math.round(opTotal / mainItems.length) : 0;
-        const baskiPerItem = mainItems.length > 0 ? Math.round(baskiTotal / mainItems.length) : 0;
-
         const itemsHtml = mainItems.map((item: any) => {
-            // Açıklamayı temizle
-            let cleanDescription = item.description || '';
-            cleanDescription = cleanDescription.replace(/\[DÖNEM:.*?\]/g, '').trim();
-            cleanDescription = cleanDescription.replace(/\[BAŞLANGIÇ:.*?\]/g, '').trim();
-            cleanDescription = cleanDescription.replace(/\(\d+\s*(Hafta|hafta|GÜN|gün|Gün)\)/g, '').trim();
-            cleanDescription = cleanDescription.replace(/\s+/g, ' ').trim();
-
-            const metadata = (item as any).metadata || {};
-            const period = metadata.duration || metadata.period || '1';
-            
-            let unitPrice = Number(metadata.unit_price_base) || Number(item.unit_price) || 0;
-            let discountedPrice = Number(metadata.discounted_price) || unitPrice;
-            let itemOpCost = Number(metadata.operation_cost) || opPerItem;
-            let itemBaskiCost = Number(metadata.printing_cost) || baskiPerItem;
-
-            if (metadata.unit_price_base) {
-                unitPrice = Number(metadata.unit_price_base);
-                discountedPrice = Number(metadata.discounted_price) || unitPrice;
+            // Parse metadata
+            let metadata = item.metadata || {};
+            if (typeof metadata === 'string') {
+                try { metadata = JSON.parse(metadata); } catch (e) { metadata = {}; }
             }
 
-            const itemTotal = Number(item.total) || 0;
+            const itemCode = metadata.code || '';
+            const itemOpRow = items.find((ri: any) => {
+                let rMeta = ri.metadata || {};
+                if (typeof rMeta === 'string') { try { rMeta = JSON.parse(rMeta); } catch (e) {} }
+                return (rMeta.type === 'OP' && rMeta.source_code === itemCode) || 
+                       (ri.description.toLowerCase().includes('operasyon') && ri.description.includes(itemCode));
+            });
+            const itemBaskiRow = items.find((ri: any) => {
+                let rMeta = ri.metadata || {};
+                if (typeof rMeta === 'string') { try { rMeta = JSON.parse(rMeta); } catch (e) {} }
+                return (rMeta.type === 'BASKI' && rMeta.source_code === itemCode) || 
+                       (ri.description.toLowerCase().includes('baskı') && ri.description.includes(itemCode));
+            });
+
+            const itemOpTotal = itemOpRow ? Number(itemOpRow.total) : 0;
+            const itemBaskiTotal = itemBaskiRow ? Number(itemBaskiRow.total) : 0;
+            const opPerUnit = item.quantity > 0 ? Math.round(itemOpTotal / item.quantity) : 0;
+            const baskiPerUnit = item.quantity > 0 ? Math.round(itemBaskiTotal / item.quantity) : 0;
+
+            let listPrice = Number(metadata.unit_price_base);
+            let discPrice = Number(metadata.discounted_price);
+
+            if (isNaN(listPrice) || listPrice === 0) {
+                listPrice = Number(item.unit_price);
+                discPrice = listPrice;
+            } else if (isNaN(discPrice) || discPrice === 0) {
+                discPrice = listPrice;
+            }
+
+            const period = metadata.duration || metadata.period || '1';
+            const rowTotal = (Number(item.total) || 0) + itemOpTotal + itemBaskiTotal;
+
+            // Clean description
+            let cleanDescription = item.description || '';
+            cleanDescription = cleanDescription.replace(/\[DÖNEM:.*?\]/g, '').trim();
+            cleanDescription = cleanDescription.replace(/\(\d+\s*(Hafta|hafta|GÜN|gün|Gün)\)/g, '').trim();
+            cleanDescription = cleanDescription.replace(/\s+/g, ' ').trim();
 
             return `
                 <tr>
                     <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; color: #1f2937;">${cleanDescription || '-'}</td>
                     <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity || 0}</td>
                     <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${period}</td>
-                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">₺${unitPrice.toLocaleString('tr-TR')}</td>
-                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">₺${discountedPrice.toLocaleString('tr-TR')}</td>
-                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">₺${itemOpCost.toLocaleString('tr-TR')}</td>
-                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">₺${itemBaskiCost.toLocaleString('tr-TR')}</td>
-                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">₺${itemTotal.toLocaleString('tr-TR')}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">₺${listPrice.toLocaleString('tr-TR')}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">₺${discPrice.toLocaleString('tr-TR')}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">₺${opPerUnit.toLocaleString('tr-TR')}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">₺${baskiPerUnit.toLocaleString('tr-TR')}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">₺${rowTotal.toLocaleString('tr-TR')}</td>
                 </tr>
             `;
         }).join('');

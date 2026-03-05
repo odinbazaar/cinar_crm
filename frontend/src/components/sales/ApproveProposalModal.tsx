@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Send, Info } from 'lucide-react';
-import type { Proposal, ProposalItem } from '../../types/sales';
+import { X, Calendar, Send, Info, Plus, Trash2 } from 'lucide-react';
+import type { Proposal } from '../../types/sales';
 import { useToast } from '../../hooks/useToast';
 
 interface ApproveProposalModalProps {
@@ -14,26 +14,35 @@ export function ApproveProposalModal({ isOpen, onClose, proposal, onApprove }: A
     const { success, error } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     
-    // Form for each product in the proposal
     const [itemsData, setItemsData] = useState<{
-        id: string; // generated
+        id: string;
         type: string;
         code: string;
+        network: string;
         quantity: number;
         startDate: string;
-        durationWeeks: number;
+        endDate: string;
     }[]>([]);
 
     useEffect(() => {
         if (isOpen && proposal) {
-            const initialData = proposal.items.map((item, idx) => ({
-                id: `item-${idx}`,
-                type: item.type || 'BB',
-                code: item.code || 'Bilinmeyen Ürün',
-                quantity: item.quantity || 1,
-                startDate: new Date().toISOString().split('T')[0],
-                durationWeeks: parseInt(item.weekLayout || '1') || 1,
-            }));
+            const initialData = proposal.items.map((item, idx) => {
+                const start = new Date().toISOString().split('T')[0];
+                const weeks = parseInt(item.weekLayout || '1') || 1;
+                const startDateObj = new Date(start);
+                const endDateObj = new Date(startDateObj.getTime() + (weeks * 7 * 24 * 60 * 60 * 1000));
+                const end = endDateObj.toISOString().split('T')[0];
+
+                return {
+                    id: `item-${idx}-${Date.now()}`,
+                    type: item.type || 'BB',
+                    code: item.code || item.description || 'Bilinmeyen Ürün',
+                    network: item.network || 'Tümü',
+                    quantity: item.quantity || 1,
+                    startDate: start,
+                    endDate: end,
+                };
+            });
             setItemsData(initialData);
         }
     }, [isOpen, proposal]);
@@ -44,6 +53,22 @@ export function ApproveProposalModal({ isOpen, onClose, proposal, onApprove }: A
         const newData = [...itemsData];
         newData[index] = { ...newData[index], [field]: value };
         setItemsData(newData);
+    };
+
+    const handleAddRow = (index: number) => {
+        const item = itemsData[index];
+        const newRow = {
+            ...item,
+            id: `item-new-${Date.now()}-${Math.random()}`,
+        };
+        const newData = [...itemsData];
+        newData.splice(index + 1, 0, newRow);
+        setItemsData(newData);
+    };
+
+    const handleRemoveRow = (index: number) => {
+        if (itemsData.length <= 1) return;
+        setItemsData(itemsData.filter((_, i) => i !== index));
     };
 
     const handleSend = async () => {
@@ -61,7 +86,7 @@ export function ApproveProposalModal({ isOpen, onClose, proposal, onApprove }: A
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh]">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[90vh]">
                 <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50 rounded-t-2xl">
                     <div>
                         <h2 className="text-xl font-bold text-gray-900">Teklifi Onayla & Rezervasyona İlet</h2>
@@ -75,28 +100,36 @@ export function ApproveProposalModal({ isOpen, onClose, proposal, onApprove }: A
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
                     <div className="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm flex gap-3">
                         <Info className="w-5 h-5 flex-shrink-0 text-blue-600 mt-0.5" />
-                        <p>Bu teklifi onaylayıp Rezervasyon birimine iletmek için onaylanan her bir ürünün <b>Başlangıç Tarihini</b> ve <b>Hafta Sayısını</b> (Dönem) doldurunuz.</p>
+                        <p>Rezervasyon birimine iletmek için her ürünün <b>Başlangıç</b> ve <b>Bitiş</b> tarihlerini doldurunuz. Aynı ürün için farklı tarih aralıkları gerekiyorsa (+) butonuna tıklayın.</p>
                     </div>
 
                     <div className="space-y-4">
                         <h3 className="font-bold text-gray-900 border-b pb-2">Onaylanan Ürünler</h3>
                         
                         {itemsData.map((item, idx) => (
-                            <div key={item.id} className="bg-white border rounded-xl p-4 shadow-sm relative group">
+                            <div key={item.id} className="bg-white border rounded-xl p-4 shadow-sm relative group hover:border-blue-200 transition-colors">
                                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                                    <div className="md:col-span-5">
+                                    <div className="md:col-span-4">
                                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Ürün / Adet</label>
-                                        <div className="font-medium text-gray-900 px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2">
-                                            <span className="font-bold text-primary-600">{item.quantity}x</span> {item.code}
+                                        <div className="flex gap-2">
+                                            <input 
+                                                type="number" 
+                                                className="w-16 px-2 py-2 border border-gray-200 rounded-lg text-sm font-bold text-blue-600 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                value={item.quantity}
+                                                onChange={(e) => handleItemChange(idx, 'quantity', parseInt(e.target.value) || 0)}
+                                            />
+                                            <div className="flex-1 font-medium text-gray-900 px-3 py-2 border border-gray-100 bg-gray-50 rounded-lg whitespace-nowrap overflow-hidden text-ellipsis flex items-center">
+                                                {item.code}
+                                            </div>
                                         </div>
                                     </div>
                                     
-                                    <div className="md:col-span-4">
+                                    <div className="md:col-span-3">
                                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Başlangıç Tarihi</label>
                                         <div className="relative">
                                             <input 
                                                 type="date" 
-                                                className="w-full pl-9 pr-3 py-2 border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" 
+                                                className="w-full pl-9 pr-3 py-2 border border-blue-100 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" 
                                                 value={item.startDate}
                                                 onChange={(e) => handleItemChange(idx, 'startDate', e.target.value)}
                                             />
@@ -105,17 +138,33 @@ export function ApproveProposalModal({ isOpen, onClose, proposal, onApprove }: A
                                     </div>
 
                                     <div className="md:col-span-3">
-                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Dönem (Hafta)</label>
+                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Bitiş Tarihi</label>
                                         <div className="relative">
                                             <input 
-                                                type="number" 
-                                                min="1"
-                                                className="w-full pl-3 pr-12 py-2 border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-bold text-center" 
-                                                value={item.durationWeeks}
-                                                onChange={(e) => handleItemChange(idx, 'durationWeeks', parseInt(e.target.value) || 1)}
+                                                type="date" 
+                                                className="w-full pl-9 pr-3 py-2 border border-orange-100 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none" 
+                                                value={item.endDate}
+                                                onChange={(e) => handleItemChange(idx, 'endDate', e.target.value)}
                                             />
-                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] uppercase text-gray-400 font-bold pointer-events-none">Hafta</span>
+                                            <Calendar className="w-4 h-4 text-orange-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                         </div>
+                                    </div>
+
+                                    <div className="md:col-span-2 flex gap-1">
+                                        <button 
+                                            onClick={() => handleAddRow(idx)}
+                                            className="flex-1 p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center border border-blue-100 shadow-sm"
+                                            title="Satır Ekle"
+                                        >
+                                            <Plus className="w-5 h-5" />
+                                        </button>
+                                        <button 
+                                            onClick={() => handleRemoveRow(idx)}
+                                            className="flex-1 p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center border border-red-100 shadow-sm"
+                                            title="Satır Sil"
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
                                     </div>
                                 </div>
                             </div>

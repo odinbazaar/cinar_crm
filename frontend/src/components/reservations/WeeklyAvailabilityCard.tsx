@@ -1,31 +1,63 @@
 import React, { useState, useEffect } from 'react';
-import { X, MapPin } from 'lucide-react';
-import { inventoryService, bookingsService } from '../../services';
+import { X, Clock, CheckCircle, RefreshCw, Calendar } from 'lucide-react';
+import { customerRequestsService } from '../../services';
 
-interface Location {
+interface Request {
     id: string;
-    kod: string;
-    ilce: string;
-    semt?: string;
-    adres?: string;
-    network?: number | string;
-    durum: 'OPSİYON' | 'KESİN' | 'BOŞ';
-}
-
-interface WeeklyAvailabilityCardProps {
-    isOpen: boolean;
-    onClose: () => void;
+    customerName: string;
+    brandName: string;
     productType: string;
     network: string;
-    week: string; // YYYY-MM-DD formatından DD.MM.YYYY'ye çevireceğiz veya öyle geliyorsa koruyacağız
+    week: string;
+    availableCount: number;
+    optionsCount: number;
+    status: string;
+    originalData: any;
 }
 
-export function WeeklyAvailabilityCard({ isOpen, onClose, productType, network, week }: WeeklyAvailabilityCardProps) {
-    const [locations, setLocations] = useState<Location[]>([]);
+interface PendingRequestsCardProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onProcess: (request: any) => void;
+}
+
+export function WeeklyAvailabilityCard({ isOpen, onClose, onProcess }: PendingRequestsCardProps) {
+    const [requests, setRequests] = useState<Request[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    const fetchData = async () => {
+        if (!isOpen) return;
+        setIsLoading(true);
+        try {
+            const allRequests = await customerRequestsService.getAll();
+            const pending = allRequests
+                .filter((r: any) => r.status === 'pending')
+                .map((r: any) => ({
+                    id: r.id,
+                    customerName: r.client?.company_name || r.customer_name || 'Bilinmeyen Müşteri',
+                    brandName: r.brand_name || '-',
+                    productType: r.product_type || '-',
+                    network: String(r.network || '-'),
+                    week: r.usage_period || '-',
+                    availableCount: r.available_count || 0,
+                    optionsCount: r.options_count || 0,
+                    status: r.status,
+                    originalData: r // Orijinal veriyi sakla
+                }));
+            setRequests(pending);
+        } catch (err) {
+            console.error("Pending requests fetch error", err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, [isOpen]);
+
     const normalizeDate = (dateStr: string): string => {
-        if (!dateStr) return '';
+        if (!dateStr || dateStr === '-') return '-';
         if (dateStr.includes('-')) {
             const parts = dateStr.split('T')[0].split('-');
             return `${parts[2]}.${parts[1]}.${parts[0]}`; 
@@ -33,122 +65,113 @@ export function WeeklyAvailabilityCard({ isOpen, onClose, productType, network, 
         return dateStr;
     };
 
-    useEffect(() => {
-        const fetchData = async () => {
-            if (!isOpen) return;
-            setIsLoading(true);
-            try {
-                const [inventory, allBookings] = await Promise.all([
-                    inventoryService.getAll(),
-                    bookingsService.getAll()
-                ]);
-
-                const targetWeekFormatted = normalizeDate(week);
-
-                const matchingInventory = inventory.filter(item => {
-                    const normalizeNet = (n: any) => (!n || n === 'null' || n === 'undefined' || n === 'Yok' || n === 'YOK') ? 'YOK' : String(n).toUpperCase();
-                    const itemNet = normalizeNet(item.network);
-                    const reqNet = normalizeNet(network);
-                    const isNetMatch = reqNet === 'TÜMÜ' || itemNet === reqNet ||
-                        (itemNet === 'BELEDİYE' && reqNet === 'BLD') ||
-                        (itemNet === 'BLD' && reqNet === 'BELEDİYE');
-                    return isNetMatch && item.type === productType;
-                });
-
-                const periodBookings = allBookings.filter(b => normalizeDate(b.start_date) === targetWeekFormatted);
-
-                const list: Location[] = matchingInventory.map(item => {
-                    const booking = periodBookings.find(b => b.inventory_item_id === item.id);
-                    let durum: 'OPSİYON' | 'KESİN' | 'BOŞ' = 'BOŞ';
-                    
-                    if (booking) {
-                        durum = booking.status as any || 'BOŞ';
-                    }
-
-                    return {
-                        id: item.id,
-                        kod: item.code,
-                        ilce: item.district,
-                        semt: item.neighborhood,
-                        adres: item.address,
-                        network: item.network,
-                        durum
-                    };
-                });
-
-                // Önce BOŞ, sonra OPSİYON, sonra KESİN
-                list.sort((a, b) => {
-                    if (a.durum === b.durum) return 0;
-                    if (a.durum === 'BOŞ') return -1;
-                    if (b.durum === 'BOŞ') return 1;
-                    if (a.durum === 'OPSİYON') return -1;
-                    return 1;
-                });
-
-                setLocations(list);
-
-            } catch (err) {
-                console.error("Availability view error", err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchData();
-    }, [isOpen, productType, network, week]);
-
     if (!isOpen) return null;
 
     return (
-        <div className="fixed top-20 right-4 z-50 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col max-h-[80vh]">
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-indigo-50 to-blue-50">
-                <div>
-                    <h3 className="font-bold text-indigo-900 text-sm">Haftalık Müsaitlik</h3>
-                    <p className="text-[10px] text-indigo-600 font-medium">Hafta: {normalizeDate(week)} | Net: {network} | {productType}</p>
+        <div className="fixed top-24 right-6 z-50 w-96 bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col max-h-[85vh] animate-in slide-in-from-right duration-300">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-orange-50 to-amber-50">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-200">
+                        <Clock className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                        <h3 className="font-black text-gray-900 text-sm">Bekleyen İşler</h3>
+                        <p className="text-[10px] text-orange-600 font-bold uppercase tracking-wider">{requests.length} Bekleyen Talep</p>
+                    </div>
                 </div>
-                <button onClick={onClose} className="p-1.5 hover:bg-black/10 rounded-full transition-colors">
-                    <X className="w-5 h-5 text-gray-500" />
-                </button>
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={fetchData}
+                        className="p-2 hover:bg-white/50 rounded-xl transition-all text-orange-600"
+                        title="Yenile"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    </button>
+                    <button onClick={onClose} className="p-2 hover:bg-white/50 rounded-xl transition-all text-gray-400">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-gray-50/50">
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-gray-50/30">
                 {isLoading ? (
-                    <div className="text-center py-8 text-gray-400 text-sm flex flex-col items-center">
-                        <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-3"></div>
-                        Yükleniyor...
+                    <div className="text-center py-20 text-gray-400 text-sm flex flex-col items-center">
+                        <div className="w-10 h-10 border-4 border-orange-100 border-t-orange-600 rounded-full animate-spin mb-4"></div>
+                        <p className="font-bold">Talepler yükleniyor...</p>
                     </div>
-                ) : locations.length === 0 ? (
-                    <div className="text-center py-8 text-gray-400 text-sm bg-white rounded-xl border border-dashed border-gray-200">Bu kriterlere uygun envanter bulunamadı.</div>
+                ) : requests.length === 0 ? (
+                    <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-200 m-2">
+                        <CheckCircle className="w-12 h-12 text-green-200 mx-auto mb-4" />
+                        <p className="text-sm font-bold text-gray-400 tracking-tight">Bekleyen iş bulunmuyor</p>
+                        <p className="text-[10px] text-gray-400 mt-1 uppercase">Tebrikler! Tüm operasyon güncel.</p>
+                    </div>
                 ) : (
-                    <div className="space-y-2">
-                        {locations.map(loc => {
-                            const statusColor = loc.durum === 'BOŞ' ? 'text-green-600 bg-green-50 border-green-100' : loc.durum === 'OPSİYON' ? 'text-orange-600 bg-orange-50 border-orange-100' : 'text-red-600 bg-red-50 border-red-100';
-                            
-                            return (
-                                <div key={loc.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-white shadow-sm hover:border-indigo-200 transition-colors group">
-                                    <div className="flex items-start gap-3">
-                                        <div className="mt-0.5 p-1.5 bg-gray-50 rounded-lg group-hover:bg-indigo-50 transition-colors">
-                                            <MapPin className="w-4 h-4 text-gray-400 group-hover:text-indigo-500" />
+                    <div className="space-y-4">
+                        {requests.map(req => (
+                            <div key={req.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:border-orange-200 transition-all group relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-16 h-16 bg-orange-50 rounded-full -mr-8 -mt-8 opacity-50"></div>
+                                
+                                <div className="relative z-10">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className="flex-1">
+                                            <div className="text-[11px] font-black text-gray-900 uppercase leading-none mb-1 group-hover:text-orange-600 transition-colors">
+                                                {req.customerName}
+                                            </div>
+                                            <div className="text-[10px] text-indigo-600 font-bold uppercase tracking-tight">
+                                                {req.brandName}
+                                            </div>
                                         </div>
-                                        <div>
-                                            <div className="text-xs font-black text-gray-900">{loc.kod}</div>
-                                            <div className="text-[10px] text-gray-500 truncate max-w-[150px] mt-0.5">{loc.ilce} / {loc.semt}</div>
+                                        <div className="text-[8px] font-bold px-2 py-1 bg-orange-100 text-orange-700 rounded-full uppercase">YENİ</div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-7 h-7 bg-gray-50 rounded-lg flex items-center justify-center">
+                                                <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[8px] text-gray-400 font-bold uppercase leading-none">Hafta</p>
+                                                <p className="text-[10px] font-black text-gray-700 leading-none mt-1">{normalizeDate(req.week)}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-7 h-7 bg-gray-50 rounded-lg flex items-center justify-center">
+                                                <CheckCircle className="w-3.5 h-3.5 text-gray-400" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[8px] text-gray-400 font-bold uppercase leading-none">Mik. / Detay</p>
+                                                <p className="text-[10px] font-black text-gray-700 leading-none mt-1">
+                                                    {req.availableCount + req.optionsCount} Lok. | {req.productType}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className={`text-[9px] font-bold px-2 py-1 rounded border uppercase ${statusColor}`}>
-                                        {loc.durum}
-                                    </div>
+
+                                    <button 
+                                        onClick={() => onProcess(req.originalData)}
+                                        className="w-full py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-black rounded-xl shadow-lg shadow-orange-100 transition-all flex items-center justify-center gap-2 group/btn"
+                                    >
+                                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                                        TALEBİ İŞLE (HIZALA)
+                                        <CheckCircle className="w-3.5 h-3.5 group-hover/btn:scale-110 transition-transform" />
+                                    </button>
                                 </div>
-                            );
-                        })}
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>
-            <div className="p-3 border-t border-gray-100 bg-white flex justify-between items-center text-[10px] font-bold text-gray-500">
-                <div>Toplam: {locations.length} Lok.</div>
-                <div className="flex gap-2">
-                    <span className="text-green-600 px-2 py-1 bg-green-50 rounded-md border border-green-100">{locations.filter(l => l.durum === 'BOŞ').length} Boş</span>
-                    <span className="text-orange-600 px-2 py-1 bg-orange-50 rounded-md border border-orange-100">{locations.filter(l => l.durum === 'OPSİYON').length} Ops</span>
+            
+            <div className="p-4 border-t border-gray-100 bg-white">
+                <div className="bg-indigo-900 rounded-2xl p-4 text-white shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                    <div className="relative z-10 flex items-center justify-between">
+                        <div>
+                            <p className="text-[8px] font-black text-indigo-300 uppercase tracking-widest leading-none">Haftalık Bekleyen</p>
+                            <p className="text-xl font-black mt-1">{requests.length} <span className="text-[10px] text-indigo-300 font-bold uppercase">TALEP</span></p>
+                        </div>
+                        <CheckCircle className="w-8 h-8 text-indigo-400/50" />
+                    </div>
                 </div>
             </div>
         </div>

@@ -690,8 +690,8 @@ export default function SalesPage() {
                     
                     // Her ürün için ayrı OP/BASKI satırları yerine metadata'da saklamak yeterli (veya ürün birim fiyatına dahil etme)
                     // Ancak tablo tasarımına sadık kalarak, ürüne her şeyi dahil ediyoruz:
-                    const totalOp = (item.operationCost * (item.opQty || 1));
-                    const totalPr = (item.printingCost * (item.opQty || 1));
+                    const totalOp = (item.operationCost * item.quantity * (item.opQty || 1));
+                    const totalPr = (item.printingCost * item.quantity * (item.opQty || 1));
                     
                     return {
                         description: `${item.network ? `${item.code} - Network ${item.network}` : item.code} (${durationVal} Hafta)`,
@@ -717,18 +717,18 @@ export default function SalesPage() {
                     const opMult = item.opQty || 1;
                     if (item.operationCost > 0) {
                         finalItems.push({
-                            description: `${item.code} Operasyon Maliyeti (${opMult} Adet/Kez)`,
+                            description: `${item.code} Operasyon Maliyeti (${item.quantity} Adet x ${opMult} Kez)`,
                             quantity: 1,
-                            unit_price: item.operationCost * opMult,
-                            metadata: { type: 'OP', source_code: item.code, multiplier: opMult }
+                            unit_price: item.operationCost * item.quantity * opMult,
+                            metadata: { type: 'OP', source_code: item.code, multiplier: opMult, item_quantity: item.quantity }
                         } as any);
                     }
                     if (item.printingCost > 0) {
                         finalItems.push({
-                            description: `${item.code} Baskı Bedeli (${opMult} Adet/Kez)`,
+                            description: `${item.code} Baskı Bedeli (${item.quantity} Adet x ${opMult} Kez)`,
                             quantity: 1,
-                            unit_price: item.printingCost * opMult,
-                            metadata: { type: 'BASKI', source_code: item.code, multiplier: opMult }
+                            unit_price: item.printingCost * item.quantity * opMult,
+                            metadata: { type: 'BASKI', source_code: item.code, multiplier: opMult, item_quantity: item.quantity }
                         } as any);
                     }
                 });
@@ -818,10 +818,12 @@ export default function SalesPage() {
                     approvedItems: itemsData.map(item => ({
                         productType: item.type,
                         productCode: item.code,
+                        network: item.network || 'Tümü',
                         quantity: item.quantity,
                         startDate: item.startDate,
-                        durationWeeks: item.durationWeeks,
+                        endDate: item.endDate,
                     })),
+                    brandName: proposal.customerName,
                     source: 'sale_approved'
                 };
 
@@ -829,13 +831,13 @@ export default function SalesPage() {
                 await customerRequestsService.create({
                     request_number: proposal.proposalNumber || `REV-${Date.now()}`,
                     client_id: proposal.customerId,
-                    product_type: itemsData[0]?.type || 'BB', // İlk ürünün tipini ana tip olarak alıyoruz
+                    product_type: itemsData[0]?.type || 'BB', 
                     product_details: JSON.stringify(details),
                     quantity: itemsData.reduce((acc, curr) => acc + curr.quantity, 0),
                     start_date: itemsData[0]?.startDate || new Date().toISOString().split('T')[0],
-                    end_date: new Date(new Date(itemsData[0]?.startDate || new Date()).getTime() + (itemsData[0]?.durationWeeks || 1) * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    end_date: itemsData[0]?.endDate || itemsData[0]?.startDate,
                     priority: 'high',
-                    status: 'pending', // Bekleyen iş olarak düşecek
+                    status: 'pending', 
                     notes: JSON.stringify({
                         type: 'sale_approved_to_reservation',
                         proposal_id: proposalId,
@@ -859,19 +861,48 @@ export default function SalesPage() {
     const handleReviseFromSent = async (proposal: Proposal) => {
         try {
             setIsLoading(true);
-            // Teklifi 'draft' durumuna çek
-            await proposalsService.updateStatus(proposal.id, 'DRAFT');
+            
+            // En güncel veriyi çekelim (metadata ve kalemlerin tam geldiğinden emin olmak için)
+            const freshProposal = await proposalsService.getOne(proposal.id);
+            if (!freshProposal) throw new Error('Teklif bulunamadı');
 
-            // Teklif hazırlama modalanı açmak için gerekli state'leri set et
-            const customer = customers.find(c => c.id === proposal.customerId);
+            // Teklifi 'draft' durumuna çek
+            await proposalsService.updateStatus(freshProposal.id, 'DRAFT');
+
+            // Müşteriyi ve teklifi seç
+            const customerId = (freshProposal as any).client_id || (freshProposal as any).client_id;
+            const customer = customers.find(c => c.id === customerId);
             if (customer) {
                 setSelectedCustomer(customer);
             }
-            setSelectedProposal(proposal);
+
+            // Map fresh data to frontend camelCase type
+            const mappedProposalForState: Proposal = {
+                id: freshProposal.id,
+                proposalNumber: freshProposal.proposal_number,
+                customerId: freshProposal.client_id,
+                customerName: (freshProposal as any).client?.company_name || proposal.customerName,
+                items: [],
+                totalAmount: freshProposal.subtotal || 0,
+                operationTotal: 0,
+                kdvAmount: freshProposal.tax_amount || 0,
+                grandTotal: freshProposal.total || 0,
+                isBlockList: (freshProposal as any).is_block_list || false,
+                status: 'draft',
+                createdAt: freshProposal.created_at,
+                usagePeriod: (freshProposal as any).usagePeriod || (proposal as any).usagePeriod || '1 Hafta',
+                weekInfo: (freshProposal as any).description || (proposal as any).weekInfo || ''
+            };
+            setSelectedProposal(mappedProposalForState);
             
-            // Backend'den gelen verileri ProposalItem formatına dönüştür
+            // KDV ve Liste Tipi (Blok/Tekil) ayarlarını geri yükle
+            if (freshProposal.tax_rate) setKdvRate(freshProposal.tax_rate as 20 | 14);
+            const isBlock = (freshProposal as any).isBlockList ?? (freshProposal as any).is_block_list;
+            if (isBlock !== undefined) setIsBlockList(isBlock);
+            
+            // Kalemleri ProposalItem formatına dönüştür
             const productTypesList = getProductTypes();
-            const rawItems = proposal.items || [];
+            const rawItems = (freshProposal as any).items || [];
             
             const mappedItems = rawItems
                 .filter((item: any) => {
@@ -879,18 +910,22 @@ export default function SalesPage() {
                     return !desc.includes('operasyon maliyeti') && !desc.includes('baskı bedeli');
                 })
                 .map((item: any) => {
-                    const meta = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : (item.metadata || {});
+                    let meta = item.metadata || {};
+                    if (typeof meta === 'string') {
+                        try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+                    }
                     
-                    // Metadata'dan fiyatları almaya çalış
-                    let unitPrice = Number(meta.unit_price_base);
-                    let discountedPrice = Number(meta.discounted_price);
-                    
-                    // Metadata yoksa veya eksikse logic:
-                    if (!unitPrice) {
-                        // Backend'den gelen unit_price aslında satılan fiyattır (indirimli)
+                    // Metadata'dan değerleri al (Farklı isimlendirme varyasyonlarını kontrol et)
+                    let unitPrice = Number(meta.unit_price_base ?? meta.unitPriceBase ?? 0);
+                    let discountedPrice = Number(meta.discounted_price ?? meta.discountedPrice ?? 0);
+                    const printingCost = Number(meta.printing_cost ?? meta.printingCost ?? 0);
+                    const operationCost = Number(meta.operation_cost ?? meta.operationCost ?? 0);
+                    const opQty = Number(meta.op_multiplier ?? meta.opQty ?? 1);
+                    const durationVal = meta.duration || meta.period || '1';
+
+                    // Metadata eksikse fallback (Backend'den gelen fiyatı indirimli fiyat kabul et)
+                    if (!unitPrice || isNaN(unitPrice)) {
                         const bakedPrice = Number(item.unit_price) || 0;
-                        
-                        // Ürün tipini açıklamaya göre bulmaya çalış
                         const descUpper = (item.description || '').toUpperCase();
                         const prodType = productTypesList.find((p: any) => 
                             descUpper.includes(p.name) || meta.code === p.code || meta.type === p.code
@@ -898,69 +933,46 @@ export default function SalesPage() {
 
                         if (prodType) {
                             unitPrice = prodType.unitPrice;
-                            discountedPrice = bakedPrice; // Satılan fiyat indirimli alana
+                            discountedPrice = bakedPrice; 
                         } else {
                             unitPrice = bakedPrice;
                             discountedPrice = 0;
                         }
                     }
 
-                    // Operasyon çarpanını metadata'dan veya açıklamadan ayıkla
-                    let itemOpQty = Number(meta.op_multiplier) || 1;
-                    if (!meta.op_multiplier) {
-                        // Eğer global çarpan varsa (eski sistem) ondan alabiliriz
-                        const globalOpItem = rawItems.find((ri: any) => ri.description?.includes('Operasyon Adedi') || ri.description?.includes('Operasyon Maliyeti'));
-                        if (globalOpItem) {
-                            const qMatch = globalOpItem.description?.match(/(\d+)\s*Adet/i) || globalOpItem.description?.match(/(\d+)\s*Kez/i);
-                            if (qMatch) itemOpQty = parseInt(qMatch[1]);
-                        }
-                    }
-
                     return {
-                        type: meta.type || (
-                            (item.description || '').toUpperCase().includes('BILLBOARD') ? 'BB' : 
-                            (item.description || '').toUpperCase().includes('RAKET') ? 'CLP' :
-                            (item.description || '').toUpperCase().includes('MEGALIGHT') ? 'MGL' :
-                            (item.description || '').toUpperCase().includes('LED') ? 'LB' : 
-                            (item.description || '').toUpperCase().includes('GIANT') ? 'GB' : 'BB'
-                        ),
-                        code: meta.code || item.description?.split(' (')[0] || item.description,
+                        type: meta.type || meta.productType || 'BB',
+                        code: meta.code || meta.productCode || item.description?.split(' (')[0] || item.description,
                         quantity: Number(item.quantity) || 0,
                         unitPrice: unitPrice,
                         discountedPrice: discountedPrice,
-                        printingCost: Number(meta.printing_cost) || Number(item.printing_cost) || 0,
-                        operationCost: Number(meta.operation_cost) || Number(item.operation_cost) || 0,
-                        opQty: itemOpQty,
-                        weekLayout: meta.duration?.toString() || item.description?.match(/\((\d+)\s*Hafta\)/i)?.[1] || '1',
+                        printingCost: printingCost,
+                        operationCost: operationCost,
+                        opQty: opQty,
+                        weekLayout: durationVal.toString(),
                         network: meta.network
                     };
                 });
             
-            setProposalItems(mappedItems);
+            if (mappedItems.length > 0) {
+                setProposalItems(mappedItems);
+            }
 
-            // Süreyi ayıkla
-            const duration = parseInt(proposal.usagePeriod || '1');
-            setDurationWeeks(isNaN(duration) ? 1 : duration);
-
-            // Dönemi ayıkla
-            if (proposal.weekInfo) {
-                const parts = proposal.weekInfo.split(' ');
-                if (parts.length >= 2) {
-                    const mIdx = monthNames.indexOf(parts[0]);
-                    if (mIdx !== -1) setStartMonth(mIdx + 1);
-                    const weekNum = parseInt(parts[1]);
-                    if (!isNaN(weekNum)) setStartWeek(weekNum);
-                }
+            // Açıklamadan süre ve dönem bilgisini ayıklamaya çalış (Fallback)
+            const desc = freshProposal.description || '';
+            const durationMatch = desc.match(/(\d+)\s*Hafta/i);
+            if (durationMatch) {
+                setDurationWeeks(parseInt(durationMatch[1]));
             }
 
             setShowProposalModal(true);
-            setActiveTab('proposals'); // Bütçe Teklifleri sekmesine yönlendir (taslak olduğu için)
+            setActiveTab('proposals');
 
             fetchData();
-            success(`Teklif #${proposal.proposalNumber || proposal.id} revize edilmek üzere hazırlandı.`);
+            success(`Teklif #${freshProposal.proposal_number || freshProposal.id} revize edilmek üzere hazırlandı.`);
         } catch (error: any) {
             console.error('Revise error:', error);
-            alert('Teklif revize edilirken hata oluştu.');
+            alert('Teklif revize edilirken hata oluştu: ' + error.message);
         } finally {
             setIsLoading(false);
         }
@@ -1057,18 +1069,18 @@ export default function SalesPage() {
                 const opMult = item.opQty || 1;
                 if (item.operationCost > 0) {
                     finalItems.push({
-                        description: `${item.code} Operasyon Maliyeti (${opMult} Adet/Kez)`,
+                        description: `${item.code} Operasyon Maliyeti (${item.quantity} Adet x ${opMult} Kez)`,
                         quantity: 1,
-                        unit_price: item.operationCost * opMult,
-                        metadata: { type: 'OP', source_code: item.code, multiplier: opMult }
+                        unit_price: item.operationCost * item.quantity * opMult,
+                        metadata: { type: 'OP', source_code: item.code, multiplier: opMult, item_quantity: item.quantity }
                     } as any);
                 }
                 if (item.printingCost > 0) {
                     finalItems.push({
-                        description: `${item.code} Baskı Bedeli (${opMult} Adet/Kez)`,
+                        description: `${item.code} Baskı Bedeli (${item.quantity} Adet x ${opMult} Kez)`,
                         quantity: 1,
-                        unit_price: item.printingCost * opMult,
-                        metadata: { type: 'BASKI', source_code: item.code, multiplier: opMult }
+                        unit_price: item.printingCost * item.quantity * opMult,
+                        metadata: { type: 'BASKI', source_code: item.code, multiplier: opMult, item_quantity: item.quantity }
                     } as any);
                 }
             });
