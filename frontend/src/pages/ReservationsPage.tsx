@@ -814,7 +814,7 @@ export default function ReservationsPage() {
             const existingBookings = await bookingsService.getAll();
             const existing = existingBookings.find(b =>
                 b.inventory_item_id === locId &&
-                normalizeDate(b.start_date) === selectedWeek
+                getMonday(b.start_date) === selectedWeek
             );
 
             const loc = updated.find(l => l.id === locId);
@@ -993,7 +993,7 @@ export default function ReservationsPage() {
 
                     // Find existing booking for this location and week
                     const existing = existingBookings.find(
-                        b => b.inventory_item_id === loc.id && b.start_date === selectedWeek
+                        b => b.inventory_item_id === loc.id && getMonday(b.start_date) === selectedWeek
                     );
 
                     if (existing) {
@@ -1061,7 +1061,7 @@ export default function ReservationsPage() {
                     // Backend update for source
                     if (loc.id.length > 20) {
                         const existingBookings = await bookingsService.getAll();
-                        const existing = existingBookings.find(b => b.inventory_item_id === loc.id && b.start_date === selectedWeek);
+                        const existing = existingBookings.find(b => b.inventory_item_id === loc.id && getMonday(b.start_date) === selectedWeek);
                         if (existing) {
                             await bookingsService.update(existing.id, {
                                 brand_option_1: newLoc.marka1Opsiyon,
@@ -1089,7 +1089,7 @@ export default function ReservationsPage() {
                     // Backend update for target
                     if (loc.id.length > 20) {
                         const existingBookings = await bookingsService.getAll();
-                        const existing = existingBookings.find(b => b.inventory_item_id === loc.id && b.start_date === selectedWeek);
+                        const existing = existingBookings.find(b => b.inventory_item_id === loc.id && getMonday(b.start_date) === selectedWeek);
                         const bookingData = {
                             inventory_item_id: loc.id,
                             brand_option_1: newLoc.marka1Opsiyon,
