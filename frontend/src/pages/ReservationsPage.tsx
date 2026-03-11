@@ -157,15 +157,31 @@ export default function ReservationsPage() {
 
     const { success: toastSuccess, info: toastInfo } = useToast()
 
-    // Helper function to normalize date formats for comparison
-    const normalizeDate = (dateStr: string): string => {
-        if (!dateStr) return '';
-        // Handle ISO format: 2026-01-05 or 2026-01-05T00:00:00
-        if (dateStr.includes('-')) {
-            const parts = dateStr.split('T')[0].split('-');
-            return `${parts[2]}.${parts[1]}.${parts[0]}`; // Convert to DD.MM.YYYY
+    // Helper function to convert any date to Monday of that week in DD.MM.YYYY format
+    const getMonday = (date: any): string => {
+        if (!date) return '';
+        let d = new Date(date);
+        if (typeof date === 'string') {
+            if (date.includes('.')) {
+                const [day, month, year] = date.split('.');
+                d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+            } else if (date.includes('-')) {
+                d = new Date(date);
+            }
         }
-        return dateStr; // Already in DD.MM.YYYY format
+        
+        if (isNaN(d.getTime())) return '';
+        
+        // Find Monday
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        const monday = new Date(d.setDate(diff));
+        
+        const dd = String(monday.getDate()).padStart(2, '0');
+        const mm = String(monday.getMonth() + 1).padStart(2, '0');
+        const yyyy = monday.getFullYear();
+        
+        return `${dd}.${mm}.${yyyy}`;
     };
 
     // Helper function to convert DD.MM.YYYY to YYYY-MM-DD for backend
@@ -247,7 +263,7 @@ export default function ReservationsPage() {
                 // Compare normalized dates
                 const itemBookings = bookings.filter(b =>
                     b.inventory_item_id === item.id &&
-                    normalizeDate(b.start_date) === selectedWeek
+                    getMonday(b.start_date) === selectedWeek
                 );
                 const booking = itemBookings[0];
 
@@ -268,7 +284,7 @@ export default function ReservationsPage() {
                     marka3Opsiyon: booking?.brand_option_3 || '',
                     marka4Opsiyon: booking?.brand_option_4 || '',
                     durum: (booking?.status as any) || 'BOŞ',
-                    productType: item.type as any
+                    productType: (item.type === 'Billboard' || item.type === 'BILLBOARD' || item.type === 'BB') ? 'BB' : item.type
                 };
             });
 
@@ -367,17 +383,30 @@ export default function ReservationsPage() {
 
             // Filter matching inventory
             const matchingInventory = inventory.filter(item => {
-                const normalizeNet = (n: any) => (!n || n === 'null' || n === 'undefined' || n === 'Yok' || n === 'YOK') ? 'YOK' : String(n).toUpperCase();
+                const normalizeNet = (n: any) => {
+                    if (!n || n === 'null' || n === 'undefined' || n === 'Yok' || n === 'YOK') return 'YOK';
+                    let s = String(n).toUpperCase();
+                    if (s.startsWith('NET ')) s = s.replace('NET ', '');
+                    return s.trim();
+                };
                 const itemNet = normalizeNet(item.network);
                 const reqNet = normalizeNet(request.network);
+                
                 const isNetMatch = reqNet === 'TÜMÜ' || itemNet === reqNet ||
                     (itemNet === 'BELEDİYE' && reqNet === 'BLD') ||
                     (itemNet === 'BLD' && reqNet === 'BELEDİYE');
-                return isNetMatch && item.type === request.productType;
+                
+                const normalizeType = (t: string) => {
+                    const type = String(t).toUpperCase();
+                    if (type === 'BB' || type === 'BILLBOARD') return 'BILLBOARD';
+                    return type;
+                };
+
+                return isNetMatch && normalizeType(item.type) === normalizeType(request.productType);
             });
 
-            const targetWeek = normalizeDate(request.week);
-            const periodBookings = allBookings.filter(b => normalizeDate(b.start_date) === targetWeek);
+            const targetWeek = getMonday(request.week);
+            const periodBookings = allBookings.filter(b => getMonday(b.start_date) === targetWeek);
 
             const available: any[] = [];
             const options: any[] = [];
@@ -415,9 +444,7 @@ export default function ReservationsPage() {
                 };
 
                 if (!booking || (booking.status === 'BOŞ' && nextSlot === 1)) {
-                    if (isSelected || available.length < (request.availableCount + request.optionsCount)) {
-                        available.push(uiItem);
-                    }
+                    available.push(uiItem);
                 } else if (nextSlot <= 4) {
                     options.push(uiItem);
                 } else {
@@ -439,7 +466,7 @@ export default function ReservationsPage() {
         setSelectedRequest({
             ...request,
             // Normalize week date for select consistency
-            week: normalizeDate(request.week)
+            week: getMonday(request.week)
         });
         setShowProcessModal(true);
     };
@@ -475,16 +502,30 @@ export default function ReservationsPage() {
 
             // Filter matching inventory
             const matchingInventory = inventory.filter(item => {
-                const itemNet = String(item.network).toUpperCase();
-                const reqNet = String(selectedRequest.network).toUpperCase();
-                const isNetMatch = itemNet === reqNet ||
+                const normalizeNet = (n: any) => {
+                    if (!n || n === 'null' || n === 'undefined' || n === 'Yok' || n === 'YOK') return 'YOK';
+                    let s = String(n).toUpperCase();
+                    if (s.startsWith('NET ')) s = s.replace('NET ', '');
+                    return s.trim();
+                };
+                const itemNet = normalizeNet(item.network);
+                const reqNet = normalizeNet(selectedRequest.network);
+                
+                const isNetMatch = reqNet === 'TÜMÜ' || itemNet === reqNet ||
                     (itemNet === 'BELEDİYE' && reqNet === 'BLD') ||
                     (itemNet === 'BLD' && reqNet === 'BELEDİYE');
-                return isNetMatch && item.type === selectedRequest.productType;
+
+                const normalizeType = (t: string) => {
+                    const type = String(t).toUpperCase();
+                    if (type === 'BB' || type === 'BILLBOARD') return 'BILLBOARD';
+                    return type;
+                };
+
+                return isNetMatch && normalizeType(item.type) === normalizeType(selectedRequest.productType);
             });
 
-            const targetWeek = normalizeDate(selectedRequest.week);
-            const periodBookings = allBookings.filter(b => normalizeDate(b.start_date) === targetWeek);
+            const targetWeek = getMonday(selectedRequest.week);
+            const periodBookings = allBookings.filter(b => getMonday(b.start_date) === targetWeek);
 
             const selectedAvailable: any[] = [];
             const autoAvailable: any[] = [];
@@ -547,7 +588,7 @@ export default function ReservationsPage() {
                     await bookingsService.create({
                         inventory_item_id: item.id,
                         brand_name: selectedRequest.brandName,
-                        network: String(selectedRequest.network),
+                        network: String(selectedRequest.network).replace('Net ', ''),
                         start_date: toBackendDate(targetWeek),
                         end_date: toBackendDate(targetWeek),
                         status: 'OPSİYON',
@@ -562,8 +603,8 @@ export default function ReservationsPage() {
             // Update UI
             setSelectedYear(selectedRequest.year);
             setSelectedMonth(selectedRequest.month);
-            setSelectedWeek(normalizeDate(selectedRequest.week));
-            setSelectedNetwork(selectedRequest.network);
+            setSelectedWeek(getMonday(selectedRequest.week));
+            setSelectedNetwork(String(selectedRequest.network).replace('Net ', ''));
             setActiveTab('list');
             setShowProcessModal(false);
             setSelectedRequest(null);
@@ -641,7 +682,12 @@ export default function ReservationsPage() {
         loc.hafta === selectedWeek &&
         (() => {
             if (selectedNetwork === 'Tümü') return true;
-            const normalizeNet = (n: any) => (!n || n === 'null' || n === 'undefined' || n === 'Yok' || n === 'YOK') ? 'YOK' : String(n).toUpperCase();
+            const normalizeNet = (n: any) => {
+                if (!n || n === 'null' || n === 'undefined' || n === 'Yok' || n === 'YOK') return 'YOK';
+                let s = String(n).toUpperCase();
+                if (s.startsWith('NET ')) s = s.replace('NET ', '');
+                return s.trim();
+            };
             const itemNet = normalizeNet(loc.network);
             const filterNet = normalizeNet(selectedNetwork);
             return itemNet === 'TÜMÜ' || itemNet === filterNet ||
@@ -2365,9 +2411,20 @@ export default function ReservationsPage() {
                                             <div>
                                                 <h4 className="text-sm font-bold text-blue-900">İşlem Onayı</h4>
                                                 <p className="text-xs text-blue-700 mt-1">
-                                                    Bu talebi onayladığınızda, <strong>{processAvailability.available.length}</strong> boş yer ve
-                                                    <strong> {Math.min(processAvailability.options.length, Math.max(0, (selectedRequest.availableCount + selectedRequest.optionsCount) - processAvailability.available.length))}</strong> opsiyonlu yer
-                                                    <strong> "{selectedRequest.brandName}"</strong> markası için OPSİYON olarak kaydedilecektir.
+                                                    {(() => {
+                                                        const reqCount = selectedRequest.availableCount + selectedRequest.optionsCount || selectedRequest.selectedLocations?.length || 20;
+                                                        const assignedAvailable = Math.min(processAvailability.available.length, reqCount);
+                                                        const remainingNeeded = Math.max(0, reqCount - assignedAvailable);
+                                                        const assignedOptions = Math.min(processAvailability.options.length, remainingNeeded);
+                                                        
+                                                        return (
+                                                            <>
+                                                                Bu talebi onayladığınızda, <strong>{assignedAvailable}</strong> boş yer ve
+                                                                <strong> {assignedOptions}</strong> opsiyonlu yer
+                                                                <strong> "{selectedRequest.brandName}"</strong> markası için OPSİYON olarak kaydedilecektir.
+                                                            </>
+                                                        );
+                                                    })()}
                                                 </p>
                                             </div>
                                         </div>
