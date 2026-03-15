@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -18,6 +19,8 @@ import { MailModule } from './mail/mail.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { LogsModule } from './logs/logs.module';
 import { ReportsModule } from './reports/reports.module';
+import { BookingRemindersModule } from './booking-reminders/booking-reminders.module';
+import { AssistantModule } from './assistant/assistant.module';
 
 @Module({
   imports: [
@@ -25,6 +28,7 @@ import { ReportsModule } from './reports/reports.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
     ClientsModule,
@@ -41,6 +45,8 @@ import { ReportsModule } from './reports/reports.module';
     DashboardModule,
     LogsModule,
     ReportsModule,
+    BookingRemindersModule,
+    AssistantModule,
   ],
   controllers: [AppController],
   providers: [AppService],

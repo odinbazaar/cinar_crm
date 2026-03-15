@@ -42,6 +42,7 @@ const navigation = [
 
 
 import Logo from '../common/Logo'
+import AssistantWidget from '../assistant/AssistantWidget'
 
 export default function MainLayout({ onLogout }: MainLayoutProps) {
     const location = useLocation()
@@ -221,6 +222,9 @@ export default function MainLayout({ onLogout }: MainLayoutProps) {
                     <Outlet />
                 </main>
             </div>
+
+            {/* AI Assistant Widget */}
+            <AssistantWidget />
         </div>
     )
 }
