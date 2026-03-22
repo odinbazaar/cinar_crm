@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import {
     ShoppingBag,
@@ -195,53 +195,53 @@ export default function SalesPage() {
                 let weekInfo = '';
                 let isBlockList = false;
 
-                const items = (p as any).items?.map((item: any) => {
-                    const desc = item.description || '';
-
-                    // Extract duration (Örn: "(2 Hafta)")
+                const items = (p as any).items?.filter((item: any) => {
+                    const desc = (item.description || '').toLowerCase();
+                    if (desc.includes('blok liste')) isBlockList = true;
                     const durMatch = desc.match(/\((\d+)\s*Hafta\)/);
                     if (durMatch) usagePeriod = `${durMatch[1]} Hafta`;
+                    return !desc.includes('operasyon maliyeti') && !desc.includes('baskı bedeli');
+                }).map((item: any) => {
+                    let meta = item.metadata || {};
+                    if (typeof meta === 'string') {
+                        try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
+                    }
 
-                    // Detect block list
-                    if (desc.includes('Blok Liste')) isBlockList = true;
-
+                    const desc = item.description || '';
                     const pTypes = getProductTypes();
-                    let itemType = 'BB';
-
-                    // Daha hassas eşleştirme için önce ürün ismine göre bakıyoruz (açıklama ürün ismiyle başlar)
-                    const matchByName = pTypes.find((pt: any) => desc.startsWith(pt.name));
-                    if (matchByName) {
-                        itemType = matchByName.code;
-                    } else {
-                        // İsme göre bulunamadıysa koda göre bakıyoruz
-                        const matchByCode = pTypes.find((pt: any) => desc.includes(pt.code));
-                        if (matchByCode) {
-                            itemType = matchByCode.code;
+                    let itemType = meta.type || meta.productType || 'BB';
+                    
+                    if (!meta.type && !meta.productType) {
+                        const matchByName = pTypes.find((pt: any) => desc.startsWith(pt.name));
+                        if (matchByName) {
+                            itemType = matchByName.code;
                         } else {
-                            // Manuel kontroller (ek koruma ve geriye dönük uyumluluk için)
-                            if (desc.includes('CLP') || desc.includes('City Light')) itemType = 'CLP';
-                            else if (desc.includes('Megalight') || desc.includes('MGL') || desc.includes('ML')) itemType = 'MGL';
-                            else if (desc.includes('Giantboard') || desc.includes('GB')) itemType = 'GB';
-                            else if (desc.includes('Billboard') || desc.includes('BB')) itemType = 'BB';
-                            else if (desc.includes('Megaboard') || desc.includes('MB')) itemType = 'MB';
-                            else if (desc.includes('Kuleboard') || desc.includes('KB')) itemType = 'KB';
-                            else if (desc.includes('LED') || desc.includes('LB')) itemType = 'LB';
+                            const matchByCode = pTypes.find((pt: any) => desc.includes(pt.code));
+                            if (matchByCode) itemType = matchByCode.code;
                         }
                     }
 
-                    let network = '';
-                    const netMatch = desc.match(/Network\s*(\d+|BLD)/i);
-                    if (netMatch) network = netMatch[1];
+                    let network = meta.network || '';
+                    if (!network) {
+                        const netMatch = desc.match(/Network\s*(\d+|BLD)/i);
+                        if (netMatch) network = netMatch[1];
+                    }
+
+                    const durationVal = meta.duration || meta.period || '1';
 
                     return {
                         type: itemType,
-                        code: desc.split(' (')[0], // Clean description for the select box
-                        quantity: item.quantity,
-                        unitPrice: item.unit_price,
-                        operationCost: 0,
+                        code: meta.code || meta.productCode || desc.split(' (')[0] || desc,
+                        quantity: Number(item.quantity) || 0,
+                        unitPrice: Number(meta.unit_price_base ?? meta.unitPriceBase ?? item.unit_price ?? 0),
+                        discountedPrice: Number(meta.discounted_price ?? meta.discountedPrice ?? 0),
+                        printingCost: Number(meta.printing_cost ?? meta.printingCost ?? 0),
+                        operationCost: Number(meta.operation_cost ?? meta.operationCost ?? 0),
+                        opQty: Number(meta.op_multiplier ?? meta.opQty ?? 1),
+                        weekLayout: durationVal.toString(),
                         network: network
                     };
-                }).filter((item: any) => !item.code.includes('Operasyon Maliyeti')) || [];
+                }) || [];
 
                 return {
                     id: p.id,
@@ -870,43 +870,24 @@ export default function SalesPage() {
             await proposalsService.updateStatus(freshProposal.id, 'DRAFT');
 
             // Müşteriyi ve teklifi seç
-            const customerId = (freshProposal as any).client_id || (freshProposal as any).client_id;
+            const customerId = (freshProposal as any).client_id;
             const customer = customers.find(c => c.id === customerId);
             if (customer) {
                 setSelectedCustomer(customer);
             }
 
-            // Map fresh data to frontend camelCase type
-            const mappedProposalForState: Proposal = {
-                id: freshProposal.id,
-                proposalNumber: freshProposal.proposal_number,
-                customerId: freshProposal.client_id,
-                customerName: (freshProposal as any).client?.company_name || proposal.customerName,
-                items: [],
-                totalAmount: freshProposal.subtotal || 0,
-                operationTotal: 0,
-                kdvAmount: freshProposal.tax_amount || 0,
-                grandTotal: freshProposal.total || 0,
-                isBlockList: (freshProposal as any).is_block_list || false,
-                status: 'draft',
-                createdAt: freshProposal.created_at,
-                usagePeriod: (freshProposal as any).usagePeriod || (proposal as any).usagePeriod || '1 Hafta',
-                weekInfo: (freshProposal as any).description || (proposal as any).weekInfo || ''
-            };
-            setSelectedProposal(mappedProposalForState);
-            
-            // KDV ve Liste Tipi (Blok/Tekil) ayarlarını geri yükle
             if (freshProposal.tax_rate) setKdvRate(freshProposal.tax_rate as 20 | 14);
-            const isBlock = (freshProposal as any).isBlockList ?? (freshProposal as any).is_block_list;
-            if (isBlock !== undefined) setIsBlockList(isBlock);
-            
-            // Kalemleri ProposalItem formatına dönüştür
-            const productTypesList = getProductTypes();
+
+            let isBlockListFromItems = (freshProposal as any).is_block_list || false;
+            let usagePeriodFromItems = (freshProposal as any).usage_period || (freshProposal as any).usagePeriod || (proposal as any).usagePeriod || '1 Hafta';
+
             const rawItems = (freshProposal as any).items || [];
-            
             const mappedItems = rawItems
                 .filter((item: any) => {
                     const desc = (item.description || '').toLowerCase();
+                    if (desc.includes('blok liste')) isBlockListFromItems = true;
+                    const durMatch = desc.match(/\((\d+)\s*Hafta\)/);
+                    if (durMatch) usagePeriodFromItems = `${durMatch[1]} Hafta`;
                     return !desc.includes('operasyon maliyeti') && !desc.includes('baskı bedeli');
                 })
                 .map((item: any) => {
@@ -915,34 +896,34 @@ export default function SalesPage() {
                         try { meta = JSON.parse(meta); } catch (e) { meta = {}; }
                     }
                     
-                    // Metadata'dan değerleri al (Farklı isimlendirme varyasyonlarını kontrol et)
-                    let unitPrice = Number(meta.unit_price_base ?? meta.unitPriceBase ?? 0);
-                    let discountedPrice = Number(meta.discounted_price ?? meta.discountedPrice ?? 0);
+                    const desc = item.description || '';
+                    const pTypes = getProductTypes();
+                    let itemType = meta.type || meta.productType || 'BB';
+                    
+                    if (!meta.type && !meta.productType) {
+                        const matchByName = pTypes.find((pt: any) => desc.startsWith(pt.name));
+                        if (matchByName) {
+                            itemType = matchByName.code;
+                        } else {
+                            const matchByCode = pTypes.find((pt: any) => desc.includes(pt.code));
+                            if (matchByCode) itemType = matchByCode.code;
+                        }
+                    }
+
+                    const discountedPrice = Number(meta.discounted_price ?? meta.discountedPrice ?? 0);
                     const printingCost = Number(meta.printing_cost ?? meta.printingCost ?? 0);
                     const operationCost = Number(meta.operation_cost ?? meta.operationCost ?? 0);
                     const opQty = Number(meta.op_multiplier ?? meta.opQty ?? 1);
                     const durationVal = meta.duration || meta.period || '1';
-
-                    // Metadata eksikse fallback (Backend'den gelen fiyatı indirimli fiyat kabul et)
+                    
+                    let unitPrice = Number(meta.unit_price_base ?? meta.unitPriceBase ?? 0);
                     if (!unitPrice || isNaN(unitPrice)) {
-                        const bakedPrice = Number(item.unit_price) || 0;
-                        const descUpper = (item.description || '').toUpperCase();
-                        const prodType = productTypesList.find((p: any) => 
-                            descUpper.includes(p.name) || meta.code === p.code || meta.type === p.code
-                        );
-
-                        if (prodType) {
-                            unitPrice = prodType.unitPrice;
-                            discountedPrice = bakedPrice; 
-                        } else {
-                            unitPrice = bakedPrice;
-                            discountedPrice = 0;
-                        }
+                        unitPrice = Number(item.unit_price) || 0;
                     }
 
                     return {
-                        type: meta.type || meta.productType || 'BB',
-                        code: meta.code || meta.productCode || item.description?.split(' (')[0] || item.description,
+                        type: itemType,
+                        code: meta.code || meta.productCode || desc.split(' (')[0] || desc,
                         quantity: Number(item.quantity) || 0,
                         unitPrice: unitPrice,
                         discountedPrice: discountedPrice,
@@ -954,16 +935,32 @@ export default function SalesPage() {
                     };
                 });
             
+            const mappedProposalForState: Proposal = {
+                id: freshProposal.id,
+                proposalNumber: freshProposal.proposal_number,
+                customerId: freshProposal.client_id,
+                customerName: (freshProposal as any).client?.company_name || proposal.customerName,
+                items: [],
+                totalAmount: freshProposal.subtotal || 0,
+                operationTotal: 0,
+                kdvAmount: freshProposal.tax_amount || 0,
+                grandTotal: freshProposal.total || 0,
+                isBlockList: isBlockListFromItems,
+                status: 'draft',
+                createdAt: freshProposal.created_at,
+                usagePeriod: usagePeriodFromItems,
+                weekInfo: (freshProposal as any).description || (proposal as any).weekInfo || ''
+            };
+            setSelectedProposal(mappedProposalForState);
+            setIsBlockList(isBlockListFromItems);
+
             if (mappedItems.length > 0) {
                 setProposalItems(mappedItems);
             }
 
-            // Açıklamadan süre ve dönem bilgisini ayıklamaya çalış (Fallback)
-            const desc = freshProposal.description || '';
-            const durationMatch = desc.match(/(\d+)\s*Hafta/i);
-            if (durationMatch) {
-                setDurationWeeks(parseInt(durationMatch[1]));
-            }
+            // Süre bilgisini ayarla
+            const durInt = parseInt(usagePeriodFromItems) || 1;
+            setDurationWeeks(durInt);
 
             setShowProposalModal(true);
             setActiveTab('proposals');

@@ -470,7 +470,20 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                 endDate: requestData.endDate,
                 availableCount: (results.available || []).length,
                 optionsCount: (results.options || []).length,
-                selectedLocations: [...(results.available || []), ...(results.options || [])].map(l => ({ id: l.id, kod: l.kod }))
+                selectedLocations: [...(results.available || []), ...(results.options || [])].map(l => ({ id: l.id, kod: l.kod })),
+                proposalItems: proposal?.items?.map((item: any) => ({
+                    description: item.description,
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                    total: item.total || (item.quantity * item.unit_price),
+                    type: (item as any).metadata?.type || (item as any).type,
+                    network: (item as any).network || (item as any).metadata?.network,
+                    printingCost: (item as any).metadata?.printingCost || (item as any).metadata?.printing_cost || 0,
+                    operationCost: (item as any).metadata?.operationCost || (item as any).metadata?.operation_cost || 0,
+                    discountedPrice: (item as any).metadata?.discountedPrice || (item as any).metadata?.discounted_price || 0
+                })) || [],
+                proposalNumber: proposal?.proposal_number || '',
+                proposalTotal: proposal?.total || proposal?.subtotal || 0
             };
 
             await customerRequestsService.create({
@@ -532,7 +545,20 @@ export default function LocationRequestModal({ isOpen, onClose, proposal, onComp
                 endDate: requestData.endDate,
                 availableCount: currentResults.available.length,
                 optionsCount: currentResults.options.length,
-                selectedLocations: [...currentResults.available, ...currentResults.options]
+                selectedLocations: [...currentResults.available, ...currentResults.options],
+                proposalItems: proposal?.items?.map((item: any) => ({
+                    description: item.description,
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                    total: item.total || (item.quantity * item.unit_price),
+                    type: (item as any).metadata?.type || (item as any).type,
+                    network: (item as any).network || (item as any).metadata?.network,
+                    printingCost: (item as any).metadata?.printingCost || (item as any).metadata?.printing_cost || 0,
+                    operationCost: (item as any).metadata?.operationCost || (item as any).metadata?.operation_cost || 0,
+                    discountedPrice: (item as any).metadata?.discountedPrice || (item as any).metadata?.discounted_price || 0
+                })) || [],
+                proposalNumber: proposal?.proposal_number || '',
+                proposalTotal: proposal?.total || proposal?.subtotal || 0
             };
 
             await customerRequestsService.create({

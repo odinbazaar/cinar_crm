@@ -223,7 +223,10 @@ export default function ReservationsPage() {
                     status: req.status,
                     createdAt: req.created_at,
                     notes: req.notes || '',
-                    selectedLocations: details.selectedLocations || []
+                    selectedLocations: details.selectedLocations || [],
+                    proposalItems: details.proposalItems || [],
+                    proposalNumber: details.proposalNumber || req.request_number || '',
+                    proposalTotal: details.proposalTotal || 0
                 };
             });
             setReservationRequests(mappedRequests);
@@ -846,15 +849,59 @@ export default function ReservationsPage() {
     }
 
     // Durumu değiştir
-    const handleStatusChange = (id: string, newStatus: 'OPSİYON' | 'KESİN' | 'BOŞ') => {
+    const handleStatusChange = async (id: string, newStatus: 'OPSİYON' | 'KESİN' | 'BOŞ') => {
         const updated = locations.map(loc => {
             if (loc.id === id) {
-                return { ...loc, durum: newStatus }
+                const newLoc = { ...loc, durum: newStatus };
+                // Otomatik olarak kesine çevrilen markayı ata ve diğerlerini kaydır
+                if (newStatus === 'KESİN') {
+                    const confirmedBrand = loc.marka1Opsiyon || loc.marka2Opsiyon || loc.marka3Opsiyon || '';
+                    newLoc.marka4Opsiyon = confirmedBrand;
+                    
+                    // Diğerlerini kaydır (Shift left)
+                    if (confirmedBrand === loc.marka1Opsiyon) {
+                        newLoc.marka1Opsiyon = loc.marka2Opsiyon;
+                        newLoc.marka2Opsiyon = loc.marka3Opsiyon;
+                        newLoc.marka3Opsiyon = '';
+                    } else if (confirmedBrand === loc.marka2Opsiyon) {
+                        newLoc.marka1Opsiyon = loc.marka1Opsiyon; // Değişmez
+                        newLoc.marka2Opsiyon = loc.marka3Opsiyon;
+                        newLoc.marka3Opsiyon = '';
+                    } else if (confirmedBrand === loc.marka3Opsiyon) {
+                        newLoc.marka1Opsiyon = loc.marka1Opsiyon; // Değişmez
+                        newLoc.marka2Opsiyon = loc.marka2Opsiyon; // Değişmez
+                        newLoc.marka3Opsiyon = '';
+                    }
+                } else if (newStatus === 'BOŞ') {
+                    newLoc.marka4Opsiyon = '';
+                }
+                return newLoc;
             }
-            return loc
+            return loc;
         })
         setLocations(updated)
         localStorage.setItem('inventoryLocations', JSON.stringify(updated))
+
+        // Backend'e de kaydet
+        try {
+            const existingBookings = await bookingsService.getAll();
+            const existing = existingBookings.find(b =>
+                b.inventory_item_id === id &&
+                getMonday(b.start_date) === selectedWeek
+            );
+            const loc = updated.find(l => l.id === id);
+            if (existing && loc) {
+                await bookingsService.update(existing.id, {
+                    status: newStatus,
+                    brand_option_1: loc.marka1Opsiyon,
+                    brand_option_2: loc.marka2Opsiyon,
+                    brand_option_3: loc.marka3Opsiyon,
+                    brand_option_4: loc.marka4Opsiyon
+                });
+            }
+        } catch (error) {
+            console.error('Status update backend error:', error);
+        }
     }
 
     // Seçili rezervasyonları sil
@@ -922,7 +969,7 @@ export default function ReservationsPage() {
             'Marka 1.Opsiyon': loc.marka1Opsiyon,
             'Marka 2.Opsiyon': loc.marka2Opsiyon,
             'Marka 3.Opsiyon': loc.marka3Opsiyon,
-            'Marka 4.Opsiyon': loc.marka4Opsiyon,
+            'Kesine Çevrilen': loc.marka4Opsiyon,
             'Durum': loc.durum
         }))
 
@@ -989,21 +1036,29 @@ export default function ReservationsPage() {
 
             const updated = await Promise.all(locations.map(async (loc) => {
                 if (selectedRows.includes(loc.id)) {
-                    const newLoc = { ...loc, durum: 'KESİN' as const };
-
+                    const confirmedBrand = loc.marka1Opsiyon || loc.marka2Opsiyon || loc.marka3Opsiyon || '';
+                    const newLoc = { 
+                        ...loc, 
+                        durum: 'KESİN' as const, 
+                        marka4Opsiyon: confirmedBrand,
+                        marka1Opsiyon: loc.marka2Opsiyon,
+                        marka2Opsiyon: loc.marka3Opsiyon,
+                        marka3Opsiyon: ''
+                    };
+ 
                     // Find existing booking for this location and week
                     const existing = existingBookings.find(
                         b => b.inventory_item_id === loc.id && getMonday(b.start_date) === selectedWeek
                     );
-
+ 
                     if (existing) {
                         // Update existing booking to KESİN status
                         await bookingsService.update(existing.id, {
                             status: 'KESİN',
-                            brand_option_1: loc.marka1Opsiyon || existing.brand_option_1,
-                            brand_option_2: loc.marka2Opsiyon || existing.brand_option_2,
-                            brand_option_3: loc.marka3Opsiyon || existing.brand_option_3,
-                            brand_option_4: loc.marka4Opsiyon || existing.brand_option_4,
+                            brand_option_1: newLoc.marka1Opsiyon,
+                            brand_option_2: newLoc.marka2Opsiyon,
+                            brand_option_3: newLoc.marka3Opsiyon,
+                            brand_option_4: confirmedBrand,
                         });
                     } else {
                         // Create new booking with KESİN status
@@ -1013,10 +1068,10 @@ export default function ReservationsPage() {
                             end_date: toBackendDate(selectedWeek),
                             status: 'KESİN',
                             network: String(selectedNetwork),
-                            brand_option_1: loc.marka1Opsiyon || '',
-                            brand_option_2: loc.marka2Opsiyon || '',
-                            brand_option_3: loc.marka3Opsiyon || '',
-                            brand_option_4: loc.marka4Opsiyon || '',
+                            brand_option_1: newLoc.marka1Opsiyon,
+                            brand_option_2: newLoc.marka2Opsiyon,
+                            brand_option_3: newLoc.marka3Opsiyon,
+                            brand_option_4: confirmedBrand,
                         });
                     }
                     return newLoc;
@@ -1467,7 +1522,7 @@ export default function ReservationsPage() {
                                         <th className="px-3 py-3 text-left font-semibold bg-green-700">Ticari Ünvan 1.Opsiyon</th>
                                         <th className="px-3 py-3 text-left font-semibold bg-green-700">Ticari Ünvan 2.Opsiyon</th>
                                         <th className="px-3 py-3 text-left font-semibold bg-green-700">Ticari Ünvan 3.Opsiyon</th>
-                                        <th className="px-3 py-3 text-left font-semibold bg-green-700">Ticari Ünvan 4.Opsiyon</th>
+                                        <th className="px-3 py-3 text-left font-semibold bg-emerald-800">Kesine Çevrilenler</th>
                                         <th className="px-3 py-3 text-left font-semibold">Durum</th>
                                     </tr>
                                 </thead>
@@ -1549,20 +1604,18 @@ export default function ReservationsPage() {
                                                 </select>
                                             </td>
                                             <td className="px-1 py-1">
-                                                <select
-                                                    value={loc.marka4Opsiyon || ''}
-                                                    onChange={(e) => handleManualBrandChange(loc.id, 4, e.target.value)}
-                                                    className="w-full px-1 py-1 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded focus:ring-1 focus:ring-orange-500 truncate"
-                                                    title={loc.marka4Opsiyon || 'Seçiniz'}
-                                                >
-                                                    <option value="">-</option>
-                                                    {customers.map(c => (
-                                                        <option key={c.id} value={c.companyName}>{c.companyName}</option>
-                                                    ))}
-                                                    {loc.marka4Opsiyon && !customers.find(c => c.companyName === loc.marka4Opsiyon) && (
-                                                        <option value={loc.marka4Opsiyon}>{loc.marka4Opsiyon}</option>
-                                                    )}
-                                                </select>
+                                                {loc.durum === 'KESİN' && loc.marka4Opsiyon ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 w-full truncate" title={loc.marka4Opsiyon}>
+                                                        <CheckCircle className="w-3 h-3 flex-shrink-0" />
+                                                        {loc.marka4Opsiyon}
+                                                    </span>
+                                                ) : loc.marka4Opsiyon ? (
+                                                    <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200 w-full truncate" title={loc.marka4Opsiyon}>
+                                                        {loc.marka4Opsiyon}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-xs text-gray-300 px-2">-</span>
+                                                )}
                                             </td>
                                             <td className="px-3 py-2">
                                                 <select
@@ -1612,7 +1665,7 @@ export default function ReservationsPage() {
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Opsiyon Numarası</label>
                                         <div className="flex gap-2">
-                                            {[1, 2, 3, 4].map((num) => (
+                                            {[1, 2, 3].map((num) => (
                                                 <button
                                                     key={num}
                                                     onClick={() => setSelectedOpsiyonNumber(num as 1 | 2 | 3 | 4)}
@@ -2248,6 +2301,89 @@ export default function ReservationsPage() {
                                                 : selectedRequest.notes}
                                         </p>
                                     </div>
+                                </div>
+                            )}
+
+                            {/* Teklif Ürünleri Tablosu */}
+                            {selectedRequest.proposalItems && selectedRequest.proposalItems.length > 0 && (
+                                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                                    <div className="p-3 bg-gradient-to-r from-violet-50 to-purple-50 border-b border-gray-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <FileSpreadsheet className="w-4 h-4 text-violet-600" />
+                                            <h4 className="text-sm font-bold text-gray-800">Onaylı Teklif Ürünleri</h4>
+                                            {selectedRequest.proposalNumber && (
+                                                <span className="text-[10px] bg-violet-100 text-violet-700 font-mono font-bold px-2 py-0.5 rounded">
+                                                    {selectedRequest.proposalNumber}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {selectedRequest.proposalTotal > 0 && (
+                                            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">
+                                                Toplam: {Number(selectedRequest.proposalTotal).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="max-h-60 overflow-y-auto">
+                                        <table className="w-full text-xs">
+                                            <thead className="bg-gray-50 sticky top-0">
+                                                <tr>
+                                                    <th className="p-2 text-left border-b font-semibold text-gray-600">Ürün</th>
+                                                    <th className="p-2 text-center border-b font-semibold text-gray-600 w-16">Tip</th>
+                                                    <th className="p-2 text-center border-b font-semibold text-gray-600 w-12">Net</th>
+                                                    <th className="p-2 text-right border-b font-semibold text-gray-600 w-14">Adet</th>
+                                                    <th className="p-2 text-right border-b font-semibold text-gray-600 w-24">B.Fiyat</th>
+                                                    <th className="p-2 text-right border-b font-semibold text-gray-600 w-24">Toplam</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-50">
+                                                {selectedRequest.proposalItems.map((item: any, idx: number) => {
+                                                    const desc = item.description || 'Ürün';
+                                                    const cleanDesc = desc.replace(/\[DÖNEM:.*?\]/g, '').replace(/\[BAŞLANGIÇ:.*?\]/g, '').trim();
+                                                    const isOpOrPrint = desc.toLowerCase().includes('operasyon') || desc.toLowerCase().includes('baskı');
+                                                    return (
+                                                        <tr key={idx} className={`${isOpOrPrint ? 'bg-amber-50/30' : 'hover:bg-gray-50'}`}>
+                                                            <td className="p-2 font-medium text-gray-900 max-w-[200px] truncate" title={cleanDesc}>
+                                                                {cleanDesc}
+                                                            </td>
+                                                            <td className="p-2 text-center">
+                                                                {item.type ? (
+                                                                    <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">{item.type}</span>
+                                                                ) : '-'}
+                                                            </td>
+                                                            <td className="p-2 text-center text-gray-600">{item.network || '-'}</td>
+                                                            <td className="p-2 text-right font-bold text-gray-900">{item.quantity || 0}</td>
+                                                            <td className="p-2 text-right text-gray-700">
+                                                                {item.unit_price ? Number(item.unit_price).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' }) : '-'}
+                                                            </td>
+                                                            <td className="p-2 text-right font-bold text-gray-900">
+                                                                {item.total ? Number(item.total).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' }) : '-'}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {/* Alt bilgi satırları */}
+                                    {selectedRequest.proposalItems.some((item: any) => item.printingCost > 0 || item.operationCost > 0 || item.discountedPrice > 0) && (
+                                        <div className="p-2 border-t border-gray-100 bg-gray-50 flex flex-wrap gap-3 text-[10px]">
+                                            {selectedRequest.proposalItems.some((item: any) => item.printingCost > 0) && (
+                                                <span className="text-amber-700 font-medium">
+                                                    📎 Baskı Bedeli dahil
+                                                </span>
+                                            )}
+                                            {selectedRequest.proposalItems.some((item: any) => item.operationCost > 0) && (
+                                                <span className="text-orange-700 font-medium">
+                                                    🔧 Operasyon Maliyeti dahil
+                                                </span>
+                                            )}
+                                            {selectedRequest.proposalItems.some((item: any) => item.discountedPrice > 0) && (
+                                                <span className="text-green-700 font-medium">
+                                                    💰 İndirimli fiyat uygulanmış
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

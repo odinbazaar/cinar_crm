@@ -162,7 +162,10 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
                                         const period = parseInt(item.weekLayout || '1') || 1;
                                         const price = (item.discountedPrice && item.discountedPrice > 0) ? item.discountedPrice : item.unitPrice;
                                         const opMultiplier = Number(item.opQty) || 1;
-                                        return ((qty * price * period) + (item.printingCost * qty * opMultiplier) + (item.operationCost * qty * opMultiplier)).toLocaleString();
+                                        const prCost = Number(item.printingCost) || 0;
+                                        const opCost = Number(item.operationCost) || 0;
+                                        const total = (qty * price * period) + (prCost * qty * opMultiplier) + (opCost * qty * opMultiplier);
+                                        return isNaN(total) ? "0" : total.toLocaleString();
                                     })()}
                                 </span>
                                 {proposalItems.length > 1 && (
