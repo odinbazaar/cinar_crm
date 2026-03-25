@@ -2286,7 +2286,7 @@ export default function ReservationsPage() {
 
                                                                                         // Sadece bu item'ın işlendiğini işaretle
                                                                                         // Raw datayı çekip approvedItems'i güncelle
-                                                                                        const rawReq = await customerRequestsService.getById(req.id);
+                                                                                        const rawReq = await customerRequestsService.getOne(req.id);
                                                                                         if (rawReq) {
                                                                                             const details = rawReq.product_details ? JSON.parse(rawReq.product_details) : {};
                                                                                             const updatedApprovedItems = (details.approvedItems || []).map((a: any) => {
