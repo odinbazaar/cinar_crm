@@ -26,7 +26,11 @@ export function ApproveProposalModal({ isOpen, onClose, proposal, onApprove }: A
 
     useEffect(() => {
         if (isOpen && proposal) {
-            const initialData = proposal.items.map((item, idx) => {
+            const mainItems = proposal.items.filter((item) => {
+                const desc = (item.description || item.code || '').toLowerCase();
+                return !desc.includes('operasyon') && !desc.includes('baskı') && !desc.includes('baski') && !desc.includes('op. bedeli');
+            });
+            const initialData = mainItems.map((item, idx) => {
                 const start = new Date().toISOString().split('T')[0];
                 const weeks = parseInt(item.weekLayout || '1') || 1;
                 const startDateObj = new Date(start);

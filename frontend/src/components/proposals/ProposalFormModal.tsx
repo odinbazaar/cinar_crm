@@ -48,35 +48,81 @@ export default function ProposalFormModal({ isOpen, onClose, onSave, proposal }:
         if (proposal) {
             setSelectedClientId(proposal.client_id)
             // Map items back to ProposalItem format
-            // In the real system, some items are grouped (OP BEDELİ, BASKI)
-            // For now, let's try to extract unique items based on description and metadata
-            const mappedItems: ProposalItem[] = []
+            const consumedIds = new Set<string>();
+            const mappedItems: ProposalItem[] = [];
 
-            // This is a simplified mapping, might need refinement based on exact data structure
-            const baseItems = proposal.items.filter((item: any) => !item.description.includes('OP. BEDELİ') && !item.description.includes('BASKI BEDELİ'))
+            const baseItems = proposal.items.filter((item: any) => 
+                !item.description.includes('OP. BEDELİ') && 
+                !item.description.includes('BASKI BEDELİ')
+            );
 
             baseItems.forEach((bi: any) => {
-                const opBedelItem = proposal.items.find((i: any) => i.description.includes('OP. BEDELİ') && i.metadata?.measurements === bi.metadata?.measurements)
-                const baskiItem = proposal.items.find((i: any) => i.description.includes('BASKI BEDELİ') && i.metadata?.measurements === bi.metadata?.measurements)
+                const biMeta = bi.metadata || {};
+                const biCode = biMeta.code || bi.description.split(' - ')[0];
+                const biMeasurements = biMeta.measurements || bi.description.split(' - ')[1] || '';
+
+                const opBedelItem = proposal.items.find((i: any) => {
+                    if (consumedIds.has(i.id)) return false;
+                    const isOp = i.description.includes('OP. BEDELİ');
+                    if (!isOp) return false;
+                    const iMeta = i.metadata || {};
+                    return (iMeta.source_code === biCode && biCode !== '') || 
+                           (biMeasurements !== '' && i.description.includes(biMeasurements));
+                });
+                if (opBedelItem) consumedIds.add(opBedelItem.id);
+
+                const baskiItem = proposal.items.find((i: any) => {
+                    if (consumedIds.has(i.id)) return false;
+                    const isBaski = i.description.includes('BASKI BEDELİ');
+                    if (!isBaski) return false;
+                    const iMeta = i.metadata || {};
+                    return (iMeta.source_code === biCode && biCode !== '') || 
+                           (biMeasurements !== '' && i.description.includes(biMeasurements));
+                });
+                if (baskiItem) consumedIds.add(baskiItem.id);
 
                 mappedItems.push({
-                    id: Math.random().toString(36).substr(2, 9),
-                    inventoryItemId: bi.metadata?.inventoryItemId || '',
-                    code: bi.description.split(' - ')[0],
-                    type: bi.metadata?.type || '',
-                    description: bi.description.split(' - ')[1] || '',
-                    price: bi.unit_price / (bi.metadata?.duration || 1),
+                    id: bi.id || Math.random().toString(36).substr(2, 9),
+                    inventoryItemId: biMeta.inventoryItemId || '',
+                    code: biCode,
+                    type: biMeta.type || '',
+                    description: biMeasurements,
+                    price: biMeta.unitPriceBase || bi.unit_price,
                     quantity: bi.quantity,
-                    duration: bi.metadata?.duration || 1,
+                    duration: biMeta.duration || 1,
                     opBedel: opBedelItem ? opBedelItem.unit_price : 0,
                     baskiFiyati: baskiItem ? baskiItem.unit_price : 0,
-                    measurements: bi.metadata?.measurements || '',
-                    minPeriod: bi.metadata?.period || '1 HAFTA',
-                    district: bi.metadata?.district || '',
-                    periodType: bi.metadata?.period?.includes('GÜN') ? 'GÜN' : 'HAFTA',
-                    startDate: bi.metadata?.startDate || ''
-                })
-            })
+                    measurements: biMeasurements,
+                    minPeriod: biMeta.period || '1 HAFTA',
+                    district: biMeta.district || '',
+                    periodType: biMeta.period?.includes('GÜN') ? 'GÜN' : 'HAFTA',
+                    startDate: biMeta.startDate || ''
+                });
+            });
+
+            // Add back orphaned sub-items
+            proposal.items.forEach((item: any) => {
+                const isSub = item.description.includes('OP. BEDELİ') || item.description.includes('BASKI BEDELİ');
+                if (isSub && !consumedIds.has(item.id)) {
+                    mappedItems.push({
+                        id: item.id || Math.random().toString(36).substr(2, 9),
+                        inventoryItemId: '',
+                        code: item.description.split(' - ')[0],
+                        type: 'EXTRA',
+                        description: item.description.split(' - ')[1] || '',
+                        price: item.unit_price,
+                        quantity: item.quantity,
+                        duration: 1,
+                        opBedel: 0,
+                        baskiFiyati: 0,
+                        measurements: '',
+                        minPeriod: '1 HAFTA',
+                        district: '',
+                        periodType: 'HAFTA',
+                        startDate: ''
+                    });
+                }
+            });
 
             setFormData({
                 title: proposal.title,
@@ -204,21 +250,21 @@ export default function ProposalFormModal({ isOpen, onClose, onSave, proposal }:
                     quantity: item.quantity,
                     unit_price: item.price, // Changed: just the period price, total handles duration
                     total: item.price * item.quantity * item.duration,
-                    metadata: { type: item.type, district: item.district, duration: item.duration, period: item.minPeriod, measurements: item.measurements, startDate: item.startDate }
+                    metadata: { type: item.type, code: item.type, district: item.district, duration: item.duration, period: item.minPeriod, measurements: item.measurements, startDate: item.startDate }
                 },
                 ...(item.opBedel > 0 ? [{
                     description: `OP. BEDELİ - ${item.measurements}`,
                     quantity: item.quantity,
                     unit_price: item.opBedel,
                     total: item.opBedel * item.quantity,
-                    metadata: { type: 'OP_BEDEL', district: item.district, measurements: item.measurements }
+                    metadata: { type: 'OP', source_code: item.type, district: item.district, measurements: item.measurements }
                 }] : []),
                 ...(item.baskiFiyati > 0 ? [{
                     description: `BASKI BEDELİ - ${item.measurements}`,
                     quantity: item.quantity,
                     unit_price: item.baskiFiyati,
                     total: item.baskiFiyati * item.quantity,
-                    metadata: { type: 'BASKI', district: item.district, measurements: item.measurements }
+                    metadata: { type: 'BASKI', source_code: item.type, district: item.district, measurements: item.measurements }
                 }] : [])
             ]),
             subtotal: subtotal,

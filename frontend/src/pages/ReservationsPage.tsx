@@ -206,17 +206,24 @@ export default function ReservationsPage() {
                     details = req.product_details ? JSON.parse(req.product_details) : {};
                 } catch (e) { console.error('Error parsing details:', e); }
 
+                // Extract approved items from sale_approved source
+                const approvedItems = details.approvedItems || [];
+
+                // If this is a sale_approved request, derive dates from approvedItems
+                const isSaleApproved = details.source === 'sale_approved';
+                const firstItem = approvedItems[0];
+
                 return {
                     id: req.id,
                     request_number: req.request_number || `#${req.id.slice(0, 8)}`,
                     customerName: req.client?.company_name || 'Bilinmeyen',
                     brandName: details.brandName || req.brand_name || req.client?.company_name || 'Bilinmeyen',
                     productType: req.product_type,
-                    year: details.year || 2026,
-                    month: details.month || 'Ocak',
+                    year: details.year || (firstItem?.startDate ? new Date(firstItem.startDate).getFullYear() : 2026),
+                    month: details.month || (firstItem?.startDate ? allMonths[new Date(firstItem.startDate).getMonth()] : 'Ocak'),
                     week: details.week || req.start_date,
                     endDate: req.end_date || details.endDate,
-                    network: details.network || '1',
+                    network: details.network || (firstItem?.network) || '1',
                     totalAmount: req.quantity || details.quantity || details.totalAmount || 0,
                     availableCount: details.availableCount || 0,
                     optionsCount: details.optionsCount || 0,
@@ -226,7 +233,9 @@ export default function ReservationsPage() {
                     selectedLocations: details.selectedLocations || [],
                     proposalItems: details.proposalItems || [],
                     proposalNumber: details.proposalNumber || req.request_number || '',
-                    proposalTotal: details.proposalTotal || 0
+                    proposalTotal: details.proposalTotal || 0,
+                    approvedItems: approvedItems,
+                    isSaleApproved: isSaleApproved
                 };
             });
             setReservationRequests(mappedRequests);
@@ -2124,31 +2133,70 @@ export default function ReservationsPage() {
                                                 <p className="text-xs text-indigo-600 font-medium">{req.brandName}</p>
                                             </div>
 
-                                            <div className="p-2.5 bg-gray-50 rounded-lg space-y-1.5 border border-gray-100">
-                                                <div className="flex justify-between items-center text-xs">
-                                                    <span className="text-gray-500">Dönem:</span>
-                                                    <span className="font-bold text-gray-700">{req.year} / {req.month}</span>
+                                            {/* Onaylı Teklif Ürünleri - tarih ve ürün detayları */}
+                                            {req.approvedItems && req.approvedItems.length > 0 ? (
+                                                <div className="space-y-2">
+                                                    <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-wider">Onaylı Ürünler ({req.approvedItems.length})</p>
+                                                    {req.approvedItems.map((ai: any, aiIdx: number) => {
+                                                        const formatDate = (d: string) => {
+                                                            if (!d) return '-';
+                                                            if (d.includes('-')) {
+                                                                const parts = d.split('T')[0].split('-');
+                                                                return `${parts[2]}.${parts[1]}.${parts[0]}`;
+                                                            }
+                                                            return d;
+                                                        };
+                                                        return (
+                                                            <div key={aiIdx} className="p-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
+                                                                <div className="flex items-center justify-between mb-1.5">
+                                                                    <span className="text-xs font-bold text-gray-900">{ai.productCode || ai.code || ai.productType}</span>
+                                                                    <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">{ai.quantity} Adet</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 text-[11px]">
+                                                                    <span className="text-green-700 font-semibold bg-green-50 px-1.5 py-0.5 rounded">
+                                                                        📅 {formatDate(ai.startDate)}
+                                                                    </span>
+                                                                    <span className="text-gray-400">→</span>
+                                                                    <span className="text-orange-700 font-semibold bg-orange-50 px-1.5 py-0.5 rounded">
+                                                                        📅 {formatDate(ai.endDate)}
+                                                                    </span>
+                                                                </div>
+                                                                {ai.network && ai.network !== 'Tümü' && (
+                                                                    <p className="text-[9px] text-gray-500 mt-1">Network: {ai.network}</p>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
-                                                <div className="flex justify-between items-center text-xs">
-                                                    <span className="text-gray-500">Hafta:</span>
-                                                    <span className="font-bold text-gray-700">{req.week?.split(' ')[0]}</span>
+                                            ) : (
+                                                <div className="p-2.5 bg-gray-50 rounded-lg space-y-1.5 border border-gray-100">
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="text-gray-500">Dönem:</span>
+                                                        <span className="font-bold text-gray-700">{req.year} / {req.month}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="text-gray-500">Hafta:</span>
+                                                        <span className="font-bold text-gray-700">{req.week?.split(' ')[0]}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="text-gray-500">Ürün / Network:</span>
+                                                        <span className="font-bold text-gray-700">{req.productType} - Net {req.network}</span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex justify-between items-center text-xs">
-                                                    <span className="text-gray-500">Ürün / Network:</span>
-                                                    <span className="font-bold text-gray-700">{req.productType} - Net {req.network}</span>
-                                                </div>
-                                            </div>
+                                            )}
 
-                                            <div className="grid grid-cols-2 gap-2">
-                                                <div className="p-1.5 bg-green-50 rounded-lg border border-green-100 text-center">
-                                                    <p className="text-[9px] text-green-600 font-bold">BOŞ YER</p>
-                                                    <p className="text-base font-black text-green-700">{req.availableCount}</p>
+                                            {!req.approvedItems?.length && (
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div className="p-1.5 bg-green-50 rounded-lg border border-green-100 text-center">
+                                                        <p className="text-[9px] text-green-600 font-bold">BOŞ YER</p>
+                                                        <p className="text-base font-black text-green-700">{req.availableCount}</p>
+                                                    </div>
+                                                    <div className="p-1.5 bg-orange-50 rounded-lg border border-orange-100 text-center">
+                                                        <p className="text-[9px] text-orange-600 font-bold">OPSİYON</p>
+                                                        <p className="text-base font-black text-orange-700">{req.optionsCount}</p>
+                                                    </div>
                                                 </div>
-                                                <div className="p-1.5 bg-orange-50 rounded-lg border border-orange-100 text-center">
-                                                    <p className="text-[9px] text-orange-600 font-bold">OPSİYON</p>
-                                                    <p className="text-base font-black text-orange-700">{req.optionsCount}</p>
-                                                </div>
-                                            </div>
+                                            )}
 
                                             {/* Seçilen Yerler Listesi */}
                                             {req.selectedLocations && req.selectedLocations.length > 0 && (
@@ -2384,6 +2432,102 @@ export default function ReservationsPage() {
                                             )}
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {/* Onaylı Ürünler - Tarih ve Ürün Detayları (Satış Onayından Gelen) */}
+                            {selectedRequest.approvedItems && selectedRequest.approvedItems.length > 0 && (
+                                <div className="bg-white rounded-2xl border-2 border-emerald-100 shadow-sm overflow-hidden">
+                                    <div className="p-3 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Calendar className="w-4 h-4 text-emerald-600" />
+                                            <h4 className="text-sm font-bold text-gray-800">Onaylı Ürünler & Tarihler</h4>
+                                            <span className="text-[10px] bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">
+                                                {selectedRequest.approvedItems.length} Kalem
+                                            </span>
+                                        </div>
+                                        {selectedRequest.request_number && (
+                                            <span className="text-[10px] bg-white text-gray-600 font-mono font-bold px-2 py-0.5 rounded border border-gray-200">
+                                                {selectedRequest.request_number}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="p-3 space-y-2">
+                                        {selectedRequest.approvedItems.map((ai: any, aiIdx: number) => {
+                                            const formatDate = (d: string) => {
+                                                if (!d) return '-';
+                                                if (d.includes('-')) {
+                                                    const parts = d.split('T')[0].split('-');
+                                                    return `${parts[2]}.${parts[1]}.${parts[0]}`;
+                                                }
+                                                return d;
+                                            };
+                                            return (
+                                                <div key={aiIdx} className="p-3 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 rounded-xl border border-blue-100 flex items-center justify-between gap-4">
+                                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white text-[10px] font-black flex-shrink-0 shadow-sm">
+                                                            {ai.productType || 'BB'}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="text-sm font-bold text-gray-900 truncate">{ai.productCode || ai.code || ai.productType}</p>
+                                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                                <span className="text-green-700 font-semibold bg-green-50 px-1.5 py-0.5 rounded text-[11px]">
+                                                                    📅 {formatDate(ai.startDate)}
+                                                                </span>
+                                                                <span className="text-gray-400 text-xs">→</span>
+                                                                <span className="text-orange-700 font-semibold bg-orange-50 px-1.5 py-0.5 rounded text-[11px]">
+                                                                    📅 {formatDate(ai.endDate)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                                        <div className="text-right">
+                                                            <span className="text-sm font-black text-blue-700">{ai.quantity}</span>
+                                                            <span className="text-[10px] text-gray-500 ml-1">Adet</span>
+                                                            {ai.network && ai.network !== 'Tümü' && (
+                                                                <p className="text-[9px] text-gray-400 mt-0.5">Net {ai.network}</p>
+                                                            )}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                const startDate = ai.startDate || '';
+                                                                let targetWeek = startDate;
+                                                                if (startDate.includes('-')) {
+                                                                    const parts = startDate.split('T')[0].split('-');
+                                                                    targetWeek = `${parts[2]}.${parts[1]}.${parts[0]}`;
+                                                                }
+
+                                                                setSelectedWeek(targetWeek);
+
+                                                                const monthPart = parseInt(targetWeek.split('.')[1]);
+                                                                if (!isNaN(monthPart) && monthPart > 0 && monthPart <= 12) {
+                                                                    const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+                                                                    setSelectedMonth(months[monthPart - 1]);
+                                                                }
+
+                                                                const yearPart = parseInt(targetWeek.split('.')[2]);
+                                                                if (!isNaN(yearPart)) setSelectedYear(yearPart);
+
+                                                                const pType = ai.productType || selectedRequest.productType || 'Tümü';
+                                                                setSelectedProductType(pType === 'BILLBOARD' ? 'BB' : pType);
+                                                                if (ai.network && ai.network !== 'Tümü') {
+                                                                    setSelectedNetwork(ai.network);
+                                                                }
+                                                                setActiveTab('list');
+                                                                setShowProcessModal(false);
+                                                            }}
+                                                            className="p-2 bg-teal-50 rounded-lg border border-teal-200 hover:bg-teal-100 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer group"
+                                                            title="Bu ürünün haftasına git"
+                                                        >
+                                                            <CalendarDays className="w-3.5 h-3.5 text-teal-600 group-hover:scale-110 transition-transform" />
+                                                            <span className="text-[8px] font-bold text-teal-700 uppercase whitespace-nowrap">Haftaya Git</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             )}
 

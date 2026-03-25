@@ -411,30 +411,63 @@ export class ProposalsService {
                 return true;
             });
 
-            mainItems.forEach((item: any) => {
-                // Parse metadata correctly
+            const consumedIds = new Set<string>();
+            const itemsWithSubTotal = mainItems.map((item: any) => {
                 let metadata = item.metadata || {};
                 if (typeof metadata === 'string') {
                     try { metadata = JSON.parse(metadata); } catch (e) { metadata = {}; }
                 }
 
-                // Match OP and BASKI rows for this specific product
                 const itemCode = metadata.code || '';
+                const itemDesc = (item.description || '').split(' - ')[1] || ''; // Try to get measurements part
+                
                 const itemOpRow = items.find((ri: any) => {
+                    if (consumedIds.has(ri.id)) return false;
                     let rMeta = ri.metadata || {};
                     if (typeof rMeta === 'string') { try { rMeta = JSON.parse(rMeta); } catch (e) {} }
-                    return (rMeta.type === 'OP' && rMeta.source_code === itemCode) || 
-                           (ri.description.toLowerCase().includes('operasyon') && ri.description.includes(itemCode));
+                    const isOp = rMeta.type === 'OP' || rMeta.type === 'OP_BEDEL' || ri.description.toLowerCase().includes('operasyon') || ri.description.includes('OP.');
+                    if (!isOp) return false;
+
+                    return (rMeta.source_code === itemCode && itemCode !== '') || 
+                           (itemDesc !== '' && ri.description.includes(itemDesc));
                 });
+                if (itemOpRow) consumedIds.add(itemOpRow.id);
+
                 const itemBaskiRow = items.find((ri: any) => {
+                    if (consumedIds.has(ri.id)) return false;
                     let rMeta = ri.metadata || {};
                     if (typeof rMeta === 'string') { try { rMeta = JSON.parse(rMeta); } catch (e) {} }
-                    return (rMeta.type === 'BASKI' && rMeta.source_code === itemCode) || 
-                           (ri.description.toLowerCase().includes('baskı') && ri.description.includes(itemCode));
+                    const isBaski = rMeta.type === 'BASKI' || ri.description.toLowerCase().includes('baskı');
+                    if (!isBaski) return false;
+
+                    return (rMeta.source_code === itemCode && itemCode !== '') || 
+                           (itemDesc !== '' && ri.description.includes(itemDesc));
                 });
+                if (itemBaskiRow) consumedIds.add(itemBaskiRow.id);
 
                 const itemOpTotal = itemOpRow ? Number(itemOpRow.total) : 0;
                 const itemBaskiTotal = itemBaskiRow ? Number(itemBaskiRow.total) : 0;
+
+                return { ...item, opTotal: itemOpTotal, baskiTotal: itemBaskiTotal };
+            });
+
+            // Add back orphaned sub-items as main items so they aren't lost
+            items.forEach((item: any) => {
+                const isOp = item.description.includes('OP.') || item.description.toLowerCase().includes('operasyon');
+                const isBaski = item.description.includes('BASKI') || item.description.toLowerCase().includes('baskı');
+                if ((isOp || isBaski) && !consumedIds.has(item.id)) {
+                    itemsWithSubTotal.push({ ...item, opTotal: 0, baskiTotal: 0 });
+                }
+            });
+
+            itemsWithSubTotal.forEach((item: any) => {
+                let metadata = item.metadata || {};
+                if (typeof metadata === 'string') {
+                    try { metadata = JSON.parse(metadata); } catch (e) { metadata = {}; }
+                }
+
+                const itemOpTotal = item.opTotal || 0;
+                const itemBaskiTotal = item.baskiTotal || 0;
 
                 // Individual unit service costs (shown in columns)
                 const opPerUnit = item.quantity > 0 ? Math.round(itemOpTotal / item.quantity) : 0;
@@ -548,31 +581,64 @@ export class ProposalsService {
             return true;
         });
 
-        const itemsHtml = mainItems.map((item: any) => {
-            // Parse metadata
+        const consumedIdsE = new Set<string>();
+        const itemsWithSubTotalE = mainItems.map((item: any) => {
             let metadata = item.metadata || {};
             if (typeof metadata === 'string') {
                 try { metadata = JSON.parse(metadata); } catch (e) { metadata = {}; }
             }
 
             const itemCode = metadata.code || '';
-            const itemOpRow = items.find((ri: any) => {
-                let rMeta = ri.metadata || {};
-                if (typeof rMeta === 'string') { try { rMeta = JSON.parse(rMeta); } catch (e) {} }
-                return (rMeta.type === 'OP' && rMeta.source_code === itemCode) || 
-                       (ri.description.toLowerCase().includes('operasyon') && ri.description.includes(itemCode));
-            });
-            const itemBaskiRow = items.find((ri: any) => {
-                let rMeta = ri.metadata || {};
-                if (typeof rMeta === 'string') { try { rMeta = JSON.parse(rMeta); } catch (e) {} }
-                return (rMeta.type === 'BASKI' && rMeta.source_code === itemCode) || 
-                       (ri.description.toLowerCase().includes('baskı') && ri.description.includes(itemCode));
-            });
+            const itemDesc = (item.description || '').split(' - ')[1] || '';
 
-            const itemOpTotal = itemOpRow ? Number(itemOpRow.total) : 0;
-            const itemBaskiTotal = itemBaskiRow ? Number(itemBaskiRow.total) : 0;
+            const itemOpRow = items.find((ri: any) => {
+                if (consumedIdsE.has(ri.id)) return false;
+                let rMeta = ri.metadata || {};
+                if (typeof rMeta === 'string') { try { rMeta = JSON.parse(rMeta); } catch (e) {} }
+                const isOp = rMeta.type === 'OP' || rMeta.type === 'OP_BEDEL' || ri.description.toLowerCase().includes('operasyon') || ri.description.includes('OP.');
+                if (!isOp) return false;
+                return (rMeta.source_code === itemCode && itemCode !== '') || 
+                       (itemDesc !== '' && ri.description.includes(itemDesc));
+            });
+            if (itemOpRow) consumedIdsE.add(itemOpRow.id);
+
+            const itemBaskiRow = items.find((ri: any) => {
+                if (consumedIdsE.has(ri.id)) return false;
+                let rMeta = ri.metadata || {};
+                if (typeof rMeta === 'string') { try { rMeta = JSON.parse(rMeta); } catch (e) {} }
+                const isBaski = rMeta.type === 'BASKI' || ri.description.toLowerCase().includes('baskı');
+                if (!isBaski) return false;
+                return (rMeta.source_code === itemCode && itemCode !== '') || 
+                       (itemDesc !== '' && ri.description.includes(itemDesc));
+            });
+            if (itemBaskiRow) consumedIdsE.add(itemBaskiRow.id);
+
+            return { 
+                ...item, 
+                opTotal: itemOpRow ? Number(itemOpRow.total) : 0, 
+                baskiTotal: itemBaskiRow ? Number(itemBaskiRow.total) : 0 
+            };
+        });
+
+        // Orphans in email
+        items.forEach((item: any) => {
+            const isOp = item.description.includes('OP.') || item.description.toLowerCase().includes('operasyon');
+            const isBaski = item.description.includes('BASKI') || item.description.toLowerCase().includes('baskı');
+            if ((isOp || isBaski) && !consumedIdsE.has(item.id)) {
+                itemsWithSubTotalE.push({ ...item, opTotal: 0, baskiTotal: 0 });
+            }
+        });
+
+        const itemsHtml = itemsWithSubTotalE.map((item: any) => {
+            const itemOpTotal = item.opTotal || 0;
+            const itemBaskiTotal = item.baskiTotal || 0;
             const opPerUnit = item.quantity > 0 ? Math.round(itemOpTotal / item.quantity) : 0;
             const baskiPerUnit = item.quantity > 0 ? Math.round(itemBaskiTotal / item.quantity) : 0;
+
+            let metadata = item.metadata || {};
+            if (typeof metadata === 'string') {
+                try { metadata = JSON.parse(metadata); } catch (e) { metadata = {}; }
+            }
 
             let listPrice = Number(metadata.unit_price_base);
             let discPrice = Number(metadata.discounted_price);

@@ -200,7 +200,7 @@ export default function SalesPage() {
                     if (desc.includes('blok liste')) isBlockList = true;
                     const durMatch = desc.match(/\((\d+)\s*Hafta\)/);
                     if (durMatch) usagePeriod = `${durMatch[1]} Hafta`;
-                    return !desc.includes('operasyon maliyeti') && !desc.includes('baskı bedeli');
+                    return true;
                 }).map((item: any) => {
                     let meta = item.metadata || {};
                     if (typeof meta === 'string') {
@@ -239,7 +239,8 @@ export default function SalesPage() {
                         operationCost: Number(meta.operation_cost ?? meta.operationCost ?? 0),
                         opQty: Number(meta.op_multiplier ?? meta.opQty ?? 1),
                         weekLayout: durationVal.toString(),
-                        network: network
+                        network: network,
+                        total: Number(item.total) || 0
                     };
                 }) || [];
 
