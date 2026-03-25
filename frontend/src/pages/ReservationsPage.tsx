@@ -564,8 +564,8 @@ export default function ReservationsPage() {
                 }
 
                 if (nextSlot === 1 && (!booking || booking.status === 'BOŞ')) {
-                    if (isIdSelected) selectedAvailable.push({ item, booking: null });
-                    else autoAvailable.push({ item, booking: null });
+                    if (isIdSelected) selectedAvailable.push({ item, booking: booking || null });
+                    else autoAvailable.push({ item, booking: booking || null });
                 } else if (nextSlot <= 4) {
                     if (isIdSelected) selectedAvailable.push({ item, booking });
                     else partiallyAvailable.push({ item, booking });
@@ -2247,7 +2247,7 @@ export default function ReservationsPage() {
                                                                                         }
 
                                                                                         if (nextSlot === 1 && (!booking || booking.status === 'BOŞ')) {
-                                                                                            autoAvailable.push({ item, booking: null });
+                                                                                            autoAvailable.push({ item, booking: booking || null });
                                                                                         } else if (nextSlot <= 4) {
                                                                                             partiallyAvailable.push({ item, booking });
                                                                                         }
