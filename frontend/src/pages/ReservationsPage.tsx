@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { FileSpreadsheet, MapPin, Search, Filter, Calendar, Clock, Check, X, CheckCircle, Smartphone, RefreshCw, ChevronRight, ChevronLeft, Download, Plus, Trash2, AlertCircle, CalendarDays, Send, Mail } from 'lucide-react'
+import { FileSpreadsheet, MapPin, Search, Filter, Calendar, Clock, Check, X, CheckCircle, Smartphone, RefreshCw, ChevronRight, ChevronLeft, Download, Plus, Trash2, AlertCircle, CalendarDays, Send, Mail, Layers, Info } from 'lucide-react'
 import { reservationsData } from '../data/reservations'
 import { useToast } from '../hooks/useToast'
 import { useAuth } from '../hooks/useAuth'
@@ -139,10 +139,174 @@ export default function ReservationsPage() {
     const [showAvailabilityCard, setShowAvailabilityCard] = useState(false)
     const [showCustomersPanel, setShowCustomersPanel] = useState(false)
     const [showRequestsPanel, setShowRequestsPanel] = useState(false)
+    const [showNetworkModal, setShowNetworkModal] = useState(false)
+    const [showPendingAtaModal, setShowPendingAtaModal] = useState(false)
+    const [selectedAtaRequest, setSelectedAtaRequest] = useState<any>(null)
+    const [selectedAtaItem, setSelectedAtaItem] = useState<any>(null)
+    const [ataSelectedNetwork, setAtaSelectedNetwork] = useState<string>('1')
 
     const [showEmailModal, setShowEmailModal] = useState(false)
     const [selectedEmails, setSelectedEmails] = useState<string[]>([])
     const [customEmail, setCustomEmail] = useState('')
+
+    const handleProcessAta = async (status: 'OPSİYON' | 'KESİN') => {
+        if (!selectedAtaRequest || !selectedAtaItem) return;
+        
+        setIsLoadingRequests(true);
+        setIsLoadingLocations(true);
+        setShowPendingAtaModal(false);
+
+        try {
+            const [inventory, allBookings] = await Promise.all([
+                inventoryService.getAll(),
+                bookingsService.getAll()
+            ]);
+
+            const targetIds = (selectedAtaItem.selectedLocations || []).map((sl: any) => sl.id);
+            const requestedCount = selectedAtaItem.quantity || targetIds.length || 0;
+
+            const normalizeNet = (n: any) => {
+                if (!n || n === 'null' || n === 'undefined' || n === 'Yok' || n === 'YOK') return 'YOK';
+                let s = String(n).toUpperCase();
+                if (s.startsWith('NET ')) s = s.replace('NET ', '');
+                return s.trim();
+            };
+            const reqNet = normalizeNet(ataSelectedNetwork);
+
+            const matchingInventory = inventory.filter(item => {
+                const itemNet = normalizeNet(item.network);
+                const isNetMatch = itemNet === reqNet || (itemNet === 'BELEDİYE' && reqNet === 'BLD') || (itemNet === 'BLD' && reqNet === 'BELEDİYE');
+
+                const normalizeType = (t: string) => {
+                    const type = String(t).toUpperCase().trim();
+                    if (type === 'BB' || type === 'BILLBOARD' || type.includes('BILLBOARD')) return 'BILLBOARD';
+                    if (type.includes('CLP') || type.includes('RAKET')) return 'CLP';
+                    if (type.includes('MGL') || type.includes('MEGALIGHT')) return 'MEGALIGHT';
+                    if (type === 'LB' || type.includes('LİGHT') || type.includes('LIGHT')) return 'LB';
+                    return type;
+                };
+
+                return isNetMatch && normalizeType(item.type) === normalizeType(selectedAtaItem.productType || selectedAtaRequest.productType);
+            });
+
+            const startDate = selectedAtaItem.startDate || selectedAtaRequest.week || '';
+            let targetWeekStr = startDate;
+            if (startDate.includes('-') && startDate.includes('T')) {
+                const parts = startDate.split('T')[0].split('-');
+                targetWeekStr = `${parts[2]}.${parts[1]}.${parts[0]}`;
+            }
+            const targetWeek = getMonday(targetWeekStr);
+            const periodBookings = allBookings.filter(b => getMonday(b.start_date) === targetWeek);
+
+            const autoAvailable: any[] = [];
+            const partiallyAvailable: any[] = [];
+            const definiteAvailable: any[] = [];
+
+            matchingInventory.forEach(item => {
+                const booking = periodBookings.find(b => b.inventory_item_id === item.id);
+                let nextSlot = 1;
+                if (booking) {
+                    if (!booking.brand_option_1) nextSlot = 1;
+                    else if (!booking.brand_option_2) nextSlot = 2;
+                    else if (!booking.brand_option_3) nextSlot = 3;
+                    else if (!booking.brand_option_4) nextSlot = 4;
+                    else nextSlot = 5;
+                }
+
+                if (nextSlot === 1 && (!booking || booking.status === 'BOŞ')) {
+                    autoAvailable.push({ item, booking: booking || null });
+                } else if (nextSlot <= 3) {
+                    partiallyAvailable.push({ item, booking });
+                } else if (nextSlot === 4) {
+                    definiteAvailable.push({ item, booking });
+                }
+            });
+
+            // Prioritize requested IDs
+            const candidates: any[] = [];
+            for (const itemId of targetIds) {
+                const item = matchingInventory.find(i => i.id === itemId);
+                if (item) candidates.push({ item, booking: periodBookings.find(b => b.inventory_item_id === item.id) || null });
+            }
+            
+            const others = (status === 'OPSİYON' ? [...autoAvailable, ...partiallyAvailable] : definiteAvailable)
+                .filter(c => !targetIds.includes(c.item.id));
+            
+            const finalCandidates = [...candidates, ...others];
+            const toAssign = finalCandidates.slice(0, requestedCount);
+
+            if (toAssign.length === 0) {
+                toastInfo('Müsait yer bulunamadı');
+                return;
+            }
+
+            const brandUpper = (selectedAtaRequest.customerName || selectedAtaRequest.brandName || '').toUpperCase();
+            const toBackendDate = (dateStr: string) => {
+                if (!dateStr) return '';
+                const parts = dateStr.split('.');
+                if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                return dateStr;
+            };
+
+            for (const { item, booking } of toAssign) {
+                if (booking) {
+                    const updateData = { ...booking };
+                    if (status === 'OPSİYON') {
+                        if (!updateData.brand_option_1) updateData.brand_option_1 = brandUpper;
+                        else if (!updateData.brand_option_2) updateData.brand_option_2 = brandUpper;
+                        else if (!updateData.brand_option_3) updateData.brand_option_3 = brandUpper;
+                    } else {
+                        updateData.brand_option_4 = brandUpper;
+                    }
+
+                    await bookingsService.update(booking.id, {
+                        ...updateData,
+                        status: status
+                    });
+                } else {
+                    await bookingsService.create({
+                        inventory_item_id: item.id,
+                        brand_name: (selectedAtaRequest.brandName || selectedAtaRequest.customerName || 'Bilinmeyen'),
+                        network: String(ataSelectedNetwork).replace('Net ', ''),
+                        start_date: toBackendDate(targetWeek),
+                        end_date: toBackendDate(targetWeek),
+                        status: status,
+                        brand_option_1: status === 'OPSİYON' ? brandUpper : null,
+                        brand_option_4: status === 'KESİN' ? brandUpper : null,
+                    });
+                }
+            }
+
+            // Sync with customer request
+            const rawReq = await customerRequestsService.getOne(selectedAtaRequest.id);
+            if (rawReq) {
+                const details = rawReq.product_details ? JSON.parse(rawReq.product_details) : {};
+                const updatedApprovedItems = (details.approvedItems || []).map((a: any) => {
+                    if (a.startDate === selectedAtaItem.startDate && a.endDate === selectedAtaItem.endDate && a.productType === selectedAtaItem.productType) {
+                        return { ...a, processed: true };
+                    }
+                    return a;
+                });
+                details.approvedItems = updatedApprovedItems;
+                const allProcessed = updatedApprovedItems.every((a: any) => a.processed);
+
+                await customerRequestsService.update(selectedAtaRequest.id, {
+                    product_details: JSON.stringify(details),
+                    status: allProcessed ? 'completed' : selectedAtaRequest.status
+                });
+            }
+
+            await fetchData();
+            toastSuccess(`${selectedAtaRequest.customerName || selectedAtaRequest.brandName} talebi Network ${ataSelectedNetwork} üzerinden ${status === 'OPSİYON' ? 'opsiyona' : 'kesin olarak'} alındı (${toAssign.length} adet)`);
+
+        } catch (error) {
+            console.error('Ata hatası:', error);
+            toastInfo('İşlem sırasında bir hata oluştu');
+        } finally {
+            setIsLoadingRequests(false);
+            setIsLoadingLocations(false);
+        }
+    };
     const [emailMessage, setEmailMessage] = useState('')
     const [selectedSenderEmail, setSelectedSenderEmail] = useState('pazarlama@izmiracikhavareklam.com')
 
@@ -1305,17 +1469,17 @@ export default function ReservationsPage() {
                             </div>
                             <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Network</label>
-                                <select
-                                    value={selectedNetwork}
-                                    onChange={(e) => setSelectedNetwork(e.target.value)}
-                                    className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                                <button
+                                    onClick={() => setShowNetworkModal(true)}
+                                    className="w-full px-2 py-2 border border-gray-200 rounded-lg hover:border-primary-400 hover:bg-primary-50 focus:ring-2 focus:ring-primary-500 text-sm text-left flex items-center justify-between gap-2 transition-all"
                                 >
-                                    {availableNetworks.map(net => (
-                                        <option key={net} value={net}>
-                                            {net === 'Tümü' ? 'Tüm Networkler' : net === 'Yok' ? 'Network Yok' : `Network ${net}`}
-                                        </option>
-                                    ))}
-                                </select>
+                                    <span className="truncate">
+                                        {selectedNetwork === 'Tümü' ? 'Tüm Networkler' : selectedNetwork === 'Yok' ? 'Network Yok' : `Network ${selectedNetwork}`}
+                                    </span>
+                                    <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
                             </div>
                             <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Ara</label>
@@ -2170,152 +2334,11 @@ export default function ReservationsPage() {
                                                                             </button>
                                                                         ) : (
                                                                             <button
-                                                                                onClick={async () => {
-                                                                                    if (!window.confirm('Talebi onaylıyor musunuz?\n(Onaylarsanız uygun lokasyonlar bulunup teklif opsiyona alınacaktır.)')) {
-                                                                                        return;
-                                                                                    }
-                                                                                    setIsLoadingRequests(true);
-                                                                                    setIsLoadingLocations(true);
-                                                                                    try {
-                                                                                        const [inventory, allBookings] = await Promise.all([
-                                                                                            inventoryService.getAll(),
-                                                                                            bookingsService.getAll()
-                                                                                        ]);
-
-                                                                                        const qtyStr = String(ai.quantity).replace(/[^0-9]/g, '');
-                                                                                        const requestedCount = parseInt(qtyStr) || 20;
-                                                                                        
-                                                                                        const matchingInventory = inventory.filter(item => {
-                                                                                            const normalizeNet = (n: any) => {
-                                                                                                if (!n || n === 'null' || n === 'undefined' || n === 'Yok' || n === 'YOK') return 'YOK';
-                                                                                                let s = String(n).toUpperCase();
-                                                                                                if (s.startsWith('NET ')) s = s.replace('NET ', '');
-                                                                                                return s.trim();
-                                                                                            };
-                                                                                            const itemNet = normalizeNet(item.network);
-                                                                                            const reqNet = normalizeNet(ai.network || req.network);
-                                                                                            
-                                                                                            const isNetMatch = reqNet === 'TÜMÜ' || itemNet === reqNet ||
-                                                                                                (itemNet === 'BELEDİYE' && reqNet === 'BLD') ||
-                                                                                                (itemNet === 'BLD' && reqNet === 'BELEDİYE');
-
-                                                                                            const normalizeType = (t: string) => {
-                                                                                                const type = String(t).toUpperCase().trim();
-                                                                                                if (type === 'BB' || type === 'BILLBOARD' || type.includes('BILLBOARD')) return 'BILLBOARD';
-                                                                                                if (type.includes('CLP') || type.includes('RAKET')) return 'CLP';
-                                                                                                if (type.includes('MGL') || type.includes('MEGALIGHT')) return 'MEGALIGHT';
-                                                                                                if (type === 'LB' || type.includes('LİGHT') || type.includes('LIGHT')) return 'LB';
-                                                                                                return type;
-                                                                                            };
-
-                                                                                            return isNetMatch && normalizeType(item.type) === normalizeType(ai.productType || req.productType);
-                                                                                        });
-
-                                                                                        const startDate = ai.startDate || req.week || '';
-                                                                                        let targetWeekStr = startDate;
-                                                                                        if (startDate.includes('-') && startDate.includes('T')) {
-                                                                                            const parts = startDate.split('T')[0].split('-');
-                                                                                            targetWeekStr = `${parts[2]}.${parts[1]}.${parts[0]}`;
-                                                                                        }
-                                                                                        const targetWeek = getMonday(targetWeekStr);
-                                                                                        const periodBookings = allBookings.filter(b => getMonday(b.start_date) === targetWeek);
-
-                                                                                        const autoAvailable: any[] = [];
-                                                                                        const partiallyAvailable: any[] = [];
-
-                                                                                        matchingInventory.forEach(item => {
-                                                                                            const booking = periodBookings.find(b => b.inventory_item_id === item.id);
-                                                                                            let nextSlot = 1;
-                                                                                            if (booking) {
-                                                                                                if (!booking.brand_option_1) nextSlot = 1;
-                                                                                                else if (!booking.brand_option_2) nextSlot = 2;
-                                                                                                else if (!booking.brand_option_3) nextSlot = 3;
-                                                                                                else nextSlot = 5; // Full for options
-                                                                                            }
-
-                                                                                            if (nextSlot === 1 && (!booking || booking.status === 'BOŞ')) {
-                                                                                                autoAvailable.push({ item, booking: booking || null });
-                                                                                            } else if (nextSlot <= 3) { // Use slots 1, 2, 3
-                                                                                                partiallyAvailable.push({ item, booking });
-                                                                                            }
-                                                                                        });
-
-                                                                                        const candidates = [...autoAvailable, ...partiallyAvailable];
-                                                                                        const toAssign = candidates.slice(0, requestedCount);
-
-                                                                                        if (toAssign.length === 0) {
-                                                                                            toastInfo(`Maalesef müsait lokasyon bulunamadı. Ağ: ${ai.network || req.network || 'Bağımsız'}, Tip: ${ai.productType || req.productType}`);
-                                                                                            setIsLoadingRequests(false);
-                                                                                            setIsLoadingLocations(false);
-                                                                                            return;
-                                                                                        }
-
-                                                                                        const brandUpper = (req.customerName || req.brandName || 'İSİMSİZ').toUpperCase();
-
-                                                                                        const toBackendDate = (dateStr: string) => {
-                                                                                            if (!dateStr) return '';
-                                                                                            const parts = dateStr.split('.');
-                                                                                            if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
-                                                                                            return dateStr;
-                                                                                        };
-
-                                                                                        // Opsiyonlamak
-                                                                                        for (const { item, booking } of toAssign) {
-                                                                                            if (booking) {
-                                                                                                const updateData = { ...booking };
-                                                                                                if (!updateData.brand_option_1) updateData.brand_option_1 = brandUpper;
-                                                                                                else if (!updateData.brand_option_2) updateData.brand_option_2 = brandUpper;
-                                                                                                else if (!updateData.brand_option_3) updateData.brand_option_3 = brandUpper;
-
-                                                                                                await bookingsService.update(booking.id, {
-                                                                                                    ...updateData,
-                                                                                                    status: booking.status === 'KESİN' ? 'KESİN' : 'OPSİYON'
-                                                                                                });
-                                                                                            } else {
-                                                                                                await bookingsService.create({
-                                                                                                    inventory_item_id: item.id,
-                                                                                                    brand_name: req.brandName || 'Bilinmeyen',
-                                                                                                    network: String(ai.network || req.network || 'Yok').replace('Net ', ''),
-                                                                                                    start_date: toBackendDate(targetWeek),
-                                                                                                    end_date: toBackendDate(targetWeek),
-                                                                                                    status: 'OPSİYON',
-                                                                                                    brand_option_1: brandUpper
-                                                                                                });
-                                                                                            }
-                                                                                        }
-
-                                                                                        // Sadece bu item'ın işlendiğini işaretle
-                                                                                        // Raw datayı çekip approvedItems'i güncelle
-                                                                                        const rawReq = await customerRequestsService.getOne(req.id);
-                                                                                        if (rawReq) {
-                                                                                            const details = rawReq.product_details ? JSON.parse(rawReq.product_details) : {};
-                                                                                            const updatedApprovedItems = (details.approvedItems || []).map((a: any) => {
-                                                                                                if (a.startDate === ai.startDate && a.endDate === ai.endDate && a.productType === ai.productType) {
-                                                                                                    return { ...a, processed: true };
-                                                                                                }
-                                                                                                return a;
-                                                                                            });
-                                                                                            details.approvedItems = updatedApprovedItems;
-                                                                                            const allProcessed = updatedApprovedItems.every((a: any) => a.processed);
-                                                                                            
-                                                                                            await customerRequestsService.update(req.id, {
-                                                                                                product_details: JSON.stringify(details),
-                                                                                                status: allProcessed ? 'completed' : req.status
-                                                                                            });
-                                                                                        } else {
-                                                                                            // Fallback as before
-                                                                                            await customerRequestsService.update(req.id, { status: 'completed' });
-                                                                                        }
-
-                                                                                        await fetchData();
-                                                                                        toastSuccess(`${req.customerName || req.brandName} talebi opsiyona alındı (${toAssign.length} adet)`);
-                                                                                    } catch (error) {
-                                                                                        console.error('Opsiyon alma hatası:', error);
-                                                                                        toastInfo('İşlem sırasında bir hata oluştu');
-                                                                                    } finally {
-                                                                                        setIsLoadingRequests(false);
-                                                                                        setIsLoadingLocations(false);
-                                                                                    }
+                                                                                onClick={() => {
+                                                                                    setSelectedAtaRequest(req);
+                                                                                    setSelectedAtaItem(ai);
+                                                                                    setAtaSelectedNetwork(ai.network || '1');
+                                                                                    setShowPendingAtaModal(true);
                                                                                 }}
                                                                                 className="px-2 py-1 bg-white text-blue-600 text-[10px] font-bold rounded shadow-sm border border-blue-100 hover:bg-blue-50 hover:text-blue-700 transition-colors flex items-center gap-1"
                                                                             >
@@ -3202,6 +3225,320 @@ export default function ReservationsPage() {
                 </div>
             )}
 
-        </div >
+            {/* Network Seçim Modalı */}
+            {showNetworkModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowNetworkModal(false)}>
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ animation: 'networkModalIn 0.25s ease-out' }}
+                    >
+                        {/* Modal Başlık */}
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-primary-50 to-blue-50">
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900">Network Seçimi</h3>
+                                <p className="text-xs text-gray-500 mt-0.5">Görüntülemek istediğiniz network'ü seçin</p>
+                            </div>
+                            <button
+                                onClick={() => setShowNetworkModal(false)}
+                                className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                            >
+                                <X className="w-4 h-4 text-gray-500" />
+                            </button>
+                        </div>
+
+                        {/* Network Listesi */}
+                        <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto">
+                            {availableNetworks.map(net => {
+                                const isActive = String(selectedNetwork) === String(net);
+                                const count = net === 'Tümü'
+                                    ? locations.length
+                                    : locations.filter(l => {
+                                        const normalizeNet = (n: any) => {
+                                            if (!n || n === 'null' || n === 'undefined' || n === 'Yok' || n === 'YOK') return 'YOK';
+                                            let s = String(n).toUpperCase();
+                                            if (s.startsWith('NET ')) s = s.replace('NET ', '');
+                                            return s.trim();
+                                        };
+                                        const itemNet = normalizeNet(l.network);
+                                        const filterNet = normalizeNet(net);
+                                        return itemNet === filterNet ||
+                                            (itemNet === 'BELEDİYE' && filterNet === 'BLD') ||
+                                            (itemNet === 'BLD' && filterNet === 'BELEDİYE');
+                                    }).length;
+
+                                // Renk ataması
+                                const colorMap: Record<string, { bg: string; border: string; text: string; activeBg: string; activeBorder: string; icon: string }> = {
+                                    'Tümü': { bg: 'bg-gray-50', border: 'border-gray-200', text: 'text-gray-700', activeBg: 'bg-gray-600', activeBorder: 'border-gray-600', icon: '🌐' },
+                                    '1': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', activeBg: 'bg-blue-600', activeBorder: 'border-blue-600', icon: '1️⃣' },
+                                    '2': { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', activeBg: 'bg-green-600', activeBorder: 'border-green-600', icon: '2️⃣' },
+                                    '3': { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', activeBg: 'bg-purple-600', activeBorder: 'border-purple-600', icon: '3️⃣' },
+                                    '4': { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', activeBg: 'bg-orange-600', activeBorder: 'border-orange-600', icon: '4️⃣' },
+                                    'BLD': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', activeBg: 'bg-red-600', activeBorder: 'border-red-600', icon: '🏛️' },
+                                    'Yok': { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-700', activeBg: 'bg-yellow-600', activeBorder: 'border-yellow-600', icon: '⚠️' },
+                                };
+                                const colors = colorMap[net] || { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700', activeBg: 'bg-indigo-600', activeBorder: 'border-indigo-600', icon: '📡' };
+
+                                return (
+                                    <button
+                                        key={net}
+                                        onClick={() => {
+                                            setSelectedNetwork(net);
+                                            setShowNetworkModal(false);
+                                        }}
+                                        className={`
+                                            relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 cursor-pointer
+                                            ${isActive
+                                                ? `${colors.activeBg} ${colors.activeBorder} text-white shadow-lg scale-[1.02]`
+                                                : `${colors.bg} ${colors.border} ${colors.text} hover:shadow-md hover:scale-[1.02]`
+                                            }
+                                        `}
+                                    >
+                                        {isActive && (
+                                            <div className="absolute top-1.5 right-1.5">
+                                                <CheckCircle className="w-4 h-4 text-white" />
+                                            </div>
+                                        )}
+                                        <span className="text-2xl">{colors.icon}</span>
+                                        <span className="text-sm font-bold">
+                                            {net === 'Tümü' ? 'Tüm Networkler' : net === 'Yok' ? 'Network Yok' : `Network ${net}`}
+                                        </span>
+                                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isActive ? 'bg-white/20 text-white' : 'bg-white/80 text-gray-600'}`}>
+                                            {count} Ünite
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Modal Alt Bilgi */}
+                        <div className="px-6 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+                            <span className="text-xs text-gray-500">
+                                Seçili: <strong>{selectedNetwork === 'Tümü' ? 'Tüm Networkler' : selectedNetwork === 'Yok' ? 'Network Yok' : `Network ${selectedNetwork}`}</strong>
+                            </span>
+                            <button
+                                onClick={() => setShowNetworkModal(false)}
+                                className="px-4 py-1.5 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+                            >
+                                Kapat
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <style>{`
+                @keyframes networkModalIn {
+                    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+                    to { opacity: 1; transform: scale(1) translateY(0); }
+                }
+            `}</style>
+
+            {/* Pending Ata Modal (Tırnaklı Pencere) */}
+            {showPendingAtaModal && selectedAtaRequest && selectedAtaItem && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div
+                        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300"
+                        onClick={() => setShowPendingAtaModal(false)}
+                    />
+                    <div className={`relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200`}>
+                        {/* Header */}
+                        <div className="bg-slate-50 border-b border-slate-100 p-5 flex justify-between items-start">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <MapPin className="w-5 h-5 text-primary-600" />
+                                    Network Atama Penceresi
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-1 uppercase font-semibold tracking-wider">
+                                    {selectedAtaRequest.customerName || selectedAtaRequest.brandName} • {selectedAtaItem.productType} • {selectedAtaItem.quantity} ADET
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowPendingAtaModal(false)}
+                                className="p-1.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Tabs (Tırnaklar) */}
+                        <div className="flex bg-slate-50 px-2 pt-2 border-b border-slate-200">
+                            {['1', '2', '3', '4', 'BLD'].map((net) => {
+                                const isActive = ataSelectedNetwork === net;
+
+                                // Calculate count for this tab
+                                const normalizeNet = (n: any) => {
+                                    if (!n || n === 'null' || n === 'undefined' || n === 'Yok' || n === 'YOK') return 'YOK';
+                                    let s = String(n).toUpperCase();
+                                    if (s.startsWith('NET ')) s = s.replace('NET ', '');
+                                    return s.trim();
+                                };
+                                const targetNet = normalizeNet(net);
+                                const normalizeType = (t: string) => {
+                                    const type = String(t).toUpperCase().trim();
+                                    if (type === 'BB' || type === 'BILLBOARD' || type.includes('BILLBOARD')) return 'BILLBOARD';
+                                    if (type.includes('CLP') || type.includes('RAKET')) return 'CLP';
+                                    if (type.includes('MGL') || type.includes('MEGALIGHT')) return 'MEGALIGHT';
+                                    if (type === 'LB' || type.includes('LİGHT') || type.includes('LIGHT')) return 'LB';
+                                    return type;
+                                };
+                                const targetType = normalizeType(selectedAtaItem.productType);
+
+                                const startDate = selectedAtaItem.startDate || selectedAtaRequest.week || '';
+                                let tWeekStr = startDate;
+                                if (startDate.includes('-') && startDate.includes('T')) {
+                                    const parts = startDate.split('T')[0].split('-');
+                                    tWeekStr = `${parts[2]}.${parts[1]}.${parts[0]}`;
+                                }
+                                const tWeek = getMonday(tWeekStr);
+
+                                 const isWeekMismatch = tWeek !== selectedWeek;
+                                 let count = 0; // Opsiyonel müsaitlik
+                                 let kesinCount = 0; // Kesin müsaitlik
+                                 
+                                 if (!isWeekMismatch) {
+                                     const filtered = locations.filter(loc => {
+                                         const locNet = normalizeNet(loc.network);
+                                         const locType = loc.productType; // BB, CLP, ML etc.
+                                         
+                                         if (locNet !== targetNet && !(targetNet === 'BLD' && locNet === 'BELEDİYE')) return false;
+                                         // ProductType normalizasyonu
+                                         const pType = targetType === 'BILLBOARD' ? 'BB' : targetType;
+                                         if (locType !== pType) return false;
+                                         return true; // Filter by network and type first
+                                     });
+
+                                     count = filtered.filter(loc => !loc.marka1Opsiyon || !loc.marka2Opsiyon || !loc.marka3Opsiyon).length;
+                                     kesinCount = filtered.filter(loc => !loc.marka4Opsiyon).length; // Assuming marka4Opsiyon indicates definite availability
+                                 }
+
+                                return (
+                                    <button
+                                        key={net}
+                                        onClick={() => setAtaSelectedNetwork(net)}
+                                        className={`px-4 py-2 text-xs font-bold rounded-t-xl transition-all relative ${isActive
+                                            ? 'bg-white border-x border-t border-slate-200 text-primary-600 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]'
+                                            : 'text-slate-500 hover:text-slate-700'
+                                            }`}
+                                    >
+                                        <div className="flex flex-col items-center gap-1">
+                                             <span className="text-[10px] uppercase font-bold tracking-tighter">Network {net}</span>
+                                             {!isWeekMismatch && (
+                                                 <div className="flex gap-1">
+                                                     {count > 0 && (
+                                                         <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${isActive ? 'bg-primary-50 text-primary-600' : 'bg-slate-200 text-slate-500'}`} title="Opsiyonel Müsaitlik">
+                                                             O: {count}
+                                                         </span>
+                                                     )}
+                                                     {kesinCount > 0 && (
+                                                         <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-200 text-slate-500'}`} title="Kesin Müsaitlik">
+                                                             K: {kesinCount}
+                                                         </span>
+                                                     )}
+                                                 </div>
+                                             )}
+                                         </div>
+                                        {isActive && <div className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-white z-10" />}
+                                        {isWeekMismatch && isActive && (
+                                            <div className="absolute -top-1 -right-1">
+                                                <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                                            </div>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-8">
+                            <div className="space-y-6">
+                                <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 flex items-center gap-4">
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${ataSelectedNetwork === '1' ? 'bg-blue-600 shadow-blue-200' :
+                                            ataSelectedNetwork === '2' ? 'bg-emerald-600 shadow-emerald-200' :
+                                                ataSelectedNetwork === '3' ? 'bg-amber-600 shadow-amber-200' :
+                                                    ataSelectedNetwork === '4' ? 'bg-rose-600 shadow-rose-200' :
+                                                        'bg-slate-800 shadow-slate-200'
+                                        }`}>
+                                        <Layers className="w-6 h-6 text-white" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-slate-800">Network {ataSelectedNetwork} Seçildi</h4>
+                                        <p className="text-xs text-slate-500">Bu işlem sonucunda seçilen network üzerinden opsiyon ataması yapılacaktır.</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">İşlem Özeti</label>
+                                    <div className="border border-slate-100 rounded-xl overflow-hidden text-xs">
+                                        <div className="flex justify-between p-3 border-b border-slate-50">
+                                            <span className="text-slate-500">Atanacak Adet:</span>
+                                            <span className="font-bold text-slate-800">{selectedAtaItem.quantity} Adet</span>
+                                        </div>
+                                        <div className="flex justify-between p-3 border-b border-slate-50">
+                                            <span className="text-slate-500">Dönem:</span>
+                                            <span className="font-bold text-slate-800">{selectedAtaItem.startDate}</span>
+                                        </div>
+                                         <div className="flex justify-between p-3 bg-slate-50/50">
+                                             <span className="text-slate-500">Müsaitlik (O / K):</span>
+                                             <span className="font-bold text-primary-600">
+                                                 {selectedWeek === getMonday(selectedAtaItem.startDate || selectedAtaRequest.week) ? (
+                                                     (() => {
+                                                         const normalizeNet = (n: any) => {
+                                                             if (!n || n === 'null' || n === 'undefined' || n === 'Yok' || n === 'YOK') return 'YOK';
+                                                             let s = String(n).toUpperCase();
+                                                             if (s.startsWith('NET ')) s = s.replace('NET ', '');
+                                                             return s.trim();
+                                                         };
+                                                         const targetNet = normalizeNet(ataSelectedNetwork);
+                                                         const filtered = locations.filter(loc => {
+                                                             const locNet = normalizeNet(loc.network);
+                                                             const pType = (selectedAtaItem.productType === 'BILLBOARD' || selectedAtaItem.productType === 'BB') ? 'BB' : selectedAtaItem.productType;
+                                                             if (locNet !== targetNet && !(targetNet === 'BLD' && locNet === 'BELEDİYE')) return false;
+                                                             if (loc.productType !== pType) return false;
+                                                             return true;
+                                                         });
+                                                         const o = filtered.filter(loc => !loc.marka1Opsiyon || !loc.marka2Opsiyon || !loc.marka3Opsiyon).length;
+                                                         const k = filtered.filter(loc => !loc.marka4Opsiyon).length;
+                                                         return `${o} Ops. / ${k} Kesin Uygun`;
+                                                     })()
+                                                 ) : (
+                                                     <div className="flex items-center gap-1 text-amber-600">
+                                                         <Info className="w-3.5 h-3.5" />
+                                                         <span>Lütfen önce "Haftaya Git" diyerek listeyi güncelleyiniz.</span>
+                                                     </div>
+                                                 )}
+                                             </span>
+                                         </div>
+                                     </div>
+                                 </div>
+                            </div>
+
+                            <div className="mt-8 flex gap-3">
+                                <button
+                                    onClick={() => setShowPendingAtaModal(false)}
+                                    className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold rounded-xl transition-all"
+                                >
+                                    Vazgeç
+                                </button>
+                                <button
+                                    onClick={() => handleProcessAta('OPSİYON')}
+                                    className="flex-1 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-amber-100 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Clock className="w-5 h-5" />
+                                    Opsiyon Olarak İşle
+                                </button>
+                                <button
+                                    onClick={() => handleProcessAta('KESİN')}
+                                    className="flex-1 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-emerald-100 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <CheckCircle className="w-5 h-5" />
+                                    Kesin Olarak İşle
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     )
 }
