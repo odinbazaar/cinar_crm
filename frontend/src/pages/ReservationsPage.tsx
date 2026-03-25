@@ -428,21 +428,13 @@ export default function ReservationsPage() {
                 const booking = periodBookings.find(b => b.inventory_item_id === item.id);
                 const isSelected = targetIds.includes(item.id);
 
-                // Check next available slot
+                // Check next available slot (Sequentially 1, 2, 3 for options)
                 let nextSlot = 1;
                 if (booking) {
-                    if (booking.status === 'KESİN') {
-                        if (!booking.brand_option_2) nextSlot = 2;
-                        else if (!booking.brand_option_3) nextSlot = 3;
-                        else if (!booking.brand_option_4) nextSlot = 4;
-                        else nextSlot = 5;
-                    } else if (booking.status === 'OPSİYON') {
-                        if (!booking.brand_option_1) nextSlot = 1;
-                        else if (!booking.brand_option_2) nextSlot = 2;
-                        else if (!booking.brand_option_3) nextSlot = 3;
-                        else if (!booking.brand_option_4) nextSlot = 4;
-                        else nextSlot = 5;
-                    }
+                    if (!booking.brand_option_1) nextSlot = 1;
+                    else if (!booking.brand_option_2) nextSlot = 2;
+                    else if (!booking.brand_option_3) nextSlot = 3;
+                    else nextSlot = 5; // Full for options
                 }
 
                 const uiItem = {
@@ -549,24 +541,17 @@ export default function ReservationsPage() {
 
                 let nextSlot = 1;
                 if (booking) {
-                    if (booking.status === 'KESİN') {
-                        if (!booking.brand_option_2) nextSlot = 2;
-                        else if (!booking.brand_option_3) nextSlot = 3;
-                        else if (!booking.brand_option_4) nextSlot = 4;
-                        else nextSlot = 5;
-                    } else {
-                        if (!booking.brand_option_1) nextSlot = 1;
-                        else if (!booking.brand_option_2) nextSlot = 2;
-                        else if (!booking.brand_option_3) nextSlot = 3;
-                        else if (!booking.brand_option_4) nextSlot = 4;
-                        else nextSlot = 5;
-                    }
+                    // Check slots 1, 2, 3 sequentially for options
+                    if (!booking.brand_option_1) nextSlot = 1;
+                    else if (!booking.brand_option_2) nextSlot = 2;
+                    else if (!booking.brand_option_3) nextSlot = 3;
+                    else nextSlot = 5; // Full for options
                 }
 
                 if (nextSlot === 1 && (!booking || booking.status === 'BOŞ')) {
                     if (isIdSelected) selectedAvailable.push({ item, booking: booking || null });
                     else autoAvailable.push({ item, booking: booking || null });
-                } else if (nextSlot <= 4) {
+                } else if (nextSlot <= 3) { // Only slots 1, 2, 3 are for options
                     if (isIdSelected) selectedAvailable.push({ item, booking });
                     else partiallyAvailable.push({ item, booking });
                 }
@@ -590,7 +575,6 @@ export default function ReservationsPage() {
                     if (!updateData.brand_option_1) updateData.brand_option_1 = brandUpper;
                     else if (!updateData.brand_option_2) updateData.brand_option_2 = brandUpper;
                     else if (!updateData.brand_option_3) updateData.brand_option_3 = brandUpper;
-                    else if (!updateData.brand_option_4) updateData.brand_option_4 = brandUpper;
 
                     await bookingsService.update(booking.id, {
                         ...updateData,
@@ -2018,7 +2002,7 @@ export default function ReservationsPage() {
             {showRequestsPanel && (
                 <div className="fixed inset-0 z-[60] flex justify-end">
                     <div className="absolute inset-0 bg-transparent" onClick={() => setShowRequestsPanel(false)} /> {/* Saydam arka plan, tabloyu kapatmasın */}
-                    <div className="relative w-full max-w-lg bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-gray-100">
+                    <div className="relative w-full max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-gray-100">
                         {/* Header */}
                         <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-md">
                             <div className="flex items-center justify-between">
@@ -2176,146 +2160,169 @@ export default function ReservationsPage() {
                                                                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                                                             Talebi İncele
                                                                         </button>
-                                                                        <button
-                                                                            onClick={async () => {
-                                                                                if (!window.confirm('Talebi onaylıyor musunuz?\n(Onaylarsanız uygun lokasyonlar bulunup teklif opsiyona alınacaktır.)')) {
-                                                                                    return;
-                                                                                }
-                                                                                setIsLoadingRequests(true);
-                                                                                setIsLoadingLocations(true);
-                                                                                try {
-                                                                                    const [inventory, allBookings] = await Promise.all([
-                                                                                        inventoryService.getAll(),
-                                                                                        bookingsService.getAll()
-                                                                                    ]);
-
-                                                                                    const requestedCount = parseInt(String(ai.quantity)) || 20;
-                                                                                    const matchingInventory = inventory.filter(item => {
-                                                                                        const normalizeNet = (n: any) => {
-                                                                                            if (!n || n === 'null' || n === 'undefined' || n === 'Yok' || n === 'YOK') return 'YOK';
-                                                                                            let s = String(n).toUpperCase();
-                                                                                            if (s.startsWith('NET ')) s = s.replace('NET ', '');
-                                                                                            return s.trim();
-                                                                                        };
-                                                                                        const itemNet = normalizeNet(item.network);
-                                                                                        const reqNet = normalizeNet(ai.network || req.network);
-                                                                                        
-                                                                                        const isNetMatch = reqNet === 'TÜMÜ' || itemNet === reqNet ||
-                                                                                            (itemNet === 'BELEDİYE' && reqNet === 'BLD') ||
-                                                                                            (itemNet === 'BLD' && reqNet === 'BELEDİYE');
-
-                                                                                        const normalizeType = (t: string) => {
-                                                                                            const type = String(t).toUpperCase();
-                                                                                            if (type === 'BB' || type === 'BILLBOARD') return 'BILLBOARD';
-                                                                                            if (type.includes('CLP') || type.includes('RAKET')) return 'CLP';
-                                                                                            if (type.includes('MGL') || type.includes('MEGALIGHT')) return 'MEGALIGHT';
-                                                                                            if (type === 'LB' || type.includes('LİGHT')) return 'LB';
-                                                                                            return type;
-                                                                                        };
-
-                                                                                        return isNetMatch && normalizeType(item.type) === normalizeType(ai.productType || req.productType);
-                                                                                    });
-
-                                                                                    const startDate = ai.startDate || req.week || '';
-                                                                                    let targetWeekStr = startDate;
-                                                                                    if (startDate.includes('-') && startDate.includes('T')) {
-                                                                                        const parts = startDate.split('T')[0].split('-');
-                                                                                        targetWeekStr = `${parts[2]}.${parts[1]}.${parts[0]}`;
+                                                                        {ai.processed ? (
+                                                                            <button
+                                                                                className="px-2 py-1 bg-white text-gray-500 text-[10px] font-bold rounded shadow-sm border border-gray-100 flex items-center gap-1 opacity-50 cursor-not-allowed"
+                                                                                disabled
+                                                                            >
+                                                                                <CheckCircle className="w-3 h-3 text-green-500" />
+                                                                                İşlendi
+                                                                            </button>
+                                                                        ) : (
+                                                                            <button
+                                                                                onClick={async () => {
+                                                                                    if (!window.confirm('Talebi onaylıyor musunuz?\n(Onaylarsanız uygun lokasyonlar bulunup teklif opsiyona alınacaktır.)')) {
+                                                                                        return;
                                                                                     }
-                                                                                    const targetWeek = getMonday(targetWeekStr);
-                                                                                    const periodBookings = allBookings.filter(b => getMonday(b.start_date) === targetWeek);
+                                                                                    setIsLoadingRequests(true);
+                                                                                    setIsLoadingLocations(true);
+                                                                                    try {
+                                                                                        const [inventory, allBookings] = await Promise.all([
+                                                                                            inventoryService.getAll(),
+                                                                                            bookingsService.getAll()
+                                                                                        ]);
 
-                                                                                    const autoAvailable: any[] = [];
-                                                                                    const partiallyAvailable: any[] = [];
+                                                                                        const qtyStr = String(ai.quantity).replace(/[^0-9]/g, '');
+                                                                                        const requestedCount = parseInt(qtyStr) || 20;
+                                                                                        
+                                                                                        const matchingInventory = inventory.filter(item => {
+                                                                                            const normalizeNet = (n: any) => {
+                                                                                                if (!n || n === 'null' || n === 'undefined' || n === 'Yok' || n === 'YOK') return 'YOK';
+                                                                                                let s = String(n).toUpperCase();
+                                                                                                if (s.startsWith('NET ')) s = s.replace('NET ', '');
+                                                                                                return s.trim();
+                                                                                            };
+                                                                                            const itemNet = normalizeNet(item.network);
+                                                                                            const reqNet = normalizeNet(ai.network || req.network);
+                                                                                            
+                                                                                            const isNetMatch = reqNet === 'TÜMÜ' || itemNet === reqNet ||
+                                                                                                (itemNet === 'BELEDİYE' && reqNet === 'BLD') ||
+                                                                                                (itemNet === 'BLD' && reqNet === 'BELEDİYE');
 
-                                                                                    matchingInventory.forEach(item => {
-                                                                                        const booking = periodBookings.find(b => b.inventory_item_id === item.id);
-                                                                                        let nextSlot = 1;
-                                                                                        if (booking) {
-                                                                                            if (booking.status === 'KESİN') {
-                                                                                                if (!booking.brand_option_2) nextSlot = 2;
-                                                                                                else if (!booking.brand_option_3) nextSlot = 3;
-                                                                                                else if (!booking.brand_option_4) nextSlot = 4;
-                                                                                                else nextSlot = 5;
-                                                                                            } else {
+                                                                                            const normalizeType = (t: string) => {
+                                                                                                const type = String(t).toUpperCase().trim();
+                                                                                                if (type === 'BB' || type === 'BILLBOARD' || type.includes('BILLBOARD')) return 'BILLBOARD';
+                                                                                                if (type.includes('CLP') || type.includes('RAKET')) return 'CLP';
+                                                                                                if (type.includes('MGL') || type.includes('MEGALIGHT')) return 'MEGALIGHT';
+                                                                                                if (type === 'LB' || type.includes('LİGHT') || type.includes('LIGHT')) return 'LB';
+                                                                                                return type;
+                                                                                            };
+
+                                                                                            return isNetMatch && normalizeType(item.type) === normalizeType(ai.productType || req.productType);
+                                                                                        });
+
+                                                                                        const startDate = ai.startDate || req.week || '';
+                                                                                        let targetWeekStr = startDate;
+                                                                                        if (startDate.includes('-') && startDate.includes('T')) {
+                                                                                            const parts = startDate.split('T')[0].split('-');
+                                                                                            targetWeekStr = `${parts[2]}.${parts[1]}.${parts[0]}`;
+                                                                                        }
+                                                                                        const targetWeek = getMonday(targetWeekStr);
+                                                                                        const periodBookings = allBookings.filter(b => getMonday(b.start_date) === targetWeek);
+
+                                                                                        const autoAvailable: any[] = [];
+                                                                                        const partiallyAvailable: any[] = [];
+
+                                                                                        matchingInventory.forEach(item => {
+                                                                                            const booking = periodBookings.find(b => b.inventory_item_id === item.id);
+                                                                                            let nextSlot = 1;
+                                                                                            if (booking) {
                                                                                                 if (!booking.brand_option_1) nextSlot = 1;
                                                                                                 else if (!booking.brand_option_2) nextSlot = 2;
                                                                                                 else if (!booking.brand_option_3) nextSlot = 3;
-                                                                                                else if (!booking.brand_option_4) nextSlot = 4;
-                                                                                                else nextSlot = 5;
+                                                                                                else nextSlot = 5; // Full for options
+                                                                                            }
+
+                                                                                            if (nextSlot === 1 && (!booking || booking.status === 'BOŞ')) {
+                                                                                                autoAvailable.push({ item, booking: booking || null });
+                                                                                            } else if (nextSlot <= 3) { // Use slots 1, 2, 3
+                                                                                                partiallyAvailable.push({ item, booking });
+                                                                                            }
+                                                                                        });
+
+                                                                                        const candidates = [...autoAvailable, ...partiallyAvailable];
+                                                                                        const toAssign = candidates.slice(0, requestedCount);
+
+                                                                                        if (toAssign.length === 0) {
+                                                                                            toastInfo(`Maalesef müsait lokasyon bulunamadı. Ağ: ${ai.network || req.network || 'Bağımsız'}, Tip: ${ai.productType || req.productType}`);
+                                                                                            setIsLoadingRequests(false);
+                                                                                            setIsLoadingLocations(false);
+                                                                                            return;
+                                                                                        }
+
+                                                                                        const brandUpper = (req.customerName || req.brandName || 'İSİMSİZ').toUpperCase();
+
+                                                                                        const toBackendDate = (dateStr: string) => {
+                                                                                            if (!dateStr) return '';
+                                                                                            const parts = dateStr.split('.');
+                                                                                            if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                                                                                            return dateStr;
+                                                                                        };
+
+                                                                                        // Opsiyonlamak
+                                                                                        for (const { item, booking } of toAssign) {
+                                                                                            if (booking) {
+                                                                                                const updateData = { ...booking };
+                                                                                                if (!updateData.brand_option_1) updateData.brand_option_1 = brandUpper;
+                                                                                                else if (!updateData.brand_option_2) updateData.brand_option_2 = brandUpper;
+                                                                                                else if (!updateData.brand_option_3) updateData.brand_option_3 = brandUpper;
+
+                                                                                                await bookingsService.update(booking.id, {
+                                                                                                    ...updateData,
+                                                                                                    status: booking.status === 'KESİN' ? 'KESİN' : 'OPSİYON'
+                                                                                                });
+                                                                                            } else {
+                                                                                                await bookingsService.create({
+                                                                                                    inventory_item_id: item.id,
+                                                                                                    brand_name: req.brandName || 'Bilinmeyen',
+                                                                                                    network: String(ai.network || req.network || 'Yok').replace('Net ', ''),
+                                                                                                    start_date: toBackendDate(targetWeek),
+                                                                                                    end_date: toBackendDate(targetWeek),
+                                                                                                    status: 'OPSİYON',
+                                                                                                    brand_option_1: brandUpper
+                                                                                                });
                                                                                             }
                                                                                         }
 
-                                                                                        if (nextSlot === 1 && (!booking || booking.status === 'BOŞ')) {
-                                                                                            autoAvailable.push({ item, booking: booking || null });
-                                                                                        } else if (nextSlot <= 4) {
-                                                                                            partiallyAvailable.push({ item, booking });
-                                                                                        }
-                                                                                    });
-
-                                                                                    const candidates = [...autoAvailable, ...partiallyAvailable];
-                                                                                    const toAssign = candidates.slice(0, requestedCount);
-
-                                                                                    if (toAssign.length === 0) {
-                                                                                        toastInfo(`Maalesef müsait lokasyon bulunamadı. Ağ: ${ai.network || req.network || 'Bağımsız'}, Tip: ${ai.productType || req.productType}`);
-                                                                                        setIsLoadingRequests(false);
-                                                                                        setIsLoadingLocations(false);
-                                                                                        return;
-                                                                                    }
-
-                                                                                    const brandUpper = (req.customerName || req.brandName || 'İSİMSİZ').toUpperCase();
-
-                                                                                    const toBackendDate = (dateStr: string) => {
-                                                                                        if (!dateStr) return '';
-                                                                                        const parts = dateStr.split('.');
-                                                                                        if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
-                                                                                        return dateStr;
-                                                                                    };
-
-                                                                                    // Opsiyonlamak
-                                                                                    for (const { item, booking } of toAssign) {
-                                                                                        if (booking) {
-                                                                                            const updateData = { ...booking };
-                                                                                            if (!updateData.brand_option_1) updateData.brand_option_1 = brandUpper;
-                                                                                            else if (!updateData.brand_option_2) updateData.brand_option_2 = brandUpper;
-                                                                                            else if (!updateData.brand_option_3) updateData.brand_option_3 = brandUpper;
-                                                                                            else if (!updateData.brand_option_4) updateData.brand_option_4 = brandUpper;
-
-                                                                                            await bookingsService.update(booking.id, {
-                                                                                                ...updateData,
-                                                                                                status: booking.status === 'KESİN' ? 'KESİN' : 'OPSİYON'
+                                                                                        // Sadece bu item'ın işlendiğini işaretle
+                                                                                        // Raw datayı çekip approvedItems'i güncelle
+                                                                                        const rawReq = await customerRequestsService.getById(req.id);
+                                                                                        if (rawReq) {
+                                                                                            const details = rawReq.product_details ? JSON.parse(rawReq.product_details) : {};
+                                                                                            const updatedApprovedItems = (details.approvedItems || []).map((a: any) => {
+                                                                                                if (a.startDate === ai.startDate && a.endDate === ai.endDate && a.productType === ai.productType) {
+                                                                                                    return { ...a, processed: true };
+                                                                                                }
+                                                                                                return a;
+                                                                                            });
+                                                                                            details.approvedItems = updatedApprovedItems;
+                                                                                            const allProcessed = updatedApprovedItems.every((a: any) => a.processed);
+                                                                                            
+                                                                                            await customerRequestsService.update(req.id, {
+                                                                                                product_details: JSON.stringify(details),
+                                                                                                status: allProcessed ? 'completed' : req.status
                                                                                             });
                                                                                         } else {
-                                                                                            await bookingsService.create({
-                                                                                                inventory_item_id: item.id,
-                                                                                                brand_name: req.brandName || 'Bilinmeyen',
-                                                                                                network: String(ai.network || req.network || 'Yok').replace('Net ', ''),
-                                                                                                start_date: toBackendDate(targetWeek),
-                                                                                                end_date: toBackendDate(targetWeek),
-                                                                                                status: 'OPSİYON',
-                                                                                                brand_option_1: brandUpper
-                                                                                            });
+                                                                                            // Fallback as before
+                                                                                            await customerRequestsService.update(req.id, { status: 'completed' });
                                                                                         }
-                                                                                    }
 
-                                                                                    // Sadece bu item onaylanmış gibi düşün ama tüm request complete diyebiliriz veya partial update yaparız.
-                                                                                    // Üst request durumunu 'completed' işaretle ama iç veride değişiklik yapmıyoruz şimdilik (tek request per approval varsayıyoruz veya onaylandıkça yavaşça eritiyoruz).
-                                                                                    await customerRequestsService.update(req.id, { status: 'completed' });
-                                                                                    await fetchData();
-                                                                                    toastSuccess(`${req.customerName || req.brandName} talebi opsiyona alındı (${toAssign.length} adet)`);
-                                                                                } catch (error) {
-                                                                                    console.error('Opsiyon alma hatası:', error);
-                                                                                    toastInfo('İşlem sırasında bir hata oluştu');
-                                                                                } finally {
-                                                                                    setIsLoadingRequests(false);
-                                                                                    setIsLoadingLocations(false);
-                                                                                }
-                                                                            }}
-                                                                            className="px-2 py-1 bg-white text-blue-600 text-[10px] font-bold rounded shadow-sm border border-blue-100 hover:bg-blue-50 hover:text-blue-700 transition-colors flex items-center gap-1"
-                                                                        >
-                                                                            <MapPin className="w-3 h-3" />
-                                                                            Network Ata / Opsiyona Al
-                                                                        </button>
+                                                                                        await fetchData();
+                                                                                        toastSuccess(`${req.customerName || req.brandName} talebi opsiyona alındı (${toAssign.length} adet)`);
+                                                                                    } catch (error) {
+                                                                                        console.error('Opsiyon alma hatası:', error);
+                                                                                        toastInfo('İşlem sırasında bir hata oluştu');
+                                                                                    } finally {
+                                                                                        setIsLoadingRequests(false);
+                                                                                        setIsLoadingLocations(false);
+                                                                                    }
+                                                                                }}
+                                                                                className="px-2 py-1 bg-white text-blue-600 text-[10px] font-bold rounded shadow-sm border border-blue-100 hover:bg-blue-50 hover:text-blue-700 transition-colors flex items-center gap-1"
+                                                                            >
+                                                                                <MapPin className="w-3 h-3" />
+                                                                                Network Ata / Opsiyona Al
+                                                                            </button>
+                                                                        )}
                                                                     </div>
                                                                     <button
                                                                         onClick={() => {
