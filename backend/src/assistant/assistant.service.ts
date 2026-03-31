@@ -119,7 +119,7 @@ export class AssistantService {
 
         try {
             const response = await axios.post(
-                'https://api.z.ai/v1/chat/completions',
+                'https://openrouter.ai/api/v1/chat/completions',
                 {
                     model: 'claude-sonnet-4-20250514',
                     max_tokens: 1024,
