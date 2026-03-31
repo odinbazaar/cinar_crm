@@ -15,8 +15,8 @@ export class AssistantController {
     constructor(private readonly assistantService: AssistantService) { }
 
     @Post('chat')
-    chat(@Body() body: ChatRequestDto) {
-        const reply = this.assistantService.chat(body.messages);
+    async chat(@Body() body: ChatRequestDto) {
+        const reply = await this.assistantService.chat(body.messages);
         return { reply };
     }
 }
