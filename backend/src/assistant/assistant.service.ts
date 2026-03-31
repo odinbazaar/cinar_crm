@@ -154,6 +154,6 @@ export class AssistantService {
             return 'Merhaba! 👋 Ben Çınar, IAR CRM yardımcı asistanıyım.\n\nAşağıdaki konularda yardımcı olabilirim:\n\n📅 Rezervasyon işlemleri\n💼 Müşteri / Satış / CRM\n📄 Teklif ve Sözleşme\n🗺️ Envanter ve Mecra yönetimi\n📧 E-posta bildirimleri\n📊 Raporlar\n⚙️ Sistem ve teknoloji altyapısı\n\nNe öğrenmek istersiniz?';
         }
 
-        return '🤔 AI asistanı şu an yapılandırılıyor. Lütfen sistem yöneticisine ANTHROPIC_API_KEY ayarının yapılması gerektiğini bildirin.\n\nBu arada şu konularda genel bilgi verebilirim:\n- **Rezervasyon**: Ekleme, takvim, durum yönetimi\n- **Müşteri / Satış**: Pipeline, notlar, hatırlatıcı\n- **Teklif / Sözleşme**: Oluşturma, PDF, gönderme\n- **Envanter**: Mecra tipleri (BB, CLP, MG)\n- **Raporlar / Ayarlar / Operasyonlar**';
+        return '🤔 AI asistanı şu an yapılandırılıyor. Lütfen sistem yöneticisine ZAI_API_KEY ayarının yapılması gerektiğini bildirin.\n\nBu arada şu konularda genel bilgi verebilirim:\n- **Rezervasyon**: Ekleme, takvim, durum yönetimi\n- **Müşteri / Satış**: Pipeline, notlar, hatırlatıcı\n- **Teklif / Sözleşme**: Oluşturma, PDF, gönderme\n- **Envanter**: Mecra tipleri (BB, CLP, MG)\n- **Raporlar / Ayarlar / Operasyonlar**';
     }
 }
