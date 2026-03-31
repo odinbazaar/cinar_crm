@@ -114,14 +114,16 @@ export class AssistantService {
 
     async chat(messages: Array<{ role: 'user' | 'assistant'; content: string }>): Promise<string> {
         if (!this.apiKey) {
-            return this.fallbackChat(messages);
+            this.logger.warn('Chat called but no API key available');
+            return 'Üzgünüm, AI asistanı henüz yapılandırılmadı. (API key eksik)';
         }
 
         try {
+            this.logger.log(`Sending request to OpenRouter API with ${messages.length} messages`);
             const response = await axios.post(
                 'https://openrouter.ai/api/v1/chat/completions',
                 {
-                    model: 'claude-sonnet-4-20250514',
+                    model: 'anthropic/claude-sonnet-4',
                     max_tokens: 1024,
                     messages: [
                         { role: 'system', content: SYSTEM_PROMPT },
@@ -137,23 +139,16 @@ export class AssistantService {
                 },
             );
 
-            return response.data?.choices?.[0]?.message?.content || 'Yanıt oluşturulamadı. Lütfen tekrar deneyin.';
+            const content = response.data?.choices?.[0]?.message?.content;
+            if (!content) {
+                this.logger.warn('Empty response from API:', JSON.stringify(response.data));
+                return 'Yanıt oluşturulamadı. Lütfen tekrar deneyin.';
+            }
+            return content;
         } catch (error) {
-            this.logger.error('Z.ai API error:', error?.response?.data || error.message);
-            return this.fallbackChat(messages);
+            const errData = error?.response?.data || error.message;
+            this.logger.error('OpenRouter API error:', JSON.stringify(errData));
+            return `Üzgünüm, şu an yanıt veremiyorum. Hata: ${typeof errData === 'object' ? JSON.stringify(errData) : errData}`;
         }
-    }
-
-    private fallbackChat(messages: Array<{ role: 'user' | 'assistant'; content: string }>): string {
-        const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
-        if (!lastUserMessage) return 'Nasıl yardımcı olabilirim?';
-
-        const query = lastUserMessage.content.toLowerCase().trim();
-
-        if (/^(merhaba|selam|hi|hey|hello|günaydın|iyi günler)/.test(query)) {
-            return 'Merhaba! 👋 Ben Çınar, IAR CRM yardımcı asistanıyım.\n\nAşağıdaki konularda yardımcı olabilirim:\n\n📅 Rezervasyon işlemleri\n💼 Müşteri / Satış / CRM\n📄 Teklif ve Sözleşme\n🗺️ Envanter ve Mecra yönetimi\n📧 E-posta bildirimleri\n📊 Raporlar\n⚙️ Sistem ve teknoloji altyapısı\n\nNe öğrenmek istersiniz?';
-        }
-
-        return '🤔 AI asistanı şu an yapılandırılıyor. Lütfen sistem yöneticisine ZAI_API_KEY ayarının yapılması gerektiğini bildirin.\n\nBu arada şu konularda genel bilgi verebilirim:\n- **Rezervasyon**: Ekleme, takvim, durum yönetimi\n- **Müşteri / Satış**: Pipeline, notlar, hatırlatıcı\n- **Teklif / Sözleşme**: Oluşturma, PDF, gönderme\n- **Envanter**: Mecra tipleri (BB, CLP, MG)\n- **Raporlar / Ayarlar / Operasyonlar**';
     }
 }
