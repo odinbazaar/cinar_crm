@@ -2,6 +2,7 @@ import { X, Bell, Calendar, DollarSign, Users, Package, CheckCircle, Info, FileT
 import { useState, useEffect } from 'react'
 import { notificationsService } from '../../services/notificationsService'
 import type { Notification } from '../../services/notificationsService'
+import { Link } from 'react-router-dom'
 
 interface NotificationsPanelProps {
     isOpen: boolean
@@ -253,13 +254,20 @@ export default function NotificationsPanel({ isOpen, onClose }: NotificationsPan
                         >
                             Tümünü Oku
                         </button>
-                        <button
-                            onClick={clearAll}
-                            className="text-xs font-semibold text-red-600 hover:text-red-700 transition-colors"
-                        >
-                            Temizle
-                        </button>
-                    </div>
+                            <button
+                                onClick={clearAll}
+                                className="text-xs font-semibold text-red-600 hover:text-red-700 transition-colors"
+                            >
+                                Temizle
+                            </button>
+                            <Link
+                                to="/notifications"
+                                onClick={onClose}
+                                className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
+                            >
+                                Tümünü Gör
+                            </Link>
+                        </div>
                     <button
                         onClick={fetchNotifications}
                         className="text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors flex items-center gap-1"

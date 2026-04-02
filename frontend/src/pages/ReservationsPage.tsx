@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect } from 'react'
-import { FileSpreadsheet, MapPin, Search, Filter, Calendar, Clock, Check, X, CheckCircle, Smartphone, RefreshCw, ChevronRight, ChevronLeft, Download, Plus, Trash2, AlertCircle, CalendarDays, Send, Mail, Layers, Info } from 'lucide-react'
+import { FileSpreadsheet, MapPin, Search, Filter, Calendar, Clock, Check, X, CheckCircle, Smartphone, RefreshCw, ChevronRight, ChevronLeft, Download, Plus, Trash2, AlertCircle, CalendarDays, Send, Mail, Layers, Info, Bell, ClipboardList } from 'lucide-react'
 import { reservationsData } from '../data/reservations'
 import { useToast } from '../hooks/useToast'
 import { useAuth } from '../hooks/useAuth'
-import { inventoryService, bookingsService, customerRequestsService, proposalsService, clientsService } from '../services'
+import { inventoryService, bookingsService, customerRequestsService, proposalsService, clientsService, notificationsService } from '../services'
 import LocationRequestModal from '../components/proposals/LocationRequestModal'
 import { WeeklyAvailabilityCard } from '../components/reservations/WeeklyAvailabilityCard'
 import * as XLSX from 'xlsx'
@@ -1393,6 +1393,80 @@ export default function ReservationsPage() {
         }
     }
 
+    // Bekleyen İşlere Gönder
+    const handleSendToCustomerRequest = async (loc: Location) => {
+        const brand = loc.marka4Opsiyon || loc.marka1Opsiyon || loc.marka2Opsiyon || loc.marka3Opsiyon || '';
+        if (brand) {
+            try {
+                // Müşteriyi ismine göre bulmaya çalış
+                const clients = await clientsService.getAll();
+                const foundClient = (clients || []).find((c: any) => 
+                    c.company_name.toLowerCase().includes(brand.toLowerCase()) || 
+                    brand.toLowerCase().includes(c.company_name.toLowerCase())
+                );
+
+                const backendWeek = toBackendDate(selectedWeek);
+
+                const details = {
+                    source: 'sale_approved',
+                    brandName: brand,
+                    year: selectedYear,
+                    month: selectedMonth,
+                    week: backendWeek,
+                    approvedItems: [{
+                        productType: loc.productType === 'BB' ? 'BILLBOARD' : (loc.productType === 'ML' ? 'MEGALIGHT' : loc.productType),
+                        productCode: loc.kod,
+                        quantity: 1,
+                        startDate: backendWeek,
+                        endDate: backendWeek,
+                        processed: false,
+                        network: String(loc.network || '1')
+                    }],
+                    selectedLocations: [{ id: loc.id, code: loc.kod }],
+                    note: `${loc.kod} lokasyonu için rezervasyon talebi`,
+                    totalAmount: 1,
+                    availableCount: 0,
+                    optionsCount: 0
+                };
+
+                await customerRequestsService.create({
+                    client_id: foundClient ? foundClient.id : 'df590372-9653-48b7-a35c-75618f09cb8b', // TODO: Daha iyi bir eşleştirme veya manuel seçim
+                    product_type: (loc.productType === 'BB' ? 'BB' : (loc.productType === 'ML' ? 'MGL' : 'other')) as any,
+                    product_details: JSON.stringify(details),
+                    quantity: 1,
+                    priority: 'high',
+                    notes: `Rezervasyon sayfasından gönderildi. Lokasyon: ${loc.kod}, Marka: ${brand}. ${!foundClient ? '(Müşteri otomatik eşleşmedi)' : ''}`,
+                    start_date: backendWeek,
+                    end_date: backendWeek,
+                });
+                toastSuccess(`${brand} için Bekleyen İşler listesi güncellendi!`);
+            } catch (err: any) {
+                console.error('Failed to create customer request:', err);
+                toastInfo('İş oluşturulurken bir hata oluştu');
+            }
+        }
+    }
+
+    // Bildirim gönder
+    const handleSendNotification = async (loc: Location) => {
+        const brand = loc.marka4Opsiyon || loc.marka1Opsiyon || loc.marka2Opsiyon || loc.marka3Opsiyon || '';
+        if (brand) {
+            try {
+                await notificationsService.create({
+                    type: 'reservation',
+                    title: 'Rezervasyon Bildirimi',
+                    message: `${loc.kod} kodlu lokasyon için ${brand} markasına bildirim talebi oluşturuldu.`,
+                });
+                toastSuccess(`${loc.kod} kodlu lokasyon için ${brand} markasına bildirim gönderildi!`);
+            } catch (error) {
+                console.error('Error creating notification:', error);
+                toastInfo(`${loc.kod} için bildirim gönderilemedi ancak işlem kaydedildi.`);
+            }
+        } else {
+            toastInfo('Bildirim gönderilecek bir marka bulunamadı.');
+        }
+    }
+
     // İstatistikler
     const stats = {
         total: filteredLocations.length,
@@ -1765,13 +1839,14 @@ export default function ReservationsPage() {
                                         <th className="px-3 py-3 text-left font-semibold bg-green-700">Ticari Ünvan 3.Opsiyon</th>
                                         <th className="px-3 py-3 text-left font-semibold bg-emerald-800">Kesine Çevrilenler</th>
                                         <th className="px-3 py-3 text-left font-semibold">Durum</th>
+                                        <th className="px-3 py-3 text-center font-semibold">İşlemler</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {filteredLocations.map((loc, index) => (
                                         <tr
                                             key={loc.id}
-                                            className={`hover: bg-gray - 50 transition - colors ${selectedRows.includes(loc.id) ? 'bg-primary-50' : ''
+                                            className={`hover:bg-gray-50 transition-colors ${selectedRows.includes(loc.id) ? 'bg-primary-50' : ''
                                                 } ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} `}
                                         >
                                             <td className="px-3 py-2">
@@ -1862,7 +1937,7 @@ export default function ReservationsPage() {
                                                 <select
                                                     value={loc.durum}
                                                     onChange={(e) => handleStatusChange(loc.id, e.target.value as 'OPSİYON' | 'KESİN' | 'BOŞ')}
-                                                    className={`px-2 py-1 rounded text-xs font - semibold border-0 ${loc.durum === 'OPSİYON' ? 'bg-yellow-100 text-yellow-800' :
+                                                    className={`px-2 py-1 rounded text-xs font-semibold border-0 ${loc.durum === 'OPSİYON' ? 'bg-yellow-100 text-yellow-800' :
                                                         loc.durum === 'KESİN' ? 'bg-green-100 text-green-800' :
                                                             'bg-gray-100 text-gray-600'
                                                         } `}
@@ -1871,6 +1946,22 @@ export default function ReservationsPage() {
                                                     <option value="KESİN">KESİN</option>
                                                     <option value="BOŞ">BOŞ</option>
                                                 </select>
+                                            </td>
+                                            <td className="px-3 py-2 text-center flex items-center justify-center gap-2">
+                                                <button
+                                                    onClick={() => handleSendToCustomerRequest(loc)}
+                                                    className="p-1 text-slate-400 hover:text-emerald-500 transition-colors"
+                                                    title="Bekleyen İşlere Gönder"
+                                                >
+                                                    <ClipboardList className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleSendNotification(loc)}
+                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex items-center gap-1"
+                                                    title="Bildirim Gönder"
+                                                >
+                                                    <Bell className="w-4 h-4" />
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}

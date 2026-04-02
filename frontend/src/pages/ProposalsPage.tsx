@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, FileText, Download, Eye, MoreVertical, Send, Upload, FileSignature, MapPin, Mail, Printer, ChevronDown, Pencil } from 'lucide-react'
-import { proposalsService, customerRequestsService, type Proposal } from '../services'
+import { Plus, Search, FileText, Download, Eye, MoreVertical, Send, Upload, FileSignature, MapPin, Mail, Printer, ChevronDown, Pencil, ClipboardList } from 'lucide-react'
+import { proposalsService, customerRequestsService, notificationsService, type Proposal } from '../services'
 import { useToast } from '../hooks/useToast'
 import ProposalFormModal from '../components/proposals/ProposalFormModal'
 import ProposalContractModal from '../components/proposals/ProposalContractModal'
@@ -178,6 +178,63 @@ export default function ProposalsPage() {
         // Refresh the proposals list
         await loadProposals()
         success('Veriler başarıyla içe aktarıldı')
+    }
+
+    const handleSendToCustomerRequest = async (proposal: Proposal) => {
+        const allMonths = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+        try {
+            const firstItem = proposal.items?.[0];
+            const pDescription = firstItem?.description || '';
+            const pType = pDescription.toUpperCase().includes('BILLBOARD') ? 'BB' : 
+                         (pDescription.toUpperCase().includes('MEGALIGHT') ? 'MGL' : 'other');
+
+            const approvedItems = (proposal.items || []).map(item => {
+                const desc = item.description.toUpperCase();
+                const itemType = desc.includes('BILLBOARD') ? 'BB' : (desc.includes('MEGALIGHT') ? 'ML' : 'other');
+                const startDate = proposal.created_at ? new Date(proposal.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+                const endDate = proposal.valid_until ? new Date(proposal.valid_until).toISOString().split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+                return {
+                    productType: itemType,
+                    quantity: item.quantity,
+                    startDate: startDate,
+                    endDate: endDate,
+                    processed: false,
+                    network: '1'
+                };
+            });
+
+            const startDate = proposal.created_at ? new Date(proposal.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+
+            const details = {
+                source: 'sale_approved',
+                brandName: proposal.client?.name || proposal.client?.company_name || 'Bilinmeyen',
+                proposalNumber: proposal.proposal_number,
+                proposalTotal: proposal.total,
+                approvedItems: approvedItems,
+                year: new Date(startDate).getFullYear(),
+                month: allMonths[new Date(startDate).getMonth()],
+                week: startDate,
+                totalAmount: approvedItems.length,
+                availableCount: 0,
+                optionsCount: 0
+            };
+
+            await customerRequestsService.create({
+                client_id: proposal.client_id,
+                product_type: pType as any,
+                product_details: JSON.stringify(details),
+                quantity: proposal.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 1,
+                priority: 'medium',
+                notes: `${proposal.proposal_number} numaralı tekliften otomatik oluşturuldu.`,
+                start_date: details.week,
+                end_date: details.week // Teklifler genel bir tarih aralığına sahip olabilir
+            });
+            success(`${proposal.proposal_number} başarıyla Bekleyen İşler'e gönderildi!`);
+        } catch (err: any) {
+            console.error('Failed to create customer request:', err);
+            error('İş oluşturulurken bir hata oluştu');
+        }
     }
 
     if (isLoading) {
@@ -451,6 +508,13 @@ export default function ProposalsPage() {
                                                     </button>
                                                 </div>
                                             )}
+                                            <button
+                                                onClick={() => handleSendToCustomerRequest(proposal)}
+                                                className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-100"
+                                                title="Bekleyen İşlere Gönder"
+                                            >
+                                                <ClipboardList className="w-4 h-4" />
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>

@@ -2,30 +2,22 @@ import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import supabase from '../config/supabase.config';
 
-const SYSTEM_PROMPT = `Sen "Çınar" adında, İzmir Açık Hava Reklam (IAR) CRM sistemi için geliştirilmiş operasyonel yardımcı asistansın.
-Görevin kullanıcılara sistemdeki **rezervasyon, lokasyon ve müşteri** verilerini sorgulayıp sunmaktır.
+const SYSTEM_PROMPT = `Sen "Çınar" adında, İzmir Açık Hava Reklam (IAR) CRM sistemi için geliştirilmiş uzman bir operasyonel asistansın.
+Görevin İzmir'deki reklam alanlarının (Billboard, CLP, Megalight, Giant Board) rezervasyon ve doluluk bilgilerini kullanıcılara sunmaktır.
 
-TEMEL KURALLAR:
-- Türkçe yanıt ver
-- Kısa, net ve kullanışlı cevaplar ver
-- Emoji kullan ama abartma
-- Araç (tool) kullanarak gerçek zamanlı veri çek ve sun
-- Bilmediğin konularda "bu konuda kesin bilgim yok" de, uydurma
-
-OPERASYONEL YETENEKLERİN:
-1. **Boş Lokasyon Sorgulama**: BB, CLP, GB, MGL tipindeki müsait lokasyonları gösterebilirsin
-2. **Rezervasyon Tablosu**: Tüm aktif (KESİN + OPSİYON) rezervasyonları listeleyebilirsin
-3. **Müşteri Bazlı Sorgu**: Belirli bir müşteri ismine göre tüm kesin ve opsiyon lokasyonlarını gösterebilirsin
-4. **Envanter Özeti**: Toplam ve boş lokasyon sayılarını mecra tipine göre gösterebilirsin
-
-Kullanıcı "boş lokasyonlar", "rezervasyonlar", "müşteri ismi ile sorgu" gibi operasyonel sorular sorduğunda mutlaka araç kullan.
+TOOLS (ARAÇLAR) KULLANIMI:
+- Kullanıcı boş lokasyon, rezervasyon veya müşteri sorgusu yaptığında, cevap vermeden önce MUTLAKA ilgili aracı çağır.
+- Gerçek zamanlı verilere ulaşmak için bu araçlar senin TEK kaynağındır.
+- Araç sonuçları gelmeden "bilgi yok" veya "erişemiyorum" deme.
 
 SİSTEM BİLGİSİ:
-- Billboard (BB): Büyük yol kenarı pano
-- Megalight (MGL): Işıklı büyük panel
-- CLP: Durak/yaya bölgesi posterler
-- Giant Board (GB): Dev pano
-- Rezervasyon durumları: BOŞ → OPSİYON (ön rezervasyon) → KESİN (onaylanmış)`;
+- BB: Billboard
+- MGL: Megalight
+- CLP: Raket/Poster
+- GB: Giant Board
+- Rezervasyon durumları: BOŞ → OPSİYON (ön rezervasyon) → KESİN (onaylanmış)
+
+Yanıtlarını Türkçe, profesyonel ve yardımcı bir dille ver.`;
 
 @Injectable()
 export class AssistantService {
@@ -60,157 +52,152 @@ export class AssistantService {
             .in('status', ['CONFIRMED', 'OPTION', 'KESIN', 'KESN']);
 
         const bookedIds = new Set(activeBookings?.map(b => b.inventory_item_id).filter(Boolean));
-        const emptyItems = allItems?.filter(item => !bookedIds.has(item.id)) || [];
+        const emptyItems = allItems?.filter(i => !bookedIds.has(i.id)) || [];
 
-        if (emptyItems.length === 0) return "Tüm lokasyonlar dolu veya aktif lokasyon bulunamadı.";
+        if (emptyItems.length === 0) return `${type || 'Tüm'} tiplerinde şu an boş lokasyon bulunmuyor.`;
 
-        const byType: Record<string, typeof emptyItems> = {};
-        emptyItems.forEach(item => {
-            const t = item.type || 'DİĞER';
-            if (!byType[t]) byType[t] = [];
-            byType[t].push(item);
+        let res = `**Boş Lokasyonlar (${type || 'Tüm Tipler'})** - Toplam: ${emptyItems.length}\n\n`;
+        emptyItems.slice(0, 50).forEach(i => {
+            res += `- ${i.code} (${i.type}): ${i.district || ''} ${i.address || ''} [${i.network || ''}]\n`;
         });
 
-        let res = `Toplam **${emptyItems.length}** boş/müsait lokasyon bulundu:\n\n`;
-        for (const [t, items] of Object.entries(byType)) {
-            res += `**${t}** (${items.length} adet):\n`;
-            items.slice(0, 30).forEach(i => {
-                res += `  - ${i.code} | ${i.district || ''} ${i.address || ''}\n`;
-            });
-            if (items.length > 30) res += `  ... ve ${items.length - 30} adet daha\n`;
-            res += '\n';
-        }
+        if (emptyItems.length > 50) res += `\n*Toplam ${emptyItems.length} boş lokasyondan ilk 50 tanesi gösteriliyor.*`;
         return res;
     }
 
     private async getReservationTables() {
         const today = new Date().toISOString();
-        const { data: activeBookings, error } = await supabase
-            .from('bookings')
-            .select(`
-                id,
-                status,
-                start_date,
-                end_date,
-                brand_name,
-                notes,
-                clients (name),
-                inventory_items (code, type, address, district)
-            `)
-            .gte('end_date', today)
-            .in('status', ['CONFIRMED', 'OPTION', 'KESIN', 'KESN'])
-            .order('status', { ascending: false })
-            .order('start_date', { ascending: true })
-            .limit(200);
+        try {
+            const { data: activeBookings, error } = await supabase
+                .from('bookings')
+                .select(`
+                    *,
+                    clients (name),
+                    inventory_items (code, type, address, district)
+                `)
+                .gte('end_date', today)
+                .in('status', ['CONFIRMED', 'OPTION', 'KESIN', 'KESN'])
+                .order('created_at', { ascending: false })
+                .limit(200);
 
-        if (error) return `Hata oluştu: ${error.message}`;
-        if (!activeBookings || activeBookings.length === 0) return "Şu an aktif rezervasyon bulunmuyor.";
-
-        const confirmed = activeBookings.filter(b => b.status === 'CONFIRMED' || b.status === 'KESIN' || b.status === 'KESN');
-        const option = activeBookings.filter(b => b.status === 'OPTION');
-
-        const groupByClient = (bookings: typeof activeBookings) => {
-            const groups: Record<string, typeof activeBookings> = {};
-            bookings.forEach(b => {
-                const name = (b.clients as any)?.name || b.brand_name || 'Bilinmeyen';
-                if (!groups[name]) groups[name] = [];
-                groups[name].push(b);
-            });
-            return groups;
-        };
-
-        let res = `**Aktif Rezervasyon Özeti** (Toplam: ${activeBookings.length})\n`;
-        res += `KESİN: ${confirmed.length} | OPSİYON: ${option.length}\n\n`;
-
-        if (confirmed.length > 0) {
-            res += `**KESİN REZERVASYONLAR:**\n`;
-            const cg = groupByClient(confirmed);
-            for (const [client, bookings] of Object.entries(cg)) {
-                res += `\n**${client}** (${bookings.length} lokasyon):\n`;
-                bookings.forEach(b => {
-                    const item = b.inventory_items as any;
-                    const start = new Date(b.start_date).toLocaleDateString('tr-TR');
-                    const end = new Date(b.end_date).toLocaleDateString('tr-TR');
-                    res += `  - ${item?.code || '?'} (${item?.type || '?'}) ${item?.district || ''} ${item?.address || ''} | ${start} - ${end}\n`;
-                });
+            if (error) {
+                this.logger.error('Error fetching reservation tables:', error.message);
+                return `Hata oluştu: ${error.message}`;
             }
-        }
 
-        if (option.length > 0) {
-            res += `\n**OPSİYONLU REZERVASYONLAR:**\n`;
-            const og = groupByClient(option);
-            for (const [client, bookings] of Object.entries(og)) {
-                res += `\n**${client}** (${bookings.length} lokasyon):\n`;
+            if (!activeBookings || activeBookings.length === 0) return "Şu an aktif bir rezervasyon kaydı bulunmuyor.";
+
+            const confirmed = activeBookings.filter(b => b.status === 'CONFIRMED' || b.status === 'KESIN' || b.status === 'KESN');
+            const option = activeBookings.filter(b => b.status === 'OPTION');
+
+            const groupByClient = (bookings: any[]) => {
+                const groups: Record<string, any[]> = {};
                 bookings.forEach(b => {
-                    const item = b.inventory_items as any;
-                    const start = new Date(b.start_date).toLocaleDateString('tr-TR');
-                    const end = new Date(b.end_date).toLocaleDateString('tr-TR');
-                    res += `  - ${item?.code || '?'} (${item?.type || '?'}) ${item?.district || ''} ${item?.address || ''} | ${start} - ${end}\n`;
+                    const name = b.clients?.name || b.brand_name || 'Bilinmeyen Müşteri';
+                    if (!groups[name]) groups[name] = [];
+                    groups[name].push(b);
                 });
-            }
-        }
+                return groups;
+            };
 
-        return res;
+            let res = `**Aktif Rezervasyon Özeti** (Toplam: ${activeBookings.length})\n`;
+            res += `KESİN: ${confirmed.length} | OPSİYON: ${option.length}\n\n`;
+
+            if (confirmed.length > 0) {
+                res += `**KESİN REZERVASYONLAR:**\n`;
+                const cg = groupByClient(confirmed);
+                for (const [client, bookings] of Object.entries(cg)) {
+                    res += `\n**${client}** (${bookings.length} lokasyon):\n`;
+                    bookings.forEach(b => {
+                        const item = b.inventory_items;
+                        const start = b.start_date ? new Date(b.start_date).toLocaleDateString('tr-TR') : '?';
+                        const end = b.end_date ? new Date(b.end_date).toLocaleDateString('tr-TR') : '?';
+                        res += `  - ${item?.code || '?'} (${item?.type || '?'}) ${item?.district || ''} ${item?.address || ''} | ${start} - ${end}\n`;
+                    });
+                }
+            }
+
+            if (option.length > 0) {
+                res += `\n**OPSİYONLU REZERVASYONLAR:**\n`;
+                const og = groupByClient(option);
+                for (const [client, bookings] of Object.entries(og)) {
+                    res += `\n**${client}** (${bookings.length} lokasyon):\n`;
+                    bookings.forEach(b => {
+                        const item = b.inventory_items;
+                        const start = b.start_date ? new Date(b.start_date).toLocaleDateString('tr-TR') : '?';
+                        const end = b.end_date ? new Date(b.end_date).toLocaleDateString('tr-TR') : '?';
+                        res += `  - ${item?.code || '?'} (${item?.type || '?'}) ${item?.district || ''} ${item?.address || ''} | ${start} - ${end}\n`;
+                    });
+                }
+            }
+            return res;
+        } catch (e) {
+            this.logger.error('Unexpected error in getReservationTables:', (e as Error).message);
+            return `Hata oluştu: ${(e as Error).message}`;
+        }
     }
 
     private async getClientBookings(clientName: string) {
         const today = new Date().toISOString();
-        const { data: bookings, error } = await supabase
-            .from('bookings')
-            .select(`
-                id,
-                status,
-                start_date,
-                end_date,
-                brand_name,
-                notes,
-                clients (name),
-                inventory_items (code, type, address, district)
-            `)
-            .gte('end_date', today)
-            .in('status', ['CONFIRMED', 'OPTION', 'KESIN', 'KESN'])
-            .order('status', { ascending: false })
-            .order('start_date', { ascending: true });
+        try {
+            const { data: bookings, error } = await supabase
+                .from('bookings')
+                .select(`
+                    *,
+                    clients (name),
+                    inventory_items (code, type, address, district)
+                `)
+                .gte('end_date', today)
+                .in('status', ['CONFIRMED', 'OPTION', 'KESIN', 'KESN'])
+                .order('created_at', { ascending: false });
 
-        if (error) return `Hata oluştu: ${error.message}`;
-        if (!bookings || bookings.length === 0) return "Aktif rezervasyon bulunmuyor.";
+            if (error) {
+                this.logger.error('Error fetching client bookings:', error.message);
+                return `Hata oluştu: ${error.message}`;
+            }
 
-        const searchLower = clientName.toLowerCase().trim();
-        const matched = bookings.filter(b => {
-            const clientNameFromDb = (b.clients as any)?.name || '';
-            const brandName = b.brand_name || '';
-            return clientNameFromDb.toLowerCase().includes(searchLower) || brandName.toLowerCase().includes(searchLower);
-        });
+            if (!bookings || bookings.length === 0) return "Aktif rezervasyon bulunmuyor.";
 
-        if (matched.length === 0) return `"${clientName}" adına ait aktif rezervasyon bulunamadı.`;
-
-        const confirmed = matched.filter(b => b.status === 'CONFIRMED' || b.status === 'KESIN' || b.status === 'KESN');
-        const option = matched.filter(b => b.status === 'OPTION');
-        const displayClient = (matched[0].clients as any)?.name || matched[0].brand_name || clientName;
-
-        let res = `**${displayClient}** — Aktif Rezervasyonları (Toplam: ${matched.length})\n\n`;
-
-        if (confirmed.length > 0) {
-            res += `**KESİN** (${confirmed.length} lokasyon):\n`;
-            confirmed.forEach(b => {
-                const item = b.inventory_items as any;
-                const start = new Date(b.start_date).toLocaleDateString('tr-TR');
-                const end = new Date(b.end_date).toLocaleDateString('tr-TR');
-                res += `  - ${item?.code || '?'} (${item?.type || '?'}) ${item?.district || ''} ${item?.address || ''} | ${start} - ${end}\n`;
+            const searchLower = clientName.toLowerCase().trim();
+            const matched = bookings.filter(b => {
+                const clientNameFromDb = b.clients?.name || '';
+                const brandName = b.brand_name || '';
+                return clientNameFromDb.toLowerCase().includes(searchLower) || brandName.toLowerCase().includes(searchLower);
             });
-        }
 
-        if (option.length > 0) {
-            res += `\n**OPSİYONLU** (${option.length} lokasyon):\n`;
-            option.forEach(b => {
-                const item = b.inventory_items as any;
-                const start = new Date(b.start_date).toLocaleDateString('tr-TR');
-                const end = new Date(b.end_date).toLocaleDateString('tr-TR');
-                res += `  - ${item?.code || '?'} (${item?.type || '?'}) ${item?.district || ''} ${item?.address || ''} | ${start} - ${end}\n`;
-            });
-        }
+            if (matched.length === 0) return `"${clientName}" adına ait aktif rezervasyon bulunamadı.`;
 
-        return res;
+            const confirmed = matched.filter(b => b.status === 'CONFIRMED' || b.status === 'KESIN' || b.status === 'KESN');
+            const option = matched.filter(b => b.status === 'OPTION');
+            const displayClient = matched[0].clients?.name || matched[0].brand_name || clientName;
+
+            let res = `**${displayClient}** — Aktif Rezervasyonları (Toplam: ${matched.length})\n\n`;
+
+            if (confirmed.length > 0) {
+                res += `**KESİN** (${confirmed.length} lokasyon):\n`;
+                confirmed.forEach(b => {
+                    const item = b.inventory_items;
+                    const start = b.start_date ? new Date(b.start_date).toLocaleDateString('tr-TR') : '?';
+                    const end = b.end_date ? new Date(b.end_date).toLocaleDateString('tr-TR') : '?';
+                    res += `  - ${item?.code || '?'} (${item?.type || '?'}) ${item?.district || ''} ${item?.address || ''} | ${start} - ${end}\n`;
+                });
+            }
+
+            if (option.length > 0) {
+                res += `\n**OPSİYONLU** (${option.length} lokasyon):\n`;
+                option.forEach(b => {
+                    const item = b.inventory_items;
+                    const start = b.start_date ? new Date(b.start_date).toLocaleDateString('tr-TR') : '?';
+                    const end = b.end_date ? new Date(b.end_date).toLocaleDateString('tr-TR') : '?';
+                    res += `  - ${item?.code || '?'} (${item?.type || '?'}) ${item?.district || ''} ${item?.address || ''} | ${start} - ${end}\n`;
+                });
+            }
+
+            return res;
+        } catch (e) {
+            this.logger.error('Unexpected error in getClientBookings:', (e as Error).message);
+            return `Hata oluştu: ${(e as Error).message}`;
+        }
     }
 
     private async getInventorySummary() {
@@ -322,10 +309,11 @@ export class AssistantService {
             const response = await axios.post(
                 'https://openrouter.ai/api/v1/chat/completions',
                 {
-                    model: 'anthropic/claude-3-haiku',
+                    model: 'anthropic/claude-3.5-haiku',
                     max_tokens: 2048,
                     messages: apiMessages,
                     tools: tools,
+                    tool_choice: 'auto',
                 },
                 {
                     headers: {
@@ -337,46 +325,40 @@ export class AssistantService {
             );
 
             const responseMessage = response.data?.choices?.[0]?.message;
-            if (!responseMessage) {
-                return 'Yanıt oluşturulamadı. Lütfen tekrar deneyin.';
-            }
 
-            if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
-                this.logger.log(`LLM requested tool calls: ${JSON.stringify(responseMessage.tool_calls)}`);
+            if (responseMessage?.tool_calls && responseMessage.tool_calls.length > 0) {
+                this.logger.log(`Model requested ${responseMessage.tool_calls.length} tool calls`);
                 apiMessages.push(responseMessage);
 
                 for (const toolCall of responseMessage.tool_calls) {
                     const funcName = toolCall.function.name;
-                    let funcResult = "";
-                    try {
-                        const args = JSON.parse(toolCall.function.arguments || "{}");
-                        if (funcName === 'get_empty_locations') {
-                            funcResult = await this.getEmptyLocations(args.type);
-                        } else if (funcName === 'get_reservation_tables') {
-                            funcResult = await this.getReservationTables();
-                        } else if (funcName === 'get_client_bookings') {
-                            funcResult = await this.getClientBookings(args.client_name);
-                        } else if (funcName === 'get_inventory_summary') {
-                            funcResult = await this.getInventorySummary();
-                        } else {
-                            funcResult = "Bilinmeyen fonksiyon.";
-                        }
-                    } catch (e) {
-                        funcResult = "Fonksiyon çalıştırılırken hata oluştu: " + (e as Error).message;
+                    const args = JSON.parse(toolCall.function.arguments);
+                    let funcResult = '';
+
+                    this.logger.log(`Executing tool: ${funcName} with args: ${JSON.stringify(args)}`);
+
+                    if (funcName === 'get_empty_locations') {
+                        funcResult = await this.getEmptyLocations(args.type);
+                    } else if (funcName === 'get_reservation_tables') {
+                        funcResult = await this.getReservationTables();
+                    } else if (funcName === 'get_client_bookings') {
+                        funcResult = await this.getClientBookings(args.client_name);
+                    } else if (funcName === 'get_inventory_summary') {
+                        funcResult = await this.getInventorySummary();
                     }
 
                     apiMessages.push({
                         role: 'tool',
                         tool_call_id: toolCall.id,
                         name: funcName,
-                        content: funcResult
+                        content: funcResult,
                     });
                 }
 
                 const secondResponse = await axios.post(
                     'https://openrouter.ai/api/v1/chat/completions',
                     {
-                        model: 'anthropic/claude-3-haiku',
+                        model: 'anthropic/claude-3.5-haiku',
                         max_tokens: 2048,
                         messages: apiMessages,
                     },

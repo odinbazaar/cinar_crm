@@ -18,6 +18,7 @@ import ReservationsPage from './pages/ReservationsPage'
 import CostSettingsPage from './pages/CostSettingsPage'
 import ContractsPage from './pages/ContractsPage'
 import IncomingCallsPage from './pages/IncomingCallsPage'
+import NotificationsPage from './pages/NotificationsPage'
 
 // Layout
 import MainLayout from './components/layout/MainLayout'
@@ -86,6 +87,7 @@ function AppContent() {
                         <Route path="incoming-calls" element={<IncomingCallsPage />} />
                         <Route path="settings" element={<SettingsPage />} />
                         <Route path="reports" element={<ReportsPage />} />
+                        <Route path="notifications" element={<NotificationsPage />} />
                         <Route path="cost-settings" element={<CostSettingsPage />} />
 
                         {/* Redirect tasks to inventory for now */}

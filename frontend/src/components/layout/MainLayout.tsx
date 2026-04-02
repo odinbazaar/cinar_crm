@@ -37,6 +37,8 @@ const navigation = [
     { id: 'contracts', name: 'Sözleşmeler', href: '/contracts', icon: FileSignature },
     { id: 'incoming-calls', name: 'Arayan Firmalar', href: '/incoming-calls', icon: ClipboardList },
     { id: 'reports', name: 'Raporlar', href: '/reports', icon: BarChart3 },
+    { id: 'customer-requests', name: 'Bekleyen İşler', href: '/customer-requests', icon: ClipboardList },
+    { id: 'notifications', name: 'Bildirimler', href: '/notifications', icon: Bell },
     { id: 'settings', name: 'Ayarlar', href: '/settings', icon: Settings },
 ]
 
@@ -91,7 +93,7 @@ export default function MainLayout({ onLogout }: MainLayoutProps) {
         if (isManager) return true
         
         // EMPLOYEE yetkileri varsayılan (listesi yoksa)
-        const employeeAllowed = ['dashboard', 'sales', 'reservations', 'inventory', 'asim-listesi', 'proposals', 'incoming-calls']
+        const employeeAllowed = ['dashboard', 'sales', 'reservations', 'inventory', 'asim-listesi', 'proposals', 'incoming-calls', 'notifications', 'customer-requests']
         return employeeAllowed.includes(item.id)
     })
 
