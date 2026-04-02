@@ -28,6 +28,16 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
 
     if (!isOpen || !proposal) return null
 
+    let campaignName = proposal.description || 'GENEL KAMPANYA'
+    let salesRepName = ''
+    try {
+        const descObj = JSON.parse(proposal.description)
+        if (descObj && typeof descObj === 'object') {
+            campaignName = descObj.campaign || 'GENEL KAMPANYA'
+            salesRepName = descObj.salesRep || ''
+        }
+    } catch (e) { /* plain text description */ }
+
     const handlePrint = () => {
         const printContent = printRef.current
         if (printContent) {
@@ -224,8 +234,14 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
                                 </div>
                                 <div className="flex gap-4">
                                     <span className="w-32 font-bold text-gray-900 uppercase">KAMPANYA</span>
-                                    <span className="flex-1">: {proposal.description || 'GENEL KAMPANYA'}</span>
+                                    <span className="flex-1">: {campaignName}</span>
                                 </div>
+                                {salesRepName && (
+                                    <div className="flex gap-4">
+                                        <span className="w-32 font-bold text-gray-900 uppercase">MÜŞTERİ TEMSİLCİSİ</span>
+                                        <span className="flex-1 font-black">: {salesRepName}</span>
+                                    </div>
+                                )}
                                 <div className="flex gap-4">
                                     <span className="w-32 font-bold text-gray-900 uppercase">REZERVASYON TARİHİ</span>
                                     <span className="flex-1">: {new Date(proposal.created_at).toLocaleDateString('tr-TR')}</span>
@@ -251,21 +267,42 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
                                 </tr>
                             </thead>
                             <tbody>
-                                {proposal.items?.map((item, index) => {
-                                    const metadata = (item as any).metadata || {};
-                                    return (
-                                        <tr key={index} className="text-center font-bold border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                            <td className="p-3 border-x border-gray-100 text-left font-black uppercase text-gray-800">{item.description.split(' - ')[0]}</td>
-                                            <td className="p-3 border-x border-gray-100">{item.quantity}</td>
-                                            <td className="p-3 border-x border-gray-100">{metadata.duration || '1'}</td>
-                                            <td className="p-3 border-x border-gray-100">{metadata.days || '—'}</td>
-                                            <td className="p-3 border-x border-gray-100">{metadata.start_date || '—'}</td>
-                                            <td className="p-3 border-x border-gray-100">{metadata.end_date || '—'}</td>
-                                            <td className="p-3 border-x border-gray-100">₺{item.unit_price.toLocaleString('tr-TR')}</td>
-                                            <td className="p-3 border-x border-gray-100 font-black text-gray-900 bg-gray-50/50">₺{(item.total || 0).toLocaleString('tr-TR')}</td>
-                                        </tr>
-                                    )
-                                })}
+                                {(() => {
+                                    let lastMainQuantity = 1;
+                                    let lastMainDuration = '1';
+                                    
+                                    return proposal.items?.map((item, index) => {
+                                        let metadata = (item as any).metadata || {};
+                                        if (typeof metadata === 'string') {
+                                            try { metadata = JSON.parse(metadata); } catch (e) { metadata = {}; }
+                                        }
+                                        const desc = (item.description || '').toLowerCase();
+                                        const isSubItem = metadata.type === 'OP' || metadata.type === 'BASKI' || desc.includes('op.') || desc.includes('operasyon') || desc.includes('baskı') || desc.includes('baski');
+                                        
+                                        if (!isSubItem) {
+                                            lastMainQuantity = item.quantity || 1;
+                                            lastMainDuration = metadata.duration || '1';
+                                        }
+
+                                        const displayQuantity = isSubItem ? lastMainQuantity : item.quantity;
+                                        const displayDuration = isSubItem ? lastMainDuration : (metadata.duration || '1');
+                                        // For subItems, unit price should mathematically make sense: Total / displayQuantity
+                                        const displayUnitPrice = isSubItem && displayQuantity > 0 ? ((item.total || 0) / displayQuantity) : item.unit_price;
+
+                                        return (
+                                            <tr key={index} className="text-center font-bold border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                                <td className="p-3 border-x border-gray-100 text-left font-black uppercase text-gray-800">{item.description.split(' - ')[0]}</td>
+                                                <td className="p-3 border-x border-gray-100">{displayQuantity}</td>
+                                                <td className="p-3 border-x border-gray-100">{displayDuration}</td>
+                                                <td className="p-3 border-x border-gray-100">{isSubItem ? '—' : (metadata.days || '—')}</td>
+                                                <td className="p-3 border-x border-gray-100">{isSubItem ? '—' : (metadata.start_date || '—')}</td>
+                                                <td className="p-3 border-x border-gray-100">{isSubItem ? '—' : (metadata.end_date || '—')}</td>
+                                                <td className="p-3 border-x border-gray-100">₺{displayUnitPrice.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}</td>
+                                                <td className="p-3 border-x border-gray-100 font-black text-gray-900 bg-gray-50/50">₺{(item.total || 0).toLocaleString('tr-TR', { maximumFractionDigits: 2 })}</td>
+                                            </tr>
+                                        )
+                                    });
+                                })()}
                             </tbody>
                         </table>
 

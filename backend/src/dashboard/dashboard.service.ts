@@ -40,27 +40,36 @@ export class DashboardService {
             .from('clients')
             .select('*', { count: 'exact', head: true });
 
-        // 5. Recent Bookings
-        const { data: recentBookingsData } = await supabase
+        // 5. Active Bookings By Client
+        const { data: allActiveBookingsData } = await supabase
             .from('bookings')
             .select(`
                 *,
                 clients (name),
                 inventory_items (code, type, address)
             `)
-            .order('created_at', { ascending: false })
-            .limit(5);
+            .in('status', ['CONFIRMED', 'OPTION'])
+            .order('created_at', { ascending: false });
 
-        const recentBookings = recentBookingsData?.map(b => ({
-            id: b.id,
-            clientName: b.clients?.name || 'Bilinmeyen Müşteri',
-            itemCode: b.inventory_items?.code,
-            itemType: b.inventory_items?.type,
-            itemAddress: b.inventory_items?.address,
-            status: b.status,
-            startDate: b.start_date,
-            endDate: b.end_date
-        })) || [];
+        const groups: Record<string, any[]> = {};
+        allActiveBookingsData?.forEach(b => {
+             const clientName = b.clients?.name || 'Bilinmeyen Müşteri';
+             if (!groups[clientName]) groups[clientName] = [];
+             groups[clientName].push({
+                 id: b.id,
+                 itemCode: b.inventory_items?.code,
+                 itemType: b.inventory_items?.type,
+                 itemAddress: b.inventory_items?.address,
+                 status: b.status,
+                 startDate: b.start_date,
+                 endDate: b.end_date
+             });
+        });
+
+        const activeBookingsByClient = Object.keys(groups).map(clientName => ({
+             clientName,
+             locations: groups[clientName]
+        }));
 
         // 6. Inventory Breakdown
         const { data: inventoryData } = await supabase
@@ -83,7 +92,7 @@ export class DashboardService {
                 { name: 'Aktif Rezervasyon', value: activeBookings?.toString() || '0', change: '+0', changeType: 'increase', icon: 'Calendar', color: 'bg-purple-500' },
                 { name: 'Güncel Envanter Sayısı', value: totalItems?.toString() || '0', change: '+0', changeType: 'increase', icon: 'Map', color: 'bg-orange-500' },
             ],
-            recentBookings,
+            activeBookingsByClient,
             inventoryBreakdown
         };
     }

@@ -9,15 +9,17 @@ export interface DashboardStats {
         icon: string;
         color: string;
     }[];
-    recentBookings: {
-        id: string;
+    activeBookingsByClient: {
         clientName: string;
-        itemCode: string;
-        itemType: string;
-        itemAddress: string;
-        status: string;
-        startDate: string;
-        endDate: string;
+        locations: {
+            id: string;
+            itemCode: string;
+            itemType: string;
+            itemAddress: string;
+            status: string;
+            startDate: string;
+            endDate: string;
+        }[];
     }[];
     inventoryBreakdown: {
         type: string;

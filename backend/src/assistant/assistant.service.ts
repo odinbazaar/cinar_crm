@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
+import supabase from '../config/supabase.config';
 
 const SYSTEM_PROMPT = `Sen "Çınar" adında, İzmir Açık Hava Reklam (IAR) CRM sistemi için geliştirilmiş bir yardımcı asistansın.
 Görevin kullanıcılara sistem hakkında yardımcı olmak, sorularını yanıtlamak ve rehberlik etmektir.
@@ -112,23 +113,101 @@ export class AssistantService {
         }
     }
 
-    async chat(messages: Array<{ role: 'user' | 'assistant'; content: string }>): Promise<string> {
+    private async getEmptyLocations(type?: string) {
+        let query = supabase.from('inventory_items').select('code, type, address').eq('is_active', true);
+        if (type) {
+            query = query.eq('type', type);
+        }
+        const { data: allItems } = await query;
+        
+        const today = new Date().toISOString();
+        const { data: activeBookings } = await supabase
+            .from('bookings')
+            .select('inventory_items(code)')
+            .lte('start_date', today)
+            .gte('end_date', today)
+            .in('status', ['CONFIRMED', 'OPTION']);
+            
+        const bookedCodes = new Set(activeBookings?.map(b => (b.inventory_items as any)?.code).filter(Boolean));
+        const emptyItems = allItems?.filter(item => !bookedCodes.has(item.code)) || [];
+        
+        if (emptyItems.length === 0) return "Hiç boş lokasyon bulunamadı.";
+        
+        let res = `Toplam ${emptyItems.length} boş lokasyon bulundu.\nÖrnek boş lokasyonlar (maksimum 20 adet gösteriliyor):\n`;
+        res += emptyItems.slice(0, 20).map(i => `- ${i.code} (${i.type}): ${i.address}`).join('\n');
+        return res;
+    }
+
+    private async getReservationTables() {
+        const today = new Date().toISOString();
+        const { data: activeBookings } = await supabase
+            .from('bookings')
+            .select(`
+                status,
+                start_date,
+                end_date,
+                clients(name),
+                inventory_items(code, type)
+            `)
+            .gte('end_date', today)
+            .in('status', ['CONFIRMED', 'OPTION'])
+            .order('created_at', { ascending: false })
+            .limit(30);
+            
+        if (!activeBookings || activeBookings.length === 0) return "Şu an için aktif rezervasyon görünmüyor.";
+        
+        let res = "Güncel Aktif Rezervasyonlar Özeti (ilk 30):\n";
+        res += activeBookings.map(b => `- ${b.status === 'CONFIRMED' ? 'KESİN' : 'OPSİYON'}: ${(b.clients as any)?.name} -> ${(b.inventory_items as any)?.code} (${(b.inventory_items as any)?.type})`).join('\n');
+        return res;
+    }
+
+    async chat(messages: Array<any>): Promise<string> {
         if (!this.apiKey) {
             this.logger.warn('Chat called but no API key available');
             return 'Üzgünüm, AI asistanı henüz yapılandırılmadı. (API key eksik)';
         }
 
+        const tools = [
+            {
+                type: 'function',
+                function: {
+                    name: 'get_empty_locations',
+                    description: 'Belirli bir mecra tipi için boş/müsait lokasyonları getirir.',
+                    parameters: {
+                        type: 'object',
+                        properties: {
+                            type: { type: 'string', description: 'Mecra tipi. Enum: BB, CLP, GB, MGL' }
+                        }
+                    }
+                }
+            },
+            {
+                type: 'function',
+                function: {
+                    name: 'get_reservation_tables',
+                    description: 'Mevcut rezervasyon durumlarını, tablolarını ve kimin neyi kiraladığını getirir.',
+                    parameters: {
+                        type: 'object',
+                        properties: {}
+                    }
+                }
+            }
+        ];
+
         try {
             this.logger.log(`Sending request to OpenRouter API with ${messages.length} messages`);
+            let apiMessages: any[] = [
+                { role: 'system', content: SYSTEM_PROMPT },
+                ...messages.map(m => ({ role: m.role, content: m.content })),
+            ];
+
             const response = await axios.post(
                 'https://openrouter.ai/api/v1/chat/completions',
                 {
-                    model: 'anthropic/claude-sonnet-4',
+                    model: 'anthropic/claude-3-haiku', // Fallback to a valid tool-supporting text model
                     max_tokens: 1024,
-                    messages: [
-                        { role: 'system', content: SYSTEM_PROMPT },
-                        ...messages.map(m => ({ role: m.role, content: m.content })),
-                    ],
+                    messages: apiMessages,
+                    tools: tools,
                 },
                 {
                     headers: {
@@ -139,16 +218,66 @@ export class AssistantService {
                 },
             );
 
-            const content = response.data?.choices?.[0]?.message?.content;
-            if (!content) {
-                this.logger.warn('Empty response from API:', JSON.stringify(response.data));
+            const responseMessage = response.data?.choices?.[0]?.message;
+            if (!responseMessage) {
                 return 'Yanıt oluşturulamadı. Lütfen tekrar deneyin.';
             }
-            return content;
+
+            if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
+                this.logger.log(`LLM requested tool calls: ${JSON.stringify(responseMessage.tool_calls)}`);
+                apiMessages.push(responseMessage); // Add assistant's tool call message
+                
+                for (const toolCall of responseMessage.tool_calls) {
+                    const funcName = toolCall.function.name;
+                    let funcResult = "";
+                    try {
+                        const args = JSON.parse(toolCall.function.arguments || "{}");
+                        if (funcName === 'get_empty_locations') {
+                            funcResult = await this.getEmptyLocations(args.type);
+                        } else if (funcName === 'get_reservation_tables') {
+                            funcResult = await this.getReservationTables();
+                        } else {
+                            funcResult = "Bilinmeyen fonksiyon.";
+                        }
+                    } catch (e) {
+                         funcResult = "Fonksiyon çalıştırılırken hata oluştu: " + e.message;
+                    }
+
+                    apiMessages.push({
+                        role: 'tool',
+                        tool_call_id: toolCall.id,
+                        name: funcName,
+                        content: funcResult
+                    });
+                }
+
+                // Second call with tool outputs
+                const secondResponse = await axios.post(
+                    'https://openrouter.ai/api/v1/chat/completions',
+                    {
+                        model: 'anthropic/claude-3-haiku',
+                        max_tokens: 1024,
+                        messages: apiMessages,
+                    },
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${this.apiKey}`,
+                            'Content-Type': 'application/json',
+                        },
+                        timeout: 30000,
+                    },
+                );
+                
+                return secondResponse.data?.choices?.[0]?.message?.content || 'Yanıt oluşturulamadı.';
+            }
+
+            return responseMessage.content;
         } catch (error) {
             const errData = error?.response?.data || error.message;
             this.logger.error('OpenRouter API error:', JSON.stringify(errData));
-            return `Üzgünüm, şu an yanıt veremiyorum. Hata: ${typeof errData === 'object' ? JSON.stringify(errData) : errData}`;
+            
+            // Temporary simple fallback if tool calls fail or model gives bad error format
+            return `Üzgünüm, şu an yanıt veremiyorum. Şunu kontrol edebilirsiniz: Rezervasyon sayfası günceldir.`;
         }
     }
 }

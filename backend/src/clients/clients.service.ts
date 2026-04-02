@@ -205,4 +205,42 @@ export class ClientsService {
         if (error) throw new Error(error.message);
         return data as Client[];
     }
+
+    async getClientDetails(clientId: string): Promise<any> {
+        const [clientRes, bookingsRes, proposalsRes, invoicesRes, contractsRes, customerRequestsRes] = await Promise.all([
+            supabase.from('clients').select('*').eq('id', clientId).single(),
+            supabase.from('bookings').select('*, inventory_item:inventory_items(code, type, district, neighborhood, address)').eq('client_id', clientId).order('created_at', { ascending: false }),
+            supabase.from('proposals').select('*').eq('client_id', clientId).order('created_at', { ascending: false }),
+            supabase.from('invoices').select('*, project:projects(name)').order('created_at', { ascending: false }),
+            supabase.from('contracts').select('*').eq('client_id', clientId).order('created_at', { ascending: false }),
+            supabase.from('customer_requests').select('*').eq('client_id', clientId).order('created_at', { ascending: false }),
+        ]);
+
+        const projectIds = [
+            ...new Set([
+                ...((bookingsRes.data || []).map((b: any) => b.project_id).filter(Boolean) as string[]),
+                ...((proposalsRes.data || []).map((p: any) => p.project_id).filter(Boolean) as string[]),
+            ])
+        ];
+
+        let invoicesLinked: any[] = [];
+        if (projectIds.length > 0) {
+            const { data: invoicesData } = await supabase
+                .from('invoices')
+                .select('*, project:projects(name)')
+                .in('project_id', projectIds)
+                .order('created_at', { ascending: false });
+            invoicesLinked = invoicesData || [];
+        }
+
+        return {
+            client: clientRes.data,
+            bookings: bookingsRes.data || [],
+            proposals: proposalsRes.data || [],
+            invoices: invoicesLinked,
+            contracts: contractsRes.data || [],
+            customerRequests: customerRequestsRes.data || [],
+            operations: (bookingsRes.data || []).filter((b: any) => b.status === 'CONFIRMED' || b.status === 'KESIN'),
+        };
+    }
 }

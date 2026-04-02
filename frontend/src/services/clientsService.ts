@@ -79,6 +79,16 @@ export interface UpdateClientDto extends Partial<CreateClientDto> {
     lost_reason?: string;
 }
 
+export interface ClientDetails {
+    client: Client;
+    bookings: any[];
+    proposals: any[];
+    invoices: any[];
+    contracts: any[];
+    customerRequests: any[];
+    operations: any[];
+}
+
 // Clients Service
 export const clientsService = {
     async getAll(): Promise<Client[]> {
@@ -87,6 +97,10 @@ export const clientsService = {
 
     async getOne(id: string): Promise<Client> {
         return apiClient.get<Client>(`/clients/${id}`);
+    },
+
+    async getClientDetails(id: string): Promise<ClientDetails> {
+        return apiClient.get<ClientDetails>(`/clients/${id}/details`);
     },
 
     async getActive(): Promise<Client[]> {

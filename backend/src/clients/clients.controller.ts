@@ -34,6 +34,11 @@ export class ClientsController {
         return this.clientsService.findOne(id);
     }
 
+    @Get(':id/details')
+    async getClientDetails(@Param('id') id: string) {
+        return this.clientsService.getClientDetails(id);
+    }
+
     @Post()
     async create(@Body() createClientDto: CreateClientDto) {
         return this.clientsService.create(createClientDto);

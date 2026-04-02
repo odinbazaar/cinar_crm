@@ -42,9 +42,9 @@ export default function DashboardPage() {
         );
     }
 
-    const { stats, recentBookings, inventoryBreakdown } = dashboardData || {
+    const { stats, activeBookingsByClient, inventoryBreakdown } = dashboardData || {
         stats: [],
-        recentBookings: [],
+        activeBookingsByClient: [],
         inventoryBreakdown: []
     };
 
@@ -142,49 +142,53 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Recent Bookings */}
+                {/* Active Bookings By Client */}
                 <div className="lg:col-span-2 card">
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-lg font-bold text-gray-900">Son Rezervasyonlar</h2>
+                        <h2 className="text-lg font-bold text-gray-900">Aktif Rezervasyonlar <span className="text-sm font-normal text-gray-500">(Müşteriye Göre)</span></h2>
                         <a href="/bookings" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
                             Tümünü Gör →
                         </a>
                     </div>
-                    <div className="space-y-4">
-                        {recentBookings.length > 0 ? (
-                            recentBookings.map((booking) => (
-                                <div key={booking.id} className="p-4 border border-gray-200 rounded-lg hover:border-primary-300 transition-colors">
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div>
-                                            <h3 className="font-semibold text-gray-900">{booking.clientName}</h3>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <span className="badge badge-info">{booking.itemType} - {booking.itemCode}</span>
-                                                <span className={`badge ${booking.status === 'CONFIRMED' ? 'badge-success' :
-                                                    booking.status === 'OPTION' ? 'badge-warning' :
-                                                        'badge-danger'
-                                                    }`}>
-                                                    {booking.status === 'CONFIRMED' ? 'Kesin' :
-                                                        booking.status === 'OPTION' ? 'Opsiyonlu' :
-                                                            'İptal'}
-                                                </span>
+                    <div className="space-y-6">
+                        {activeBookingsByClient.length > 0 ? (
+                            activeBookingsByClient.map((group) => (
+                                <div key={group.clientName} className="p-4 border border-gray-200 rounded-lg hover:border-primary-300 transition-colors">
+                                    <h3 className="font-semibold text-lg text-gray-900 mb-3 border-b pb-2">{group.clientName}</h3>
+                                    <div className="space-y-3">
+                                        {group.locations.map(booking => (
+                                            <div key={booking.id} className="flex items-start justify-between bg-gray-50 p-3 rounded">
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="badge badge-info">{booking.itemType} - {booking.itemCode}</span>
+                                                        <span className={`badge ${booking.status === 'CONFIRMED' ? 'badge-success' :
+                                                            booking.status === 'OPTION' ? 'badge-warning' :
+                                                                'badge-danger'
+                                                            }`}>
+                                                            {booking.status === 'CONFIRMED' ? 'Kesin' :
+                                                                booking.status === 'OPTION' ? 'Opsiyonlu' :
+                                                                    'İptal'}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-500">{booking.itemAddress}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-sm font-medium text-gray-900">
+                                                        {new Date(booking.startDate).toLocaleDateString('tr-TR')}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {new Date(booking.endDate).toLocaleDateString('tr-TR')}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <p className="text-sm text-gray-500 mt-1">{booking.itemAddress}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-sm font-medium text-gray-900">
-                                                {new Date(booking.startDate).toLocaleDateString('tr-TR')}
-                                            </p>
-                                            <p className="text-xs text-gray-500">
-                                                {new Date(booking.endDate).toLocaleDateString('tr-TR')}
-                                            </p>
-                                        </div>
+                                        ))}
                                     </div>
                                 </div>
                             ))
                         ) : (
                             <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-lg">
                                 <Calendar className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                                <p className="text-gray-500">Henüz rezervasyon bulunmuyor.</p>
+                                <p className="text-gray-500">Henüz aktif rezervasyon bulunmuyor.</p>
                             </div>
                         )}
                     </div>

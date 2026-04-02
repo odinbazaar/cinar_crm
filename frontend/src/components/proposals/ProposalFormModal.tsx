@@ -35,13 +35,16 @@ export default function ProposalFormModal({ isOpen, onClose, onSave, proposal }:
     const [clients, setClients] = useState<Client[]>([])
     const [selectedClientId, setSelectedClientId] = useState('')
 
+    const SALES_REPS = ['Ali Çınar', 'Simge', 'Ayşe']
+
     const [formData, setFormData] = useState({
         title: '',
         date: new Date().toISOString().split('T')[0],
         validUntil: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         items: [] as ProposalItem[],
         terms: 'Teklifimize ilan reklam vergileri dahil, KDV hariçtir. Her türlü iptal talebi, en geç kampanya başlangıç tarihine 20 gün kala bildirilmelidir. Daha geç bildirilen iptaller için kiracı, kira bedelinin %50\'sini cezai şart olarak ödemeyi kabul ve taahhüt eder.',
-        description: ''
+        description: '',
+        salesRep: ''
     })
 
     useEffect(() => {
@@ -124,13 +127,24 @@ export default function ProposalFormModal({ isOpen, onClose, onSave, proposal }:
                 }
             });
 
+            let parsedDesc = proposal.description || '';
+            let parsedSalesRep = '';
+            try {
+                const descObj = JSON.parse(proposal.description);
+                if (descObj && typeof descObj === 'object') {
+                    parsedDesc = descObj.campaign || '';
+                    parsedSalesRep = descObj.salesRep || '';
+                }
+            } catch (e) { /* plain text description */ }
+
             setFormData({
                 title: proposal.title,
                 date: proposal.created_at.split('T')[0],
                 validUntil: proposal.valid_until ? proposal.valid_until.split('T')[0] : '',
                 items: mappedItems,
                 terms: proposal.terms || formData.terms,
-                description: proposal.description || ''
+                description: parsedDesc,
+                salesRep: parsedSalesRep
             })
         } else {
             // Reset to defaults if no proposal
@@ -140,7 +154,8 @@ export default function ProposalFormModal({ isOpen, onClose, onSave, proposal }:
                 validUntil: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                 items: [],
                 terms: 'Teklifimize ilan reklam vergileri dahil, KDV hariçtir. Her türlü iptal talebi, en geç kampanya başlangıç tarihine 20 gün kala bildirilmelidir. Daha geç bildirilen iptaller için kiracı, kira bedelinin %50\'sini cezai şart olarak ödemeyi kabul ve taahhüt eder.',
-                description: ''
+                description: '',
+                salesRep: ''
             })
             setSelectedClientId('')
         }
@@ -241,7 +256,7 @@ export default function ProposalFormModal({ isOpen, onClose, onSave, proposal }:
             title: formData.title,
             client_id: selectedClientId,
             created_by_id: localStorage.getItem('userId') || '3d9cfdd6-3948-4071-8e81-d422c0654fc5',
-            description: formData.description,
+            description: JSON.stringify({ campaign: formData.description, salesRep: formData.salesRep }),
             terms: formData.terms,
             valid_until: new Date(formData.validUntil).toISOString(),
             items: formData.items.flatMap(item => [
@@ -254,15 +269,15 @@ export default function ProposalFormModal({ isOpen, onClose, onSave, proposal }:
                 },
                 ...(item.opBedel > 0 ? [{
                     description: `OP. BEDELİ - ${item.measurements}`,
-                    quantity: item.quantity,
-                    unit_price: item.opBedel,
+                    quantity: 1,
+                    unit_price: item.opBedel * item.quantity,
                     total: item.opBedel * item.quantity,
                     metadata: { type: 'OP', source_code: item.type, district: item.district, measurements: item.measurements }
                 }] : []),
                 ...(item.baskiFiyati > 0 ? [{
                     description: `BASKI BEDELİ - ${item.measurements}`,
-                    quantity: item.quantity,
-                    unit_price: item.baskiFiyati,
+                    quantity: 1,
+                    unit_price: item.baskiFiyati * item.quantity,
                     total: item.baskiFiyati * item.quantity,
                     metadata: { type: 'BASKI', source_code: item.type, district: item.district, measurements: item.measurements }
                 }] : [])
@@ -322,6 +337,19 @@ export default function ProposalFormModal({ isOpen, onClose, onSave, proposal }:
                                             <option value="">Müşteri Seçin</option>
                                             {clients.map(client => (
                                                 <option key={client.id} value={client.id}>{client.company_name || client.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Müşteri Temsilcisi</label>
+                                        <select
+                                            value={formData.salesRep}
+                                            onChange={e => setFormData({ ...formData, salesRep: e.target.value })}
+                                            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                        >
+                                            <option value="">Temsilci Seçin</option>
+                                            {SALES_REPS.map(rep => (
+                                                <option key={rep} value={rep}>{rep}</option>
                                             ))}
                                         </select>
                                     </div>

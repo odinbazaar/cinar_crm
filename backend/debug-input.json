@@ -1,48 +1,48 @@
 {
-  "title": "ÇINAR MEDIA - Bütçe Teklifi",
+  "title": "SİRİUS LOFT  - Bütçe Teklifi",
   "description": "5 Ocak 2026 - 11 Ocak 2026",
-  "client_id": "e7810387-9b24-4cef-ba57-2e2529c201d1",
-  "created_by_id": "89b8aaf7-cbd8-47ee-90bd-1ad0188dde87",
-  "subtotal": 51500,
+  "client_id": "f6119f49-6a71-41b7-ae06-f53fd90fdcfd",
+  "created_by_id": "03e3b410-21b6-4c65-8755-aeba2b6336b7",
+  "subtotal": 48000,
   "tax_rate": 20,
-  "tax_amount": 10300,
-  "total": 61800,
+  "tax_amount": 9600,
+  "total": 57600,
   "items": [
     {
       "description": "BILLBOARD (2 Hafta)",
-      "quantity": 5,
-      "unit_price": 8500,
+      "quantity": 20,
+      "unit_price": 2000,
       "metadata": {
         "type": "BB",
         "code": "BILLBOARD",
         "duration": 2,
         "unit_price_base": 6500,
-        "discounted_price": 4250,
-        "printing_cost": 400,
-        "operation_cost": 500,
+        "discounted_price": 1000,
+        "printing_cost": 100,
+        "operation_cost": 100,
         "op_multiplier": 2
       }
     },
     {
-      "description": "BILLBOARD Operasyon Maliyeti (5 Adet x 2 Kez)",
+      "description": "BILLBOARD Operasyon Maliyeti (20 Adet x 2 Kez)",
       "quantity": 1,
-      "unit_price": 5000,
+      "unit_price": 4000,
       "metadata": {
         "type": "OP",
         "source_code": "BILLBOARD",
         "multiplier": 2,
-        "item_quantity": 5
+        "item_quantity": 20
       }
     },
     {
-      "description": "BILLBOARD Baskı Bedeli (5 Adet x 2 Kez)",
+      "description": "BILLBOARD Baskı Bedeli (20 Adet x 2 Kez)",
       "quantity": 1,
       "unit_price": 4000,
       "metadata": {
         "type": "BASKI",
         "source_code": "BILLBOARD",
         "multiplier": 2,
-        "item_quantity": 5
+        "item_quantity": 20
       }
     }
   ]

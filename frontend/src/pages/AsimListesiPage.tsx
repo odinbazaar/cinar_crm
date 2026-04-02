@@ -138,6 +138,7 @@ const AsimListesiPage = () => {
     const [asimData, setAsimData] = useState<AsimData[]>([]);
     const [loading, setLoading] = useState(true);
     const [showSummaryModal, setShowSummaryModal] = useState(false);
+    const [previewClient, setPreviewClient] = useState<string | null>(null);
 
     const weekOptions = useMemo(() => generateWeekOptions(selectedYear), [selectedYear]);
     const networks = ['1', '2', '3', 'BELEDİYE'];
@@ -438,9 +439,26 @@ const AsimListesiPage = () => {
             }
         });
 
-        // Sort clients by total adet
+        // Sort clients by dateRange.start (Asım Tarihi) then total adet
         const sortedClientDetails = Object.values(clientDetails)
-            .sort((a, b) => b.totalAdet - a.totalAdet);
+            .sort((a, b) => {
+                if (!a.dateRange.start && !b.dateRange.start) return b.totalAdet - a.totalAdet;
+                if (!a.dateRange.start) return 1;
+                if (!b.dateRange.start) return -1;
+                
+                const parseDate = (dStr: string) => {
+                    const [d, m, y] = dStr.split('.');
+                    return new Date(parseInt(y), parseInt(m)-1, parseInt(d)).getTime();
+                };
+                
+                const timeA = parseDate(a.dateRange.start);
+                const timeB = parseDate(b.dateRange.start);
+                
+                if (timeA === timeB) {
+                    return b.totalAdet - a.totalAdet;
+                }
+                return timeA - timeB;
+            });
 
         return {
             totalItems: grandTotal,
@@ -454,6 +472,58 @@ const AsimListesiPage = () => {
             clientDetails: sortedClientDetails
         };
     }, [filteredData, grandTotal]);
+
+    // Export single client to Excel
+    const handleExportClientExcel = (client: string) => {
+        // Find rows for this client
+        const clientRows = filteredData.filter(d => d.client === client);
+        
+        const exportData = clientRows.map(loc => ({
+            'Yıl': loc.year,
+            'Ay': loc.month,
+            'Hafta': loc.weekStart,
+            'Müşteri / Marka': loc.client === '(boş)' ? '-' : loc.client,
+            'Ürün Tipi': loc.type || '-',
+            'Koordinat': loc.koordinat,
+            'İlçe': loc.ilce,
+            'Semt': loc.semt,
+            'Adres': loc.adres,
+            'Kod': loc.kod,
+            'Rout No': loc.routNo || '-',
+            'Network': loc.network || '-',
+            'Toplam': loc.adet
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        
+        // Add column widths
+        const wscols = [
+            { wch: 10 }, // Yıl
+            { wch: 15 }, // Ay
+            { wch: 15 }, // Hafta
+            { wch: 30 }, // Müşteri / Marka
+            { wch: 20 }, // Ürün Tipi
+            { wch: 20 }, // Koordinat
+            { wch: 15 }, // İlçe
+            { wch: 15 }, // Semt
+            { wch: 40 }, // Adres
+            { wch: 10 }, // Kod
+            { wch: 10 }, // Rout No
+            { wch: 10 }, // Network
+            { wch: 10 }, // Toplam
+        ];
+        worksheet['!cols'] = wscols;
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Firma Asım Detay');
+
+        const safeClientName = client.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        // Generate filename
+        const filename = `asim_detay_${safeClientName}_${new Date().toLocaleDateString('tr-TR').replace(/\./g, '_')}.xlsx`;
+
+        // Export file
+        XLSX.writeFile(workbook, filename);
+    };
 
     // Export to Excel
     const handleExportExcel = () => {
@@ -958,7 +1028,10 @@ const AsimListesiPage = () => {
                                 </div>
                             </div>
                             <button
-                                onClick={() => setShowSummaryModal(false)}
+                                onClick={() => {
+                                    setShowSummaryModal(false);
+                                    setPreviewClient(null);
+                                }}
                                 className="p-2 hover:bg-white/20 rounded-lg transition-colors"
                             >
                                 <X className="w-6 h-6" />
@@ -1005,14 +1078,15 @@ const AsimListesiPage = () => {
                                     <table className="w-full text-sm border-collapse">
                                         <thead>
                                             <tr className="bg-gradient-to-r from-gray-700 to-gray-800 text-white">
-                                                <th className="px-3 py-3 text-left font-semibold border-r border-gray-600">#</th>
+                                                <th className="px-3 py-3 text-left font-semibold border-r border-gray-600 w-12">#</th>
+                                                <th className="px-3 py-3 text-left font-semibold border-r border-gray-600 min-w-[150px]">Asım Tarihleri</th>
                                                 <th className="px-3 py-3 text-left font-semibold border-r border-gray-600 min-w-[180px]">Firma / Marka</th>
                                                 <th className="px-3 py-3 text-left font-semibold border-r border-gray-600 min-w-[200px]">Ürünler</th>
                                                 <th className="px-3 py-3 text-center font-semibold border-r border-gray-600">Toplam Adet</th>
                                                 <th className="px-3 py-3 text-center font-semibold border-r border-gray-600">Lokasyon</th>
-                                                <th className="px-3 py-3 text-left font-semibold border-r border-gray-600 min-w-[180px]">Asım Tarihleri</th>
                                                 <th className="px-3 py-3 text-left font-semibold border-r border-gray-600">Networkler</th>
-                                                <th className="px-3 py-3 text-left font-semibold">İlçeler</th>
+                                                <th className="px-3 py-3 text-left font-semibold border-r border-gray-600">İlçeler</th>
+                                                <th className="px-3 py-3 text-center font-semibold w-24">İşlem</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1021,8 +1095,24 @@ const AsimListesiPage = () => {
                                                     key={detail.client}
                                                     className={`border-b border-gray-200 hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                                                 >
-                                                    <td className="px-3 py-3 border-r border-gray-200 text-gray-500 font-medium">
+                                                    <td className="px-3 py-3 border-r border-gray-200 text-gray-500 font-medium text-center">
                                                         {index + 1}
+                                                    </td>
+                                                    <td className="px-3 py-3 border-r border-gray-200">
+                                                        {detail.dateRange.start ? (
+                                                            <div className="text-xs space-y-1">
+                                                                <div className="flex items-center gap-1">
+                                                                    <span className="text-gray-500 w-14">Başlangıç:</span>
+                                                                    <span className="font-medium text-green-700 bg-green-50 px-1.5 py-0.5 rounded">{detail.dateRange.start}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1">
+                                                                    <span className="text-gray-500 w-14">Bitiş:</span>
+                                                                    <span className="font-medium text-red-700 bg-red-50 px-1.5 py-0.5 rounded">{detail.dateRange.end}</span>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-400">-</span>
+                                                        )}
                                                     </td>
                                                     <td className="px-3 py-3 border-r border-gray-200">
                                                         <div className="font-semibold text-gray-800">
@@ -1058,22 +1148,6 @@ const AsimListesiPage = () => {
                                                         <span className="text-gray-600 font-medium">{detail.locations}</span>
                                                     </td>
                                                     <td className="px-3 py-3 border-r border-gray-200">
-                                                        {detail.dateRange.start ? (
-                                                            <div className="text-xs">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="text-gray-500">Başlangıç:</span>
-                                                                    <span className="font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded">{detail.dateRange.start}</span>
-                                                                </div>
-                                                                <div className="flex items-center gap-2 mt-1">
-                                                                    <span className="text-gray-500">Bitiş:</span>
-                                                                    <span className="font-medium text-red-700 bg-red-50 px-2 py-0.5 rounded">{detail.dateRange.end}</span>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-gray-400">-</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-3 py-3 border-r border-gray-200">
                                                         <div className="flex flex-wrap gap-1">
                                                             {Array.from(detail.networks).map(network => (
                                                                 <span
@@ -1104,12 +1178,21 @@ const AsimListesiPage = () => {
                                                             {detail.districts.size === 0 && <span className="text-gray-400">-</span>}
                                                         </div>
                                                     </td>
+                                                    <td className="px-3 py-3 text-center">
+                                                        <button 
+                                                            onClick={() => setPreviewClient(detail.client)}
+                                                            className="p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-full transition-colors mx-auto flex items-center justify-center group"
+                                                            title="İndir"
+                                                        >
+                                                            <Download className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                                        </button>
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                         <tfoot>
                                             <tr className="bg-gradient-to-r from-gray-800 to-gray-900 text-white font-bold">
-                                                <td colSpan={3} className="px-3 py-3 text-right">
+                                                <td colSpan={4} className="px-3 py-3 text-right">
                                                     GENEL TOPLAM
                                                 </td>
                                                 <td className="px-3 py-3 text-center">
@@ -1197,6 +1280,73 @@ const AsimListesiPage = () => {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Download Preview Modal */}
+            {previewClient && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col">
+                        <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-xl">
+                            <h3 className="text-lg font-bold text-gray-800">Excel İndirme Önizleme: {previewClient}</h3>
+                            <button onClick={() => setPreviewClient(null)} className="text-gray-500 hover:text-gray-700">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <div className="p-4 overflow-y-auto flex-1">
+                            <div className="bg-blue-50 text-blue-800 p-3 rounded-lg mb-4 text-sm flex gap-2 items-center">
+                                <Download className="w-5 h-5 flex-shrink-0" />
+                                <span>Aşağıdaki liste <strong>{previewClient}</strong> markasına ait bilgileri içermektedir. İndirme işlemini onaylamak için aşağıdaki Excel İndir butonuna tıklayınız.</span>
+                            </div>
+                            <table className="w-full text-sm border-collapse border border-gray-200">
+                                <thead>
+                                    <tr className="bg-gray-100 text-gray-700 font-semibold text-left">
+                                        <th className="px-3 py-2 border border-gray-200">Hafta</th>
+                                        <th className="px-3 py-2 border border-gray-200">Ürün Tipi</th>
+                                        <th className="px-3 py-2 border border-gray-200">Kod</th>
+                                        <th className="px-3 py-2 border border-gray-200">İlçe / Semt</th>
+                                        <th className="px-3 py-2 border border-gray-200 w-1/3">Adres</th>
+                                        <th className="px-3 py-2 border border-gray-200">Network</th>
+                                        <th className="px-3 py-2 border border-gray-200 text-center">Adet</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredData.filter(d => d.client === previewClient).map((row, idx) => (
+                                        <tr key={idx} className="hover:bg-gray-50">
+                                            <td className="px-3 py-2 border border-gray-200 text-gray-600 whitespace-nowrap">{row.weekStart}</td>
+                                            <td className="px-3 py-2 border border-gray-200">
+                                                <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-xs">{row.type || '-'}</span>
+                                            </td>
+                                            <td className="px-3 py-2 border border-gray-200 font-medium">{row.kod}</td>
+                                            <td className="px-3 py-2 border border-gray-200 text-gray-600">{row.ilce} {row.semt ? `/ ${row.semt}` : ''}</td>
+                                            <td className="px-3 py-2 border border-gray-200 text-xs text-gray-500">{row.adres}</td>
+                                            <td className="px-3 py-2 border border-gray-200 text-center">
+                                                {row.network ? <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">{row.network}</span> : '-'}
+                                            </td>
+                                            <td className="px-3 py-2 border border-gray-200 text-center font-bold text-yellow-800 bg-yellow-50">{row.adet}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="p-4 border-t border-gray-200 flex justify-end gap-3 bg-gray-50 rounded-b-xl">
+                            <button
+                                onClick={() => setPreviewClient(null)}
+                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-medium"
+                            >
+                                İptal (Geri Dön)
+                            </button>
+                            <button
+                                onClick={() => {
+                                    handleExportClientExcel(previewClient);
+                                    setPreviewClient(null);
+                                }}
+                                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center gap-2"
+                            >
+                                <Download className="w-5 h-5" />
+                                Onayla ve Excel İndir
+                            </button>
                         </div>
                     </div>
                 </div>

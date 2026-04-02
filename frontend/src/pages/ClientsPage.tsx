@@ -23,11 +23,16 @@ import {
     StickyNote,
     Bell,
     Clock,
-    List
+    List,
+    ClipboardList,
+    CheckCircle,
+    Receipt,
+    FileSignature,
+    ShoppingCart
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { clientsService } from '../services/clientsService'
-import type { Client, CreateClientDto } from '../services/clientsService'
+import type { Client, CreateClientDto, ClientDetails } from '../services/clientsService'
 
 // Client Form Modal Component
 interface ClientFormModalProps {
@@ -709,6 +714,28 @@ interface ClientCardProps {
 
 function ClientCard({ client, onEdit, onDelete, expanded, onToggle }: ClientCardProps) {
     const { isAdmin } = useAuth()
+    const [details, setDetails] = useState<ClientDetails | null>(null)
+    const [loadingDetails, setLoadingDetails] = useState(false)
+    const [detailTab, setDetailTab] = useState<string>('all-jobs')
+
+    useEffect(() => {
+        if (expanded && !details) {
+            fetchDetails()
+        }
+    }, [expanded])
+
+    const fetchDetails = async () => {
+        setLoadingDetails(true)
+        try {
+            const data = await clientsService.getClientDetails(client.id)
+            setDetails(data)
+        } catch (error) {
+            console.error('Failed to fetch client details:', error)
+        } finally {
+            setLoadingDetails(false)
+        }
+    }
+
     const statusColors = {
         active: 'bg-green-100 text-green-800',
         inactive: 'bg-gray-100 text-gray-800',
@@ -722,6 +749,118 @@ function ClientCard({ client, onEdit, onDelete, expanded, onToggle }: ClientCard
     }
 
     const displayName = client.company_name || client.name || 'Bilinmeyen Şirket'
+
+    const bookingStatusColor = (status: string) => {
+        const map: Record<string, string> = {
+            'OPTION': 'bg-blue-100 text-blue-800',
+            'CONFIRMED': 'bg-green-100 text-green-800',
+            'KESIN': 'bg-green-100 text-green-800',
+            'CANCELLED': 'bg-red-100 text-red-800',
+            'COMPLETED': 'bg-purple-100 text-purple-800',
+            'EXPIRED': 'bg-gray-100 text-gray-800',
+        }
+        return map[status] || 'bg-gray-100 text-gray-600'
+    }
+
+    const bookingStatusLabel = (status: string) => {
+        const map: Record<string, string> = {
+            'OPTION': 'Opsiyon',
+            'CONFIRMED': 'Kesin',
+            'KESIN': 'Kesin',
+            'CANCELLED': 'İptal',
+            'COMPLETED': 'Tamamlandı',
+            'EXPIRED': 'Süresi Dolmuş',
+        }
+        return map[status] || status
+    }
+
+    const proposalStatusLabel = (status: string) => {
+        const map: Record<string, string> = {
+            'DRAFT': 'Taslak',
+            'SENT': 'Gönderildi',
+            'VIEWED': 'Görüldü',
+            'ACCEPTED': 'Kabul Edildi',
+            'REJECTED': 'Reddedildi',
+        }
+        return map[status] || status
+    }
+
+    const proposalStatusColor = (status: string) => {
+        const map: Record<string, string> = {
+            'DRAFT': 'bg-gray-100 text-gray-600',
+            'SENT': 'bg-blue-100 text-blue-800',
+            'VIEWED': 'bg-yellow-100 text-yellow-800',
+            'ACCEPTED': 'bg-green-100 text-green-800',
+            'REJECTED': 'bg-red-100 text-red-800',
+        }
+        return map[status] || 'bg-gray-100 text-gray-600'
+    }
+
+    const invoiceStatusColor = (status: string) => {
+        const map: Record<string, string> = {
+            'DRAFT': 'bg-gray-100 text-gray-600',
+            'PENDING': 'bg-yellow-100 text-yellow-800',
+            'PAID': 'bg-green-100 text-green-800',
+            'OVERDUE': 'bg-red-100 text-red-800',
+            'CANCELLED': 'bg-gray-100 text-gray-600',
+        }
+        return map[status] || 'bg-gray-100 text-gray-600'
+    }
+
+    const invoiceStatusLabel = (status: string) => {
+        const map: Record<string, string> = {
+            'DRAFT': 'Taslak',
+            'PENDING': 'Bekliyor',
+            'PAID': 'Ödendi',
+            'OVERDUE': 'Gecikmiş',
+            'CANCELLED': 'İptal',
+        }
+        return map[status] || status
+    }
+
+    const requestStatusLabel = (status: string) => {
+        const map: Record<string, string> = {
+            'pending': 'Beklemede',
+            'approved': 'Onaylandı',
+            'rejected': 'Reddedildi',
+            'in_progress': 'İşlemde',
+            'completed': 'Tamamlandı',
+            'cancelled': 'İptal Edildi',
+        }
+        return map[status] || status
+    }
+
+    const requestStatusColor = (status: string) => {
+        const map: Record<string, string> = {
+            'pending': 'bg-yellow-100 text-yellow-800',
+            'approved': 'bg-green-100 text-green-800',
+            'rejected': 'bg-red-100 text-red-800',
+            'in_progress': 'bg-blue-100 text-blue-800',
+            'completed': 'bg-purple-100 text-purple-800',
+            'cancelled': 'bg-gray-100 text-gray-600',
+        }
+        return map[status] || 'bg-gray-100 text-gray-600'
+    }
+
+    const detailTabs = [
+        { id: 'all-jobs', label: 'Tüm İşler', icon: ClipboardList, count: details?.bookings?.length || 0 },
+        { id: 'operations', label: 'Operasyonlar', icon: CheckCircle, count: details?.operations?.length || 0 },
+        { id: 'proposals', label: 'Teklifler', icon: FileText, count: details?.proposals?.length || 0 },
+        { id: 'invoices', label: 'Kesilen Çekler', icon: Receipt, count: details?.invoices?.length || 0 },
+        { id: 'contracts', label: 'Sözleşmeler', icon: FileSignature, count: details?.contracts?.length || 0 },
+        { id: 'requests', label: 'Talepler', icon: ShoppingCart, count: details?.customerRequests?.length || 0 },
+    ]
+
+    const formatCurrency = (val: number | string) => {
+        const num = typeof val === 'string' ? parseFloat(val) : val
+        if (isNaN(num)) return '0 ₺'
+        return num.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺'
+    }
+
+    const formatDate = (dateStr: string) => {
+        if (!dateStr) return '-'
+        return new Date(dateStr).toLocaleDateString('tr-TR')
+    }
 
     return (
         <div className="card overflow-hidden hover:shadow-lg transition-shadow">
@@ -929,6 +1068,337 @@ function ClientCard({ client, onEdit, onDelete, expanded, onToggle }: ClientCard
                             )}
                         </div>
                     )}
+
+                    {/* Detail Tabs Section */}
+                    <div className="border-t border-gray-200 pt-4 mt-4">
+                        {loadingDetails ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="w-6 h-6 text-primary-600 animate-spin mr-2" />
+                                <span className="text-gray-500">Detaylar yükleniyor...</span>
+                            </div>
+                        ) : details ? (
+                            <>
+                                {/* Tabs */}
+                                <div className="flex border-b border-gray-200 bg-white rounded-t-xl overflow-x-auto">
+                                    {detailTabs.map((tab) => (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setDetailTab(tab.id)}
+                                            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
+                                                detailTab === tab.id
+                                                    ? 'text-primary-600 border-primary-600 bg-primary-50/50'
+                                                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            <tab.icon className="w-4 h-4" />
+                                            {tab.label}
+                                            <span className={`ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                                                detailTab === tab.id
+                                                    ? 'bg-primary-200 text-primary-800'
+                                                    : 'bg-gray-100 text-gray-500'
+                                            }`}>
+                                                {tab.count}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Tab Content */}
+                                <div className="bg-white rounded-b-xl border border-t-0 border-gray-200">
+                                    {/* Tüm İşler */}
+                                    {detailTab === 'all-jobs' && (
+                                        <div className="p-4">
+                                            {details.bookings.length === 0 ? (
+                                                <p className="text-center text-gray-400 py-8">Bu müşteriye ait iş bulunamadı.</p>
+                                            ) : (
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-sm">
+                                                        <thead>
+                                                            <tr className="text-xs text-gray-500 uppercase border-b border-gray-200">
+                                                                <th className="px-3 py-2 text-left">Reklam Kodu / Lokasyon</th>
+                                                                <th className="px-3 py-2 text-left">Tür / İlçe</th>
+                                                                <th className="px-3 py-2 text-left">Marka</th>
+                                                                <th className="px-3 py-2 text-left">Başlangıç</th>
+                                                                <th className="px-3 py-2 text-left">Bitiş</th>
+                                                                <th className="px-3 py-2 text-left">Durum</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gray-100">
+                                                            {details.bookings.map((b: any) => (
+                                                                <tr key={b.id} className="hover:bg-gray-50">
+                                                                    <td className="px-3 py-2.5 font-medium text-gray-900">
+                                                                        {b.inventory_item?.code || b.inventory_item_id?.slice(0, 8) || '-'}
+                                                                    </td>
+                                                                    <td className="px-3 py-2.5 text-gray-600">
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-xs">{b.inventory_item?.type || '-'}</span>
+                                                                            <span className="text-xs text-gray-400">{b.inventory_item?.district || ''} {b.inventory_item?.neighborhood || ''}</span>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="px-3 py-2.5 text-gray-700">{b.brand_name || '-'}</td>
+                                                                    <td className="px-3 py-2.5 text-gray-600">{formatDate(b.start_date)}</td>
+                                                                    <td className="px-3 py-2.5 text-gray-600">{formatDate(b.end_date)}</td>
+                                                                    <td className="px-3 py-2.5">
+                                                                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${bookingStatusColor(b.status)}`}>
+                                                                            {bookingStatusLabel(b.status)}
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Operasyonlar */}
+                                    {detailTab === 'operations' && (
+                                        <div className="p-4">
+                                            {details.operations.length === 0 ? (
+                                                <p className="text-center text-gray-400 py-8">Kesin onaylı operasyon bulunamadı.</p>
+                                            ) : (
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-sm">
+                                                        <thead>
+                                                            <tr className="text-xs text-gray-500 uppercase border-b border-gray-200">
+                                                                <th className="px-3 py-2 text-left">Reklam Kodu</th>
+                                                                <th className="px-3 py-2 text-left">Tür / İlçe</th>
+                                                                <th className="px-3 py-2 text-left">Marka</th>
+                                                                <th className="px-3 py-2 text-left">Başlangıç</th>
+                                                                <th className="px-3 py-2 text-left">Bitiş</th>
+                                                                <th className="px-3 py-2 text-left">Durum</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gray-100">
+                                                            {details.operations.map((op: any) => (
+                                                                <tr key={op.id} className="hover:bg-gray-50">
+                                                                    <td className="px-3 py-2.5 font-medium text-gray-900">
+                                                                        {op.inventory_item?.code || '-'}
+                                                                    </td>
+                                                                    <td className="px-3 py-2.5 text-gray-600">
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-xs">{op.inventory_item?.type || '-'}</span>
+                                                                            <span className="text-xs text-gray-400">{op.inventory_item?.district || ''} {op.inventory_item?.neighborhood || ''}</span>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="px-3 py-2.5 text-gray-700">{op.brand_name || '-'}</td>
+                                                                    <td className="px-3 py-2.5 text-gray-600">{formatDate(op.start_date)}</td>
+                                                                    <td className="px-3 py-2.5 text-gray-600">{formatDate(op.end_date)}</td>
+                                                                    <td className="px-3 py-2.5">
+                                                                        <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                                                            {bookingStatusLabel(op.status)}
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Teklifler */}
+                                    {detailTab === 'proposals' && (
+                                        <div className="p-4">
+                                            {details.proposals.length === 0 ? (
+                                                <p className="text-center text-gray-400 py-8">Bu müşteriye ait teklif bulunamadı.</p>
+                                            ) : (
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-sm">
+                                                        <thead>
+                                                            <tr className="text-xs text-gray-500 uppercase border-b border-gray-200">
+                                                                <th className="px-3 py-2 text-left">Teklif No</th>
+                                                                <th className="px-3 py-2 text-left">Başlık</th>
+                                                                <th className="px-3 py-2 text-left">Tarih</th>
+                                                                <th className="px-3 py-2 text-right">Tutar</th>
+                                                                <th className="px-3 py-2 text-left">Durum</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gray-100">
+                                                            {details.proposals.map((p: any) => (
+                                                                <tr key={p.id} className="hover:bg-gray-50">
+                                                                    <td className="px-3 py-2.5 font-medium text-gray-900">{p.proposal_number || '-'}</td>
+                                                                    <td className="px-3 py-2.5 text-gray-700">{p.title || '-'}</td>
+                                                                    <td className="px-3 py-2.5 text-gray-600">{formatDate(p.created_at)}</td>
+                                                                    <td className="px-3 py-2.5 text-right font-medium text-gray-900">{formatCurrency(p.total)}</td>
+                                                                    <td className="px-3 py-2.5">
+                                                                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${proposalStatusColor(p.status)}`}>
+                                                                            {proposalStatusLabel(p.status)}
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                        {details.proposals.length > 0 && (
+                                                            <tfoot>
+                                                                <tr className="border-t-2 border-gray-200 bg-gray-50">
+                                                                    <td colSpan={3} className="px-3 py-2 text-sm font-bold text-gray-700 text-right">Toplam:</td>
+                                                                    <td className="px-3 py-2 text-sm font-bold text-gray-900 text-right">
+                                                                        {formatCurrency(details.proposals.reduce((s: number, p: any) => s + (parseFloat(p.total) || 0), 0))}
+                                                                    </td>
+                                                                    <td></td>
+                                                                </tr>
+                                                            </tfoot>
+                                                        )}
+                                                    </table>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Kesilen Çekler */}
+                                    {detailTab === 'invoices' && (
+                                        <div className="p-4">
+                                            {details.invoices.length === 0 ? (
+                                                <p className="text-center text-gray-400 py-8">Bu müşteriye ait kesilen çek/fatura bulunamadı.</p>
+                                            ) : (
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-sm">
+                                                        <thead>
+                                                            <tr className="text-xs text-gray-500 uppercase border-b border-gray-200">
+                                                                <th className="px-3 py-2 text-left">Fatura No</th>
+                                                                <th className="px-3 py-2 text-left">Proje</th>
+                                                                <th className="px-3 py-2 text-left">Kesim Tarihi</th>
+                                                                <th className="px-3 py-2 text-left">Vade Tarihi</th>
+                                                                <th className="px-3 py-2 text-right">Tutar</th>
+                                                                <th className="px-3 py-2 text-right">Ödenen</th>
+                                                                <th className="px-3 py-2 text-left">Durum</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gray-100">
+                                                            {details.invoices.map((inv: any) => (
+                                                                <tr key={inv.id} className="hover:bg-gray-50">
+                                                                    <td className="px-3 py-2.5 font-medium text-gray-900">{inv.invoice_number || '-'}</td>
+                                                                    <td className="px-3 py-2.5 text-gray-600">{inv.project?.name || '-'}</td>
+                                                                    <td className="px-3 py-2.5 text-gray-600">{formatDate(inv.issue_date)}</td>
+                                                                    <td className="px-3 py-2.5 text-gray-600">{formatDate(inv.due_date)}</td>
+                                                                    <td className="px-3 py-2.5 text-right font-medium text-gray-900">{formatCurrency(inv.total)}</td>
+                                                                    <td className="px-3 py-2.5 text-right text-green-700">{formatCurrency(inv.paid_amount || 0)}</td>
+                                                                    <td className="px-3 py-2.5">
+                                                                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${invoiceStatusColor(inv.status)}`}>
+                                                                            {invoiceStatusLabel(inv.status)}
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                        {details.invoices.length > 0 && (
+                                                            <tfoot>
+                                                                <tr className="border-t-2 border-gray-200 bg-gray-50">
+                                                                    <td colSpan={4} className="px-3 py-2 text-sm font-bold text-gray-700 text-right">Toplam:</td>
+                                                                    <td className="px-3 py-2 text-sm font-bold text-gray-900 text-right">
+                                                                        {formatCurrency(details.invoices.reduce((s: number, i: any) => s + (parseFloat(i.total) || 0), 0))}
+                                                                    </td>
+                                                                    <td className="px-3 py-2 text-sm font-bold text-green-700 text-right">
+                                                                        {formatCurrency(details.invoices.reduce((s: number, i: any) => s + (parseFloat(i.paid_amount) || 0), 0))}
+                                                                    </td>
+                                                                    <td></td>
+                                                                </tr>
+                                                            </tfoot>
+                                                        )}
+                                                    </table>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Sözleşmeler */}
+                                    {detailTab === 'contracts' && (
+                                        <div className="p-4">
+                                            {details.contracts.length === 0 ? (
+                                                <p className="text-center text-gray-400 py-8">Bu müşteriye ait sözleşme bulunamadı.</p>
+                                            ) : (
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-sm">
+                                                        <thead>
+                                                            <tr className="text-xs text-gray-500 uppercase border-b border-gray-200">
+                                                                <th className="px-3 py-2 text-left">Sözleşme No</th>
+                                                                <th className="px-3 py-2 text-left">Başlık</th>
+                                                                <th className="px-3 py-2 text-left">Başlangıç</th>
+                                                                <th className="px-3 py-2 text-left">Bitiş</th>
+                                                                <th className="px-3 py-2 text-right">Değer</th>
+                                                                <th className="px-3 py-2 text-left">Durum</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gray-100">
+                                                            {details.contracts.map((c: any) => (
+                                                                <tr key={c.id} className="hover:bg-gray-50">
+                                                                    <td className="px-3 py-2.5 font-medium text-gray-900">{c.contract_number || '-'}</td>
+                                                                    <td className="px-3 py-2.5 text-gray-700">{c.title || '-'}</td>
+                                                                    <td className="px-3 py-2.5 text-gray-600">{formatDate(c.start_date)}</td>
+                                                                    <td className="px-3 py-2.5 text-gray-600">{formatDate(c.end_date)}</td>
+                                                                    <td className="px-3 py-2.5 text-right font-medium text-gray-900">{formatCurrency(c.value)}</td>
+                                                                    <td className="px-3 py-2.5">
+                                                                        <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                                                            {c.status || '-'}
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Talepler */}
+                                    {detailTab === 'requests' && (
+                                        <div className="p-4">
+                                            {details.customerRequests.length === 0 ? (
+                                                <p className="text-center text-gray-400 py-8">Bu müşteriye ait talep bulunamadı.</p>
+                                            ) : (
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-sm">
+                                                        <thead>
+                                                            <tr className="text-xs text-gray-500 uppercase border-b border-gray-200">
+                                                                <th className="px-3 py-2 text-left">Talep No</th>
+                                                                <th className="px-3 py-2 text-left">Ürün Türü</th>
+                                                                <th className="px-3 py-2 text-left">Adet</th>
+                                                                <th className="px-3 py-2 text-left">Tarih</th>
+                                                                <th className="px-3 py-2 text-left">Öncelik</th>
+                                                                <th className="px-3 py-2 text-left">Durum</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gray-100">
+                                                            {details.customerRequests.map((req: any) => (
+                                                                <tr key={req.id} className="hover:bg-gray-50">
+                                                                    <td className="px-3 py-2.5 font-medium text-gray-900">{req.request_number || '-'}</td>
+                                                                    <td className="px-3 py-2.5 text-gray-700">{req.product_type || '-'}</td>
+                                                                    <td className="px-3 py-2.5 text-gray-600">{req.quantity || '-'}</td>
+                                                                    <td className="px-3 py-2.5 text-gray-600">{formatDate(req.created_at)}</td>
+                                                                    <td className="px-3 py-2.5">
+                                                                        {req.priority && (
+                                                                            <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                                                                                req.priority === 'high' ? 'bg-red-100 text-red-800' :
+                                                                                req.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                                                                'bg-gray-100 text-gray-600'
+                                                                            }`}>
+                                                                                {req.priority === 'high' ? 'Yüksek' : req.priority === 'medium' ? 'Orta' : 'Düşük'}
+                                                                            </span>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="px-3 py-2.5">
+                                                                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${requestStatusColor(req.status)}`}>
+                                                                            {requestStatusLabel(req.status)}
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="text-center py-4 text-gray-400 text-sm">Detaylar yüklenemedi.</div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>
