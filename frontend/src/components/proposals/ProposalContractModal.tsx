@@ -31,7 +31,7 @@ export default function ProposalContractModal({ isOpen, onClose, proposal, onSta
     let campaignName = proposal.description || 'GENEL KAMPANYA'
     let salesRepName = ''
     try {
-        const descObj = JSON.parse(proposal.description)
+        const descObj = JSON.parse(proposal.description || '{}')
         if (descObj && typeof descObj === 'object') {
             campaignName = descObj.campaign || 'GENEL KAMPANYA'
             salesRepName = descObj.salesRep || ''

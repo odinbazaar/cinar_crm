@@ -24,7 +24,7 @@ export class DashboardService {
             .select('inventory_item_id', { count: 'exact', head: true })
             .lte('start_date', today)
             .gte('end_date', today)
-            .eq('status', 'CONFIRMED');
+            .in('status', ['CONFIRMED', 'KESIN', 'KESN']);
 
         const occupancy = totalItems ? Math.round((Number(occupiedItems) / Number(totalItems)) * 100) : 0;
 
@@ -48,7 +48,7 @@ export class DashboardService {
                 clients (name),
                 inventory_items (code, type, address)
             `)
-            .in('status', ['CONFIRMED', 'OPTION'])
+            .in('status', ['CONFIRMED', 'OPTION', 'KESIN', 'KESN'])
             .order('created_at', { ascending: false });
 
         const groups: Record<string, any[]> = {};

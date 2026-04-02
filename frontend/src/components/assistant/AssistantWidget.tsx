@@ -9,16 +9,15 @@ interface Message {
 
 const WELCOME_MESSAGE: Message = {
     role: 'assistant',
-    content: 'Merhaba! 👋 Ben Çınar, İzmir Açık Hava Reklam CRM sistemi yardımcı asistanıyım.\n\nSize sistemin kullanımı hakkında yardımcı olabilirim. Rezervasyon, teklif, müşteri yönetimi veya herhangi bir konu hakkında soru sorabilirsiniz.',
+    content: 'Merhaba! 👋 Ben Çınar, IAR operasyonel yardımcı asistanıyım.\n\nSize şu konularda yardımcı olabilirim:\n- **Boş lokasyon** sorgulama\n- **Rezervasyon** kontrolü\n- **Müşteri bazlı** lokasyon sorgulama\n- **Envanter** özeti\n\nAşağıdaki hızlı soruları deneyebilir veya direkt soru yazabilirsiniz.',
 }
 
 const QUICK_QUESTIONS = [
-    'Sistem nedir?',
-    'Rezervasyon nasıl eklenir?',
-    'Teklif nasıl oluşturulur?',
-    'Müşteri nasıl eklenir?',
-    'E-posta bildirimleri nasıl çalışır?',
-    'Modüller nelerdir?',
+    'Boş lokasyonları göster',
+    'Tüm rezervasyonları listele',
+    'Envanter özetini göster',
+    'Boş BB lokasyonları',
+    'Boş CLP lokasyonları',
 ]
 
 export default function AssistantWidget() {
@@ -76,8 +75,6 @@ export default function AssistantWidget() {
     }
 
     const formatText = (text: string) => {
-        // Bold: **text**
-        // Newlines: \n
         return text.split('\n').map((line, i) => {
             const parts = line.split(/(\*\*[^*]+\*\*)/g)
             return (
@@ -95,12 +92,11 @@ export default function AssistantWidget() {
 
     return (
         <>
-            {/* Floating Button */}
             <button
                 onClick={() => setIsOpen(true)}
                 className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'
                     } bg-gradient-to-br from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white`}
-                title="Çınar - Yardımcı Asistan"
+                title="Çınar - Operasyonel Asistan"
             >
                 <MessageCircle className="w-6 h-6" />
                 {hasNewMessage && (
@@ -108,17 +104,15 @@ export default function AssistantWidget() {
                 )}
             </button>
 
-            {/* Chat Panel */}
             <div
-                className={`fixed bottom-6 right-6 z-50 w-96 max-w-[calc(100vw-2rem)] flex flex-col transition-all duration-300 origin-bottom-right ${isOpen
+                className={`fixed bottom-6 right-6 z-50 w-[420px] max-w-[calc(100vw-2rem)] flex flex-col transition-all duration-300 origin-bottom-right ${isOpen
                     ? 'scale-100 opacity-100'
                     : 'scale-0 opacity-0 pointer-events-none'
                     }`}
-                style={{ height: '520px' }}
+                style={{ height: '560px' }}
             >
                 <div className="flex flex-col h-full rounded-2xl shadow-2xl overflow-hidden border border-gray-200 bg-white">
 
-                    {/* Header */}
                     <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white shrink-0">
                         <div className="flex items-center gap-2.5">
                             <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
@@ -126,7 +120,7 @@ export default function AssistantWidget() {
                             </div>
                             <div>
                                 <p className="text-sm font-semibold leading-tight">Çınar</p>
-                                <p className="text-xs text-blue-100 leading-tight">IAR Yardımcı Asistanı</p>
+                                <p className="text-xs text-blue-100 leading-tight">Operasyonel Asistan</p>
                             </div>
                         </div>
                         <button
@@ -137,14 +131,12 @@ export default function AssistantWidget() {
                         </button>
                     </div>
 
-                    {/* Messages */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 custom-scrollbar">
                         {messages.map((msg, idx) => (
                             <div
                                 key={idx}
                                 className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
                             >
-                                {/* Avatar */}
                                 <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-white text-xs mt-0.5 ${msg.role === 'assistant'
                                     ? 'bg-gradient-to-br from-blue-500 to-indigo-600'
                                     : 'bg-gradient-to-br from-gray-500 to-gray-700'
@@ -152,14 +144,17 @@ export default function AssistantWidget() {
                                     {msg.role === 'assistant' ? <Bot className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
                                 </div>
 
-                                {/* Bubble */}
                                 <div
-                                    className={`max-w-[78%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${msg.role === 'assistant'
+                                    className={`max-w-[82%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${msg.role === 'assistant'
                                         ? 'bg-white text-gray-800 shadow-sm border border-gray-100 rounded-tl-sm'
                                         : 'bg-blue-600 text-white rounded-tr-sm'
                                         }`}
                                 >
-                                    {formatText(msg.content)}
+                                    {msg.role === 'assistant' ? (
+                                        <div className="whitespace-pre-wrap font-mono text-xs">{formatText(msg.content)}</div>
+                                    ) : (
+                                        formatText(msg.content)
+                                    )}
                                 </div>
                             </div>
                         ))}
@@ -178,14 +173,13 @@ export default function AssistantWidget() {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* Quick Questions (shown only when first message) */}
                     {messages.length === 1 && !isLoading && (
                         <div className="px-3 pb-2 bg-gray-50 flex flex-wrap gap-1.5 shrink-0">
                             {QUICK_QUESTIONS.map((q) => (
                                 <button
                                     key={q}
                                     onClick={() => sendMessage(q)}
-                                    className="text-xs bg-white border border-blue-200 text-blue-700 px-2.5 py-1 rounded-full hover:bg-blue-50 transition-colors"
+                                    className="text-xs bg-white border border-blue-200 text-blue-700 px-2.5 py-1.5 rounded-full hover:bg-blue-50 transition-colors font-medium"
                                 >
                                     {q}
                                 </button>
@@ -193,7 +187,6 @@ export default function AssistantWidget() {
                         </div>
                     )}
 
-                    {/* Input Area */}
                     <div className="px-3 pb-3 pt-2 bg-white border-t border-gray-100 shrink-0">
                         <div className="flex items-end gap-2 bg-gray-100 rounded-xl px-3 py-2">
                             <textarea
@@ -201,7 +194,7 @@ export default function AssistantWidget() {
                                 value={input}
                                 onChange={e => setInput(e.target.value)}
                                 onKeyDown={handleKeyDown}
-                                placeholder="Bir soru sorun..."
+                                placeholder='Müşteri adı veya soru yazın...'
                                 rows={1}
                                 className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 resize-none outline-none max-h-24 leading-relaxed"
                                 style={{ minHeight: '24px' }}
@@ -214,12 +207,11 @@ export default function AssistantWidget() {
                                 <Send className="w-3.5 h-3.5 text-white" />
                             </button>
                         </div>
-                        <p className="text-center text-gray-400 text-[10px] mt-1.5">Enter ile gönderin · Shift+Enter yeni satır</p>
+                        <p className="text-center text-gray-400 text-[10px] mt-1.5">Örn: "Sushitto rezervasyonları" veya "boş BB lokasyonları"</p>
                     </div>
                 </div>
             </div>
 
-            {/* Backdrop for mobile */}
             {isOpen && (
                 <div
                     className="fixed inset-0 z-40 bg-black/20 lg:hidden"
