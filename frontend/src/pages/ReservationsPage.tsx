@@ -1312,7 +1312,7 @@ export default function ReservationsPage() {
             XLSX.utils.book_append_sheet(wb, ws2, 'Marka Süreç Özeti');
         }
 
-        const locationCodesData = filteredLocations.map(l => ({ 'Lokasyon Kodu': l.kod || l.code || '-' }));
+        const locationCodesData = filteredLocations.map((l: Location) => ({ 'Lokasyon Kodu': l.kod || '-' }));
         if (locationCodesData.length > 0) {
             const ws3 = XLSX.utils.json_to_sheet(locationCodesData);
             XLSX.utils.book_append_sheet(wb, ws3, 'Tüm Lokasyonlar');
@@ -1331,7 +1331,7 @@ export default function ReservationsPage() {
             ? locations.filter(l => selectedRows.includes(l.id))
             : filteredLocations
 
-        const codes = items.map(l => l.kod).join(', ')
+        const codes = items.map((l: Location) => l.kod).join(', ')
         const selectedCount = items.length
 
         setSelectedEmails(['satis@izmiracikhavareklam.com'])
@@ -1608,7 +1608,7 @@ export default function ReservationsPage() {
 
     // Toplu Müşteri Listesi - tüm zamanlardaki ve ağdaki opsiyon veya kesinleşmiş marka atamalarını hesapla
     const networkCustomers = useMemo(() => {
-        const brandMap = new Map<string, { count: number, opsiyon: number, kesin: number, locations: { code: string, week: string, network: string, id: string }[] }>();
+        const brandMap = new Map<string, { count: number, opsiyon: number, kesin: number, locations: { code: string, week: string, network: string, id: string, status: string }[] }>();
         
         allBookings.forEach((booking: any) => {
             const status = booking.status?.toUpperCase() || 'BOŞ';
