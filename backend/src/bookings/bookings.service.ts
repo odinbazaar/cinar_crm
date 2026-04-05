@@ -52,6 +52,23 @@ export class BookingsService {
     }
 
     async update(id: string, updateBookingDto: UpdateBookingDto): Promise<Booking> {
+        // KESİN iş koruması: Mevcut kesin işin üzerine yazılmasını engelle
+        if (updateBookingDto.brand_option_4) {
+            const { data: existing } = await supabase
+                .from('bookings')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (existing && existing.status === 'KESİN' && existing.brand_option_4 
+                && existing.brand_option_4 !== updateBookingDto.brand_option_4) {
+                throw new Error(
+                    `Bu lokasyonda zaten KESİN bir iş var: ${existing.brand_option_4}. ` +
+                    `Önce mevcut kesin işi kaldırmanız gerekiyor.`
+                );
+            }
+        }
+
         const { data, error } = await supabase
             .from('bookings')
             .update(updateBookingDto)

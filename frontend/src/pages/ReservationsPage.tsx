@@ -251,6 +251,7 @@ export default function ReservationsPage() {
                 return dateStr;
             };
 
+            let skippedKesinCount = 0;
             for (const { item, booking } of toAssign) {
                 if (booking) {
                     const updateData = { ...booking };
@@ -259,6 +260,12 @@ export default function ReservationsPage() {
                         else if (!updateData.brand_option_2) updateData.brand_option_2 = brandUpper;
                         else if (!updateData.brand_option_3) updateData.brand_option_3 = brandUpper;
                     } else {
+                        // KESİN atamada mevcut kesin iş kontrolü
+                        if (updateData.brand_option_4 && updateData.status === 'KESİN') {
+                            console.warn(`⚠️ ${item.code} lokasyonunda zaten KESİN iş var: ${updateData.brand_option_4}, atlanıyor.`);
+                            skippedKesinCount++;
+                            continue;
+                        }
                         updateData.brand_option_4 = brandUpper;
                     }
 
@@ -300,7 +307,12 @@ export default function ReservationsPage() {
             }
 
             await fetchData();
-            toastSuccess(`${selectedAtaRequest.customerName || selectedAtaRequest.brandName} talebi Network ${ataSelectedNetwork} üzerinden ${status === 'OPSİYON' ? 'opsiyona' : 'kesin olarak'} alındı (${toAssign.length} adet)`);
+            const assignedCount = toAssign.length - skippedKesinCount;
+            let msg = `${selectedAtaRequest.customerName || selectedAtaRequest.brandName} talebi Network ${ataSelectedNetwork} üzerinden ${status === 'OPSİYON' ? 'opsiyona' : 'kesin olarak'} alındı (${assignedCount} adet)`;
+            if (skippedKesinCount > 0) {
+                msg += ` ⚠️ ${skippedKesinCount} lokasyon zaten kesin işi olduğu için atlandı.`;
+            }
+            toastSuccess(msg);
 
         } catch (error) {
             console.error('Ata hatası:', error);
@@ -904,8 +916,16 @@ export default function ReservationsPage() {
             // Get all existing bookings once for efficiency
             const existingBookings = await bookingsService.getAll();
 
+            let skippedKesinItems = 0;
             const updated = await Promise.all(locations.map(async (loc) => {
                 if (selectedRows.includes(loc.id)) {
+                    // Opsiyon 4 (Kesine Çevirilen) alanına yazılmaya çalışılıyorsa ve mevcut kesin iş varsa engelle
+                    if (selectedOpsiyonNumber === 4 && loc.marka4Opsiyon && loc.durum === 'KESİN') {
+                        console.warn(`⚠️ ${loc.kod} lokasyonunda zaten KESİN iş var: ${loc.marka4Opsiyon}, atlanıyor.`);
+                        skippedKesinItems++;
+                        return loc;
+                    }
+
                     const newLoc = { ...loc }
                     if (selectedOpsiyonNumber === 1) newLoc.marka1Opsiyon = brandUpper
                     else if (selectedOpsiyonNumber === 2) newLoc.marka2Opsiyon = brandUpper
@@ -941,7 +961,14 @@ export default function ReservationsPage() {
 
             setLocations(updated as any)
             localStorage.setItem('inventoryLocations', JSON.stringify(updated))
-            toastSuccess(`${selectedRows.length} adet lokasyona ${brandUpper} ticari ünvanı atandı!`)
+            const assignedAutoCount = selectedRows.length - skippedKesinItems;
+            let autoMsg = `${assignedAutoCount} adet lokasyona ${brandUpper} ticari ünvanı atandı!`;
+            if (skippedKesinItems > 0) {
+                autoMsg += ` ⚠️ ${skippedKesinItems} lokasyon zaten kesin işi olduğu için atlandı.`;
+                toastInfo(autoMsg);
+            } else {
+                toastSuccess(autoMsg);
+            }
         } catch (error) {
             console.error('Auto assign error:', error);
             toastInfo('Bazı kayıtlar güncellenemedi.');
@@ -1016,6 +1043,17 @@ export default function ReservationsPage() {
 
     // Durumu değiştir
     const handleStatusChange = async (id: string, newStatus: 'OPSİYON' | 'KESİN' | 'BOŞ') => {
+        const currentLoc = locations.find(l => l.id === id);
+
+        // KESİN'e çevirirken mevcut kesin iş kontrolü
+        if (newStatus === 'KESİN' && currentLoc) {
+            // Eğer zaten dolu bir kesin iş (marka4Opsiyon) varsa engelle
+            if (currentLoc.marka4Opsiyon && currentLoc.durum === 'KESİN') {
+                toastInfo(`⚠️ Bu lokasyonda zaten KESİN bir iş var: ${currentLoc.marka4Opsiyon}. Önce mevcut kesin işi kaldırmanız gerekiyor.`);
+                return;
+            }
+        }
+
         const updated = locations.map(loc => {
             if (loc.id === id) {
                 const newLoc = { ...loc, durum: newStatus };
@@ -2403,6 +2441,13 @@ export default function ReservationsPage() {
                             >
                                 <Download className="w-3.5 h-3.5" />
                                 Envanteri Aktar
+                            </button>
+                            <button
+                                onClick={handleExportAllTasks}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-100"
+                            >
+                                <FileSpreadsheet className="w-3.5 h-3.5" />
+                                İş Özetlerini İndir
                             </button>
                             <button
                                 onClick={async () => {
