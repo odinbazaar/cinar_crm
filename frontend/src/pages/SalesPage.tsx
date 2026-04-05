@@ -340,7 +340,7 @@ export default function SalesPage() {
     const [requestForm, setRequestForm] = useState({
         customerId: '',
         taxNumber: '',
-        productType: 'Billboard',
+        productType: 'BB',
         productDetails: '',
         quantity: 1,
         notes: '',
@@ -358,7 +358,7 @@ export default function SalesPage() {
     const [noteFilterDate, setNoteFilterDate] = useState('')
 
     const [proposalItems, setProposalItems] = useState<ProposalItem[]>([
-        { type: 'BB', code: 'Billboard', quantity: 1, unitPrice: 6500, printingCost: 400, operationCost: 500, network: '', weekLayout: '1', opQty: 1 }
+        { type: 'BB', code: 'BB', quantity: 1, unitPrice: 6500, printingCost: 400, operationCost: 500, network: '', weekLayout: '1', opQty: 1 }
     ])
     const [isBlockList, setIsBlockList] = useState(false)
     const [kdvRate, setKdvRate] = useState<20 | 14>(20)
@@ -401,7 +401,7 @@ export default function SalesPage() {
             requestNumber: 'TAL-001',
             customerId: '1',
             customerName: 'ABC Reklam Ltd.',
-            productType: 'Billboard',
+            productType: 'BB',
             productDetails: '20 adet Billboard, Karşıyaka bölgesi',
             quantity: 20,
             notes: 'Acil dönüş bekleniyor.',
@@ -418,7 +418,7 @@ export default function SalesPage() {
             customerId: '1',
             customerName: 'ABC Reklam Ltd.',
             items: [
-                { type: 'BB', code: 'Billboard', quantity: 20, unitPrice: 3500, operationCost: 400, printingCost: 400, weekLayout: '' },
+                { type: 'BB', code: 'BB', quantity: 20, unitPrice: 3500, operationCost: 400, printingCost: 400, weekLayout: '' },
                 { type: 'GB', code: 'Giantboard', quantity: 4, unitPrice: 7500, operationCost: 600, printingCost: 4500, weekLayout: '' },
             ],
             totalAmount: 100000,
@@ -468,7 +468,7 @@ export default function SalesPage() {
             proposalId: 'TKL-001',
             customerName: 'ABC Reklam Ltd.',
             items: [
-                { type: 'BB', code: 'Billboard', quantity: 20, unitPrice: 3500, operationCost: 400, printingCost: 400, weekLayout: '' },
+                { type: 'BB', code: 'BB', quantity: 20, unitPrice: 3500, operationCost: 400, printingCost: 400, weekLayout: '' },
                 { type: 'GB', code: 'Giantboard', quantity: 4, unitPrice: 7500, operationCost: 600, printingCost: 4500, weekLayout: '' },
             ],
             usageWeekStart: { month: 1, week: 2 },
@@ -550,7 +550,7 @@ export default function SalesPage() {
         try {
             await customerRequestsService.create({
                 client_id: requestForm.customerId,
-                product_type: 'billboard', // Map appropriately if UI supports it
+                product_type: 'BB',
                 product_details: requestForm.productDetails,
                 quantity: requestForm.quantity,
                 notes: requestForm.notes,
@@ -566,7 +566,7 @@ export default function SalesPage() {
             setRequestForm({
                 customerId: '',
                 taxNumber: '',
-                productType: 'Billboard',
+                productType: 'BB',
                 productDetails: '',
                 quantity: 1,
                 notes: '',

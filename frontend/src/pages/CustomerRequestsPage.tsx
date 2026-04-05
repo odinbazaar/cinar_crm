@@ -34,7 +34,8 @@ import { expenseCategories } from '../services/budgetService'
 
 // Product type labels in Turkish
 const productTypeLabels: Record<string, string> = {
-    billboard: 'Billboard',
+    billboard: 'BB',
+    BB: 'BB',
     megalight: 'Megalight',
     digital_screen: 'Dijital Ekran',
     bus_shelter: 'Otobüs Durağı',
@@ -95,7 +96,7 @@ interface RequestFormModalProps {
 function RequestFormModal({ isOpen, onClose, onSave, initialData, clients, loading }: RequestFormModalProps) {
     const [formData, setFormData] = useState<CreateCustomerRequestDto>({
         client_id: '',
-        product_type: 'billboard',
+        product_type: 'BB',
         product_details: '',
         quantity: 1,
         preferred_districts: [],
@@ -145,7 +146,7 @@ function RequestFormModal({ isOpen, onClose, onSave, initialData, clients, loadi
 
             setFormData({
                 client_id: '',
-                product_type: 'billboard',
+                product_type: 'BB',
                 product_details: '',
                 quantity: 1,
                 preferred_districts: [],

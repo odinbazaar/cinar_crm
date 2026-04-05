@@ -21,7 +21,7 @@ interface WeeklyStats {
         totalInventory: number;
         activeBookings: number;
     };
-    breakdown: Record<string, number>;
+    breakdown: Record<string, { total: number; occupied: number }>;
 }
 
 interface EmployeeReport {
@@ -248,20 +248,33 @@ export default function ReportsPage() {
                             </div>
                         </div>
                         <div className="h-64 flex items-end justify-around gap-4 px-4 bg-gray-50 rounded-xl py-6">
-                            {reportData && Object.entries(reportData.breakdown).map(([type, count]) => (
-                                <div key={type} className="flex flex-col items-center gap-2 flex-1 max-w-[80px] group">
-                                    <div className="relative w-full bg-white rounded-t-lg overflow-hidden h-full flex items-end border border-gray-100 shadow-sm">
-                                        <div
-                                            className="w-full bg-primary-500 hover:bg-primary-600 transition-all duration-500 rounded-t-sm relative"
-                                            style={{ height: `${(count / (Math.max(...Object.values(reportData.breakdown)) || 1)) * 100}%` }}
-                                        />
+                            {reportData && Object.entries(reportData.breakdown).map(([type, { total, occupied }]) => {
+                                const maxTotal = Math.max(...Object.values(reportData.breakdown).map(v => v.total), 1);
+                                const occupancyPct = total > 0 ? Math.round((occupied / total) * 100) : 0;
+                                return (
+                                    <div key={type} className="flex flex-col items-center gap-2 flex-1 max-w-[80px] group">
+                                        <div className="relative w-full bg-white rounded-t-lg overflow-hidden h-full flex items-end border border-gray-100 shadow-sm">
+                                            <div
+                                                className="w-full rounded-t-sm relative flex flex-col justify-end"
+                                                style={{ height: `${(total / maxTotal) * 100}%` }}
+                                            >
+                                                <div
+                                                    className="w-full bg-primary-500 transition-all duration-500"
+                                                    style={{ height: `${occupancyPct}%` }}
+                                                />
+                                                <div
+                                                    className="w-full bg-gray-200 transition-all duration-500"
+                                                    style={{ height: `${100 - occupancyPct}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                        <span className="text-sm font-bold text-gray-700">{type}</span>
+                                        <span className="text-xs text-gray-500">{occupied}/{total}</span>
                                     </div>
-                                    <span className="text-sm font-bold text-gray-700">{type}</span>
-                                    <span className="text-xs text-gray-500">{count} Adet</span>
-                                </div>
-                            ))}
+                                );
+                            })}
                             {(!reportData || Object.keys(reportData.breakdown).length === 0) && (
-                                <div className="w-full text-center text-gray-400 italic">Haftalık veri bulunmuyor</div>
+                                <div className="w-full text-center text-gray-400 italic">Envanter verisi bulunmuyor</div>
                             )}
                         </div>
                     </div>

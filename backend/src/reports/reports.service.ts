@@ -23,13 +23,15 @@ export class ReportsService {
         const { data: weeklyProposals } = await supabase
             .from('proposals')
             .select('total')
-            .eq('status', 'ACCEPTED')
+            .eq('status', 'APPROVED')
             .gte('updated_at', previousFridayISO)
             .lte('updated_at', lastFridayISO);
 
         const weeklyRevenue = weeklyProposals?.reduce((sum, p) => sum + Number(p.total), 0) || 0;
 
-        // 3. Occupancy Rate
+        // 3. Occupancy Rate (bugün itibariyle aktif KESİN bookinglere göre)
+        const todayISO = new Date().toISOString();
+
         const { count: totalItems } = await supabase
             .from('inventory_items')
             .select('*', { count: 'exact', head: true })
@@ -38,26 +40,46 @@ export class ReportsService {
         const { count: occupiedItems } = await supabase
             .from('bookings')
             .select('inventory_item_id', { count: 'exact', head: true })
-            .lte('start_date', lastFridayISO)
-            .gte('end_date', lastFridayISO)
-            .eq('status', 'CONFIRMED');
+            .lte('start_date', todayISO)
+            .gte('end_date', todayISO)
+            .eq('status', 'KESİN');
 
         const occupancyRate = totalItems ? Math.round((Number(occupiedItems) / Number(totalItems)) * 100) : 0;
 
-        // 4. Booking breakdown by type
-        const { data: bookingsData } = await supabase
+        // 4. Envanter doluluk dağılımı - tip bazında toplam envanter ve dolu ünite sayısı
+        const { data: allInventory } = await supabase
+            .from('inventory_items')
+            .select('type')
+            .eq('is_active', true);
+
+        const totalByType: Record<string, number> = {};
+        allInventory?.forEach((item: any) => {
+            if (item.type) {
+                totalByType[item.type] = (totalByType[item.type] || 0) + 1;
+            }
+        });
+
+        const { data: activeBookings } = await supabase
             .from('bookings')
             .select('inventory_items(type)')
-            .lte('start_date', lastFridayISO)
-            .gte('end_date', lastFridayISO)
-            .eq('status', 'CONFIRMED');
+            .lte('start_date', todayISO)
+            .gte('end_date', todayISO)
+            .eq('status', 'KESİN');
 
-        const breakdown: Record<string, number> = {};
-        bookingsData?.forEach((b: any) => {
+        const occupiedByType: Record<string, number> = {};
+        activeBookings?.forEach((b: any) => {
             const type = b.inventory_items?.type;
             if (type) {
-                breakdown[type] = (breakdown[type] || 0) + 1;
+                occupiedByType[type] = (occupiedByType[type] || 0) + 1;
             }
+        });
+
+        const breakdown: Record<string, { total: number; occupied: number }> = {};
+        Object.keys(totalByType).forEach(type => {
+            breakdown[type] = {
+                total: totalByType[type],
+                occupied: occupiedByType[type] || 0
+            };
         });
 
         return {

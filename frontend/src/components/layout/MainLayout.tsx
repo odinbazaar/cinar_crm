@@ -28,8 +28,8 @@ interface MainLayoutProps {
 
 const navigation = [
     { id: 'dashboard', name: 'Genel Bakış', href: '/dashboard', icon: LayoutDashboard },
-    { id: 'sales', name: 'Satış', href: '/sales', icon: ShoppingBag },
     { id: 'reservations', name: 'Rezervasyon', href: '/bookings', icon: CalendarDays },
+    { id: 'sales', name: 'Satış', href: '/sales', icon: ShoppingBag },
     { id: 'cost-settings', name: 'Maliyet Ayarları', href: '/cost-settings', icon: Calculator },
     { id: 'inventory', name: 'Envanter', href: '/inventory', icon: MapPin },
     { id: 'asim-listesi', name: 'Operasyonlar', href: '/asim-listesi', icon: Calendar },

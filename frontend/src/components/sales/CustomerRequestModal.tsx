@@ -86,7 +86,7 @@ export const CustomerRequestModal: React.FC<CustomerRequestModalProps> = ({
                                     onChange={(e) => setRequestForm({ ...requestForm, productType: e.target.value })}
                                     className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all appearance-none"
                                 >
-                                    <option value="Billboard">Billboard</option>
+                                    <option value="BB">Billboard (BB)</option>
                                     <option value="Megalight">Megalight</option>
                                     <option value="CLP">CLP Raket</option>
                                     <option value="Giantboard">Giantboard</option>

@@ -1,9 +1,9 @@
-import { useState, useMemo, useEffect } from 'react'
-import { FileSpreadsheet, MapPin, Search, Filter, Calendar, Clock, Check, X, CheckCircle, Smartphone, RefreshCw, ChevronRight, ChevronLeft, Download, Plus, Trash2, AlertCircle, CalendarDays, Send, Mail, Layers, Info, Bell, ClipboardList } from 'lucide-react'
+import { useState, useMemo, useEffect, Fragment } from 'react'
+import { FileSpreadsheet, MapPin, Search, Filter, Calendar, Clock, Check, X, CheckCircle, Smartphone, RefreshCw, ChevronRight, ChevronLeft, ChevronDown, Download, Plus, Trash2, AlertCircle, CalendarDays, Send, Mail, Layers, Info, Bell, ClipboardList, Eye } from 'lucide-react'
 import { reservationsData } from '../data/reservations'
 import { useToast } from '../hooks/useToast'
 import { useAuth } from '../hooks/useAuth'
-import { inventoryService, bookingsService, customerRequestsService, proposalsService, clientsService, notificationsService } from '../services'
+import { inventoryService, bookingsService, customerRequestsService, proposalsService, clientsService, notificationsService, type Client } from '../services'
 import LocationRequestModal from '../components/proposals/LocationRequestModal'
 import { WeeklyAvailabilityCard } from '../components/reservations/WeeklyAvailabilityCard'
 import * as XLSX from 'xlsx'
@@ -66,6 +66,10 @@ export default function ReservationsPage() {
     const [reviseSlot, setReviseSlot] = useState<1 | 2 | 3 | 4>(1)
     const [reviseTargetId, setReviseTargetId] = useState('')
     const [showDownloadPreview, setShowDownloadPreview] = useState(false)
+    const [selectedPreviewIds, setSelectedPreviewIds] = useState<string[]>([])
+    const [downloadMode, setDownloadMode] = useState<'TASKS' | 'FILTERED'>('TASKS')
+    const [previewWeek, setPreviewWeek] = useState('')
+    const [expandedPreviewRows, setExpandedPreviewRows] = useState<string[]>([])
 
     // Müşteri listesi (Ticari Ünvan dropdown ve mail için)
     const [customers, setCustomers] = useState<{ id: string, companyName: string, email?: string }[]>([])
@@ -133,6 +137,7 @@ export default function ReservationsPage() {
     const [allBookings, setAllBookings] = useState<any[]>([])
     const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
     const [selectedProposal, setSelectedProposal] = useState<any | null>(null)
+    const [clients, setClients] = useState<Client[]>([])
 
     // Onay modalı için state'ler
     const [showProcessModal, setShowProcessModal] = useState(false)
@@ -182,7 +187,7 @@ export default function ReservationsPage() {
 
                 const normalizeType = (t: string) => {
                     const type = String(t).toUpperCase().trim();
-                    if (type === 'BB' || type === 'BILLBOARD' || type.includes('BILLBOARD')) return 'BILLBOARD';
+                    if (type === 'BB' || type === 'BILLBOARD' || type.includes('BILLBOARD')) return 'BB';
                     if (type.includes('CLP') || type.includes('RAKET')) return 'CLP';
                     if (type.includes('MGL') || type.includes('MEGALIGHT')) return 'MEGALIGHT';
                     if (type === 'LB' || type.includes('LİGHT') || type.includes('LIGHT')) return 'LB';
@@ -400,7 +405,7 @@ export default function ReservationsPage() {
                     productType: req.product_type,
                     year: details.year || (firstItem?.startDate ? new Date(firstItem.startDate).getFullYear() : 2026),
                     month: details.month || (firstItem?.startDate ? allMonths[new Date(firstItem.startDate).getMonth()] : 'Ocak'),
-                    week: details.week || req.start_date,
+                    week: getMonday(details.week || req.start_date),
                     endDate: req.end_date || details.endDate,
                     network: details.network || (firstItem?.network) || '1',
                     totalAmount: req.quantity || details.quantity || details.totalAmount || 0,
@@ -430,6 +435,7 @@ export default function ReservationsPage() {
             setProposals(proposalsData);
             setAllInventory(inventory);
             setAllBookings(bookings);
+            setClients(clientsData || []);
 
             // Müşteri listesini güncelle (Ticari Ünvan dropdown için)
             const customerList = clientsData.map((c: any) => ({
@@ -477,7 +483,7 @@ export default function ReservationsPage() {
                     marka3Opsiyon: booking?.brand_option_3 || '',
                     marka4Opsiyon: booking?.brand_option_4 || '',
                     durum: (booking?.status as any) || 'BOŞ',
-                    productType: (item.type === 'Billboard' || item.type === 'BILLBOARD' || item.type === 'BB') ? 'BB' : item.type
+                    productType: item.type === 'BB' ? 'BB' : item.type
                 };
             });
 
@@ -510,7 +516,7 @@ export default function ReservationsPage() {
                 if (!uniqueMap.has(item.kod)) {
                     uniqueMap.set(item.kod, {
                         code: item.kod,
-                        type: item.productType === 'BB' ? 'Billboard' : item.productType,
+                        type: item.productType,
                         district: item.ilce,
                         neighborhood: item.semt,
                         address: item.adres,
@@ -591,7 +597,7 @@ export default function ReservationsPage() {
                 
                 const normalizeType = (t: string) => {
                     const type = String(t).toUpperCase();
-                    if (type === 'BB' || type === 'BILLBOARD') return 'BILLBOARD';
+                    if (type === 'BB' || type === 'BILLBOARD') return 'BB';
                     return type;
                 };
 
@@ -702,7 +708,7 @@ export default function ReservationsPage() {
 
                 const normalizeType = (t: string) => {
                     const type = String(t).toUpperCase();
-                    if (type === 'BB' || type === 'BILLBOARD') return 'BILLBOARD';
+                    if (type === 'BB' || type === 'BILLBOARD') return 'BB';
                     return type;
                 };
 
@@ -919,9 +925,9 @@ export default function ReservationsPage() {
             let skippedKesinItems = 0;
             const updated = await Promise.all(locations.map(async (loc) => {
                 if (selectedRows.includes(loc.id)) {
-                    // Opsiyon 4 (Kesine Çevirilen) alanına yazılmaya çalışılıyorsa ve mevcut kesin iş varsa engelle
-                    if (selectedOpsiyonNumber === 4 && loc.marka4Opsiyon && loc.durum === 'KESİN') {
-                        console.warn(`⚠️ ${loc.kod} lokasyonunda zaten KESİN iş var: ${loc.marka4Opsiyon}, atlanıyor.`);
+                    // Eğer lokasyon KESİN durumdaysa hiçbir işleme izin verme (Hata mesajı göster ve atla)
+                    if (loc.durum === 'KESİN' && loc.marka4Opsiyon) {
+                        console.warn(`⚠️ ${loc.kod} - Bu hafta KESİN olarak dolu: ${loc.marka4Opsiyon}, atlanıyor.`);
                         skippedKesinItems++;
                         return loc;
                     }
@@ -984,6 +990,12 @@ export default function ReservationsPage() {
     const handleManualBrandChange = async (locId: string, slotNumber: 1 | 2 | 3 | 4, newBrand: string) => {
         const brandUpper = newBrand.toUpperCase();
 
+        const targetLoc = locations.find(l => l.id === locId);
+        if (targetLoc?.durum === 'KESİN' && newBrand !== "") {
+            toastInfo('⚠️ Bu lokasyona Kesin rezervasyon yapılmıştır. Lütfen Opsiyon ataması yapmayınız.');
+            return;
+        }
+
         // UI'da güncelle
         const updated = locations.map(loc => {
             if (loc.id === locId) {
@@ -1045,11 +1057,18 @@ export default function ReservationsPage() {
     const handleStatusChange = async (id: string, newStatus: 'OPSİYON' | 'KESİN' | 'BOŞ') => {
         const currentLoc = locations.find(l => l.id === id);
 
-        // KESİN'e çevirirken mevcut kesin iş kontrolü
+        // KESİN'e çevirirken veya başka bir değişiklik yaparken mevcut kesin iş kontrolü
+        if (newStatus !== 'BOŞ' && currentLoc?.durum === 'KESİN' && currentLoc.marka4Opsiyon) {
+            // Eğer yeni bir marka kesinleştirilmeye çalışılıyorsa ve zaten bir marka kesinse engelle
+            toastInfo(`⚠️ Bu lokasyonda zaten KESİN bir iş var: ${currentLoc.marka4Opsiyon}. Önce mevcut kesin işi kaldırmanız (BOŞ yapmanız) gerekiyor.`);
+            return;
+        }
+
+        // Yeni marka kesinleştirme kuralı
         if (newStatus === 'KESİN' && currentLoc) {
-            // Eğer zaten dolu bir kesin iş (marka4Opsiyon) varsa engelle
-            if (currentLoc.marka4Opsiyon && currentLoc.durum === 'KESİN') {
-                toastInfo(`⚠️ Bu lokasyonda zaten KESİN bir iş var: ${currentLoc.marka4Opsiyon}. Önce mevcut kesin işi kaldırmanız gerekiyor.`);
+            const hasOption = currentLoc.marka1Opsiyon || currentLoc.marka2Opsiyon || currentLoc.marka3Opsiyon;
+            if (!hasOption) {
+                toastInfo('⚠️ Kesinleştirmek için en az bir opsiyon markası olması gerekir.');
                 return;
             }
         }
@@ -1159,43 +1178,97 @@ export default function ReservationsPage() {
 
     // Excel export
     const handleExportExcel = () => {
-        const exportData = filteredLocations.map(loc => ({
-            'Yıl': loc.yil,
-            'Ay': loc.ay,
-            'Hafta': loc.hafta,
-            'Koordinat': loc.koordinat,
-            'İlçe': loc.ilce,
-            'Semt': loc.semt,
-            'Adres': loc.adres,
-            'Kod': loc.kod,
-            'Rout No': loc.routeNo || '-',
-            'Network': loc.network,
-            'Marka 1.Opsiyon': loc.marka1Opsiyon,
-            'Marka 2.Opsiyon': loc.marka2Opsiyon,
-            'Marka 3.Opsiyon': loc.marka3Opsiyon,
-            'Kesine Çevrilen': loc.marka4Opsiyon,
-            'Durum': loc.durum
-        }))
-
-        const worksheet = XLSX.utils.json_to_sheet(exportData)
-        const workbook = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Rezervasyonlar')
-
-        // Generate filename
-        const filename = `rezervasyon_${selectedWeek.replace(/\./g, '_')}_network${selectedNetwork}.xlsx`
-
-        // Export file
-        XLSX.writeFile(workbook, filename)
+        if (filteredLocations.length === 0) {
+            toastInfo('Seçili kriterlere uygun lokasyon bulunamadı.');
+            return;
+        }
+        // Lokasyon modundayken de tümünü varsayılan seçili getiriyoruz
+        setSelectedPreviewIds(filteredLocations.map(l => l.id));
+        setDownloadMode('FILTERED');
+        setShowDownloadPreview(true);
     }
 
-    // Tüm İşleri / Talepleri ve Özetleri Dışa Aktar - Ön İzleme Aç
-    const handleExportAllTasks = () => {
+    // Filtrelenmiş haftalık listeyi Excel'e aktar
+    const handleDownloadFilteredList = () => {
+        if (filteredLocations.length === 0) {
+            toastInfo('Seçili kriterlere uygun lokasyon bulunamadı.');
+            return;
+        }
+        setSelectedPreviewIds(filteredLocations.map(l => l.id));
+        setDownloadMode('FILTERED');
         setShowDownloadPreview(true);
     };
 
-    // Ön izleme sonrası gerçek indirme işlemi
+    // İş Özetlerini Ön İzleme ile Dışa Aktar
+    const availableTaskWeeks = useMemo(() => {
+        const weeks = Array.from(new Set(reservationRequests.map(r => r.week).filter(Boolean)));
+        return weeks.sort((a, b) => {
+            const [da, ma, ya] = a.split('.');
+            const [db, mb, yb] = b.split('.');
+            return new Date(+ya, +ma - 1, +da).getTime() - new Date(+yb, +mb - 1, +db).getTime();
+        });
+    }, [reservationRequests]);
+
+    const handleExportAllTasks = () => {
+        if (reservationRequests.length === 0) {
+            toastInfo('Kayıtlı talep bulunmamaktadır.');
+            return;
+        }
+        // Seçili haftayı tercih et, yoksa ilk mevcut haftayı kullan
+        const initialWeek = availableTaskWeeks.includes(selectedWeek) ? selectedWeek : availableTaskWeeks[0] || '';
+        setPreviewWeek(initialWeek);
+        const weekFiltered = reservationRequests.filter(r => r.week === initialWeek);
+        setSelectedPreviewIds(weekFiltered.map(r => r.id));
+        setDownloadMode('TASKS');
+        setShowDownloadPreview(true);
+    };
+
     const confirmDownloadAllTasks = () => {
-        const requestsData = reservationRequests.map(req => ({
+        const wb = XLSX.utils.book_new();
+
+        if (downloadMode === 'FILTERED') {
+            const selectedLocs = filteredLocations.filter(l => selectedPreviewIds.includes(l.id));
+            if (selectedLocs.length === 0) {
+                toastInfo('Lütfen indirmek için en az bir lokasyon seçin.');
+                return;
+            }
+
+            const exportData = selectedLocs.map(loc => ({
+                'Yıl': loc.yil,
+                'Ay': loc.ay,
+                'Hafta': loc.hafta,
+                'Koordinat': loc.koordinat,
+                'İlçe': loc.ilce,
+                'Semt': loc.semt,
+                'Adres': loc.adres,
+                'Kod': loc.kod,
+                'Rout No': loc.routeNo || '-',
+                'Network': loc.network,
+                'Marka 1.Opsiyon': loc.marka1Opsiyon,
+                'Marka 2.Opsiyon': loc.marka2Opsiyon,
+                'Marka 3.Opsiyon': loc.marka3Opsiyon,
+                'Kesine Çevrilen': loc.marka4Opsiyon,
+                'Durum': loc.durum
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Rezervasyonlar');
+            
+            const filename = `rezervasyon_listesi_${selectedWeek.replace(/\./g, '_')}_network${selectedNetwork}.xlsx`;
+            XLSX.writeFile(wb, filename);
+            setShowDownloadPreview(false);
+            toastSuccess('Rezervasyon listesi başarıyla indirildi.');
+            return;
+        }
+
+        // TASKS Mode
+        const selectedRequests = reservationRequests.filter(r => selectedPreviewIds.includes(r.id));
+        if (selectedRequests.length === 0) {
+            toastInfo('Lütfen indirmek için en az bir iş seçin.');
+            return;
+        }
+
+        const requestsData = selectedRequests.map(req => ({
             'Talep/İş No': req.request_number || '-',
             'Müşteri': req.customerName || '-',
             'Marka': req.brandName || '-',
@@ -1206,16 +1279,26 @@ export default function ReservationsPage() {
             'Durum': req.status === 'pending' ? 'Bekliyor' : req.status === 'completed' ? 'Tamamlandı' : req.status === 'checked_by_ops' ? 'Müsaitlik Kontrol Edildi' : req.status
         }));
 
-        const summaryData = networkCustomers.map(nc => ({
-            'Marka': nc.brand,
-            'Toplam Pano': nc.count,
-            'Kesin': nc.kesin,
-            'Opsiyon': nc.opsiyon,
-            'Lokasyon Kodları': nc.locations.map(l => l.code).join(', ')
-        }));
+        const selectedWeeks = Array.from(new Set(selectedRequests.map(r => r.week)));
+        const selectedBrands = Array.from(new Set(selectedRequests.map(r => r.brandName?.toUpperCase())));
 
-        const wb = XLSX.utils.book_new();
-        
+        const summaryData = networkCustomers
+            .filter(nc => selectedBrands.includes(nc.brand?.toUpperCase()))
+            .map(nc => {
+                const filteredLocs = nc.locations.filter(loc => selectedWeeks.includes(loc.week));
+                const totalCount = filteredLocs.length;
+                const kesinCount = filteredLocs.filter(l => l.status === 'KESİN').length;
+                const opsiyonCount = filteredLocs.filter(l => l.status === 'OPSİYON').length;
+                return {
+                    'Marka': nc.brand,
+                    'Toplam Pano': totalCount,
+                    'Kesin': kesinCount,
+                    'Opsiyon': opsiyonCount,
+                    'Lokasyon Kodları': filteredLocs.map(l => l.code).join(', ')
+                };
+            })
+            .filter(nc => nc['Lokasyon Kodları'] !== '');
+
         if (requestsData.length > 0) {
             const ws1 = XLSX.utils.json_to_sheet(requestsData);
             XLSX.utils.book_append_sheet(wb, ws1, 'Tüm Talepler');
@@ -1229,7 +1312,13 @@ export default function ReservationsPage() {
             XLSX.utils.book_append_sheet(wb, ws2, 'Marka Süreç Özeti');
         }
 
-        const filename = `tum_is_ozeti_${new Date().toLocaleDateString('tr-TR').replace(/\./g, '_')}.xlsx`;
+        const locationCodesData = filteredLocations.map(l => ({ 'Lokasyon Kodu': l.kod || l.code || '-' }));
+        if (locationCodesData.length > 0) {
+            const ws3 = XLSX.utils.json_to_sheet(locationCodesData);
+            XLSX.utils.book_append_sheet(wb, ws3, 'Tüm Lokasyonlar');
+        }
+
+        const filename = `is_ozeti_${previewWeek.replace(/\./g, '_')}.xlsx`;
         XLSX.writeFile(wb, filename);
         setShowDownloadPreview(false);
         toastSuccess('Tüm iş özetleri başarıyla indirildi.');
@@ -1452,7 +1541,7 @@ export default function ReservationsPage() {
                     month: selectedMonth,
                     week: backendWeek,
                     approvedItems: [{
-                        productType: loc.productType === 'BB' ? 'BILLBOARD' : (loc.productType === 'ML' ? 'MEGALIGHT' : loc.productType),
+                        productType: loc.productType,
                         productCode: loc.kod,
                         quantity: 1,
                         startDate: backendWeek,
@@ -1555,16 +1644,28 @@ export default function ReservationsPage() {
                         code: locCode,
                         week: targetWeek,
                         network: item.network ? String(item.network) : 'Tümü',
-                        id: locId
+                        id: locId,
+                        status: status
                     });
                 }
             });
         });
 
         return Array.from(brandMap.entries())
-            .map(([brand, data]) => ({ brand, ...data }))
+            .map(([brand, data]) => {
+                const foundClient = clients.find(c => 
+                    c.company_name.toLowerCase().includes(brand.toLowerCase()) || 
+                    brand.toLowerCase().includes(c.company_name.toLowerCase())
+                );
+                return { 
+                    brand, 
+                    ...data,
+                    tax_number: foundClient?.tax_number,
+                    tax_office: foundClient?.tax_office
+                };
+            })
             .sort((a, b) => b.count - a.count);
-    }, [allBookings, allInventory]);
+    }, [allBookings, allInventory, clients]);
 
     return (
         <div className="space-y-6">
@@ -1609,6 +1710,18 @@ export default function ReservationsPage() {
                         {/* İlk Satır - Ana Filtreler */}
                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                             <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Hafta</label>
+                                <select
+                                    value={selectedWeek}
+                                    onChange={(e) => setSelectedWeek(e.target.value)}
+                                    className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm font-bold bg-primary-50 border-primary-100"
+                                >
+                                    {weekOptions.map(week => (
+                                        <option key={week.value} value={week.value}>{week.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Ürün Tipi</label>
                                 <select
                                     value={selectedProductType}
@@ -1645,18 +1758,6 @@ export default function ReservationsPage() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Hafta</label>
-                                <select
-                                    value={selectedWeek}
-                                    onChange={(e) => setSelectedWeek(e.target.value)}
-                                    className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
-                                >
-                                    {weekOptions.map(week => (
-                                        <option key={week.value} value={week.value}>{week.label}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Network</label>
                                 <button
                                     onClick={() => setShowNetworkModal(true)}
@@ -1671,16 +1772,25 @@ export default function ReservationsPage() {
                                 </button>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Ara</label>
-                                <div className="relative">
-                                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        placeholder="Örn: Adres, kod..."
-                                        className="w-full pl-7 pr-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
-                                    />
+                                <label className="block text-xs font-medium text-gray-700 mb-1">İşlemler</label>
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            placeholder="Ara..."
+                                            className="w-full pl-7 pr-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={handleDownloadFilteredList}
+                                        className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center shadow-sm"
+                                        title="Listeyi Excel'e Aktar"
+                                    >
+                                        <FileSpreadsheet className="w-5 h-5" />
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1834,10 +1944,10 @@ export default function ReservationsPage() {
                         )}
                         <button
                             onClick={handleExportAllTasks}
-                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-lg"
+                            className="inline-flex items-center gap-2 px-4 py-2.5 pb-5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-lg"
                         >
                             <FileSpreadsheet className="w-5 h-5" />
-                            İş Özetlerini İndir
+                            İş Özetlerini Dışa Aktar
                         </button>
                     </div>
 
@@ -2441,13 +2551,6 @@ export default function ReservationsPage() {
                             >
                                 <Download className="w-3.5 h-3.5" />
                                 Envanteri Aktar
-                            </button>
-                            <button
-                                onClick={handleExportAllTasks}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-100"
-                            >
-                                <FileSpreadsheet className="w-3.5 h-3.5" />
-                                İş Özetlerini İndir
                             </button>
                             <button
                                 onClick={async () => {
@@ -3417,6 +3520,23 @@ export default function ReservationsPage() {
                                                 </span>
                                             )}
                                         </div>
+                                        
+                                        {(customer.tax_number || customer.tax_office) && (
+                                            <div className="mt-2 py-1.5 px-2 bg-gray-50 border border-dotted border-gray-200 rounded-lg flex flex-wrap gap-x-3 gap-y-1">
+                                                {customer.tax_number && (
+                                                    <div className="flex items-center gap-1.5 min-w-fit">
+                                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Vergi No:</span>
+                                                        <span className="text-[11px] font-semibold text-gray-700 font-mono tracking-tight">{customer.tax_number}</span>
+                                                    </div>
+                                                )}
+                                                {customer.tax_office && (
+                                                    <div className="flex items-center gap-1.5 min-w-fit">
+                                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Vergi Dairesi:</span>
+                                                        <span className="text-[11px] font-semibold text-gray-700">{customer.tax_office}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                         <div className="mt-2 flex flex-wrap gap-2">
                                             {(() => {
                                                 const groups = customer.locations.reduce((acc, loc) => {
@@ -3624,7 +3744,7 @@ export default function ReservationsPage() {
                                 const targetNet = normalizeNet(net);
                                 const normalizeType = (t: string) => {
                                     const type = String(t).toUpperCase().trim();
-                                    if (type === 'BB' || type === 'BILLBOARD' || type.includes('BILLBOARD')) return 'BILLBOARD';
+                                    if (type === 'BB' || type === 'BILLBOARD' || type.includes('BILLBOARD')) return 'BB';
                                     if (type.includes('CLP') || type.includes('RAKET')) return 'CLP';
                                     if (type.includes('MGL') || type.includes('MEGALIGHT')) return 'MEGALIGHT';
                                     if (type === 'LB' || type.includes('LİGHT') || type.includes('LIGHT')) return 'LB';
@@ -3789,7 +3909,9 @@ export default function ReservationsPage() {
             )}
 
             {/* İş Özetleri İndirme Ön İzleme Modalı */}
-            {showDownloadPreview && (
+            {showDownloadPreview && (() => {
+                const previewRequests = downloadMode === 'TASKS' ? reservationRequests.filter(r => r.week === previewWeek) : [];
+                return (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100">
                         {/* Header */}
@@ -3800,10 +3922,10 @@ export default function ReservationsPage() {
                                 </div>
                                 <div>
                                     <h3 className="text-xl font-black text-slate-800">İndirme Ön İzleme</h3>
-                                    <p className="text-xs text-slate-500 font-medium">Excel dosyasına aktarılacak tüm verilerin özeti</p>
+                                    <p className="text-xs text-slate-500 font-medium">Hafta seçerek talepleri görüntüleyin, ardından dışa aktarın</p>
                                 </div>
                             </div>
-                            <button 
+                            <button
                                 onClick={() => setShowDownloadPreview(false)}
                                 className="p-2 hover:bg-slate-50 rounded-xl transition-colors group"
                             >
@@ -3811,57 +3933,222 @@ export default function ReservationsPage() {
                             </button>
                         </div>
 
+                        {/* Hafta Seçici */}
+                        {downloadMode === 'TASKS' && (
+                            <div className="px-6 py-3 border-b border-slate-100 bg-white flex items-center gap-3 flex-wrap">
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Hafta:</span>
+                                {availableTaskWeeks.map(w => (
+                                    <button
+                                        key={w}
+                                        onClick={() => {
+                                            setPreviewWeek(w);
+                                            const weekFiltered = reservationRequests.filter(r => r.week === w);
+                                            setSelectedPreviewIds(weekFiltered.map(r => r.id));
+                                        }}
+                                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                                            previewWeek === w
+                                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                        }`}
+                                    >
+                                        {w}
+                                        <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-black ${
+                                            previewWeek === w ? 'bg-indigo-500 text-indigo-100' : 'bg-slate-200 text-slate-500'
+                                        }`}>
+                                            {reservationRequests.filter(r => r.week === w).length}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
                         {/* Content */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-slate-50/50">
                             {/* 1. Bekleyen İşler ve Talepler */}
                             <section>
                                 <div className="flex items-center gap-2 mb-4">
                                     <div className="w-1 h-6 bg-indigo-600 rounded-full" />
-                                    <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Bekleyen İşler & Talepler</h4>
+                                    <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
+                                        {downloadMode === 'TASKS' ? 'Bekleyen İşler & Talepler' : 'Lokasyon Listesi'}
+                                    </h4>
                                 </div>
                                 <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
                                     <table className="w-full text-xs text-left">
                                         <thead className="bg-slate-50 border-b border-slate-100">
-                                            <tr>
-                                                <th className="px-4 py-3 font-bold text-slate-500">Müşteri / Marka</th>
-                                                <th className="px-4 py-3 font-bold text-slate-500 text-center">Ürün</th>
-                                                <th className="px-4 py-3 font-bold text-slate-50 text-center bg-indigo-600">Net.</th>
-                                                <th className="px-4 py-3 font-bold text-slate-500 text-center">Hafta</th>
-                                                <th className="px-4 py-3 font-bold text-slate-500 text-center">Miktar</th>
-                                                <th className="px-4 py-3 font-bold text-slate-500 text-right">Durum</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-50">
-                                            {reservationRequests.length > 0 ? (
-                                                reservationRequests.map((req, i) => (
-                                                    <tr key={i} className="hover:bg-indigo-50/30 transition-colors">
-                                                        <td className="px-4 py-3">
-                                                            <div className="font-bold text-slate-800">{req.customerName}</div>
-                                                            <div className="text-[10px] text-slate-400">{req.brandName}</div>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-center font-medium text-slate-600">{req.productType}</td>
-                                                        <td className="px-4 py-3 text-center">
-                                                            <span className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-600">N{req.network}</span>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-center text-slate-500">{req.week}</td>
-                                                        <td className="px-4 py-3 text-center">
-                                                            <span className="font-black text-indigo-600 text-sm">{req.totalAmount}</span>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-right">
-                                                            <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
-                                                                req.status === 'pending' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
-                                                                req.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                                                                'bg-slate-100 text-slate-600'
-                                                            }`}>
-                                                                {req.status === 'pending' ? 'BEKLİYOR' : req.status === 'completed' ? 'TAMAMLANDI' : 'KONTROL EDİLDİ'}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                ))
+                                            {downloadMode === 'TASKS' ? (
+                                                <tr>
+                                                    <th className="px-4 py-3 font-bold text-slate-500 w-10">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedPreviewIds.length === previewRequests.length && previewRequests.length > 0}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) setSelectedPreviewIds(previewRequests.map(r => r.id));
+                                                                else setSelectedPreviewIds([]);
+                                                            }}
+                                                            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                        />
+                                                    </th>
+                                                    <th className="px-4 py-3 font-bold text-slate-500 text-center">Hafta</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-500">Müşteri / Marka</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-500 text-center">Ürün</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-50 text-center bg-indigo-600">Net.</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-500 text-center">Miktar</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-500 text-right">Durum</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-500 text-center w-10"></th>
+                                                </tr>
                                             ) : (
                                                 <tr>
-                                                    <td colSpan={6} className="px-4 py-8 text-center text-slate-400 italic font-medium">Kayıtlı talep bulunmamaktadır.</td>
+                                                    <th className="px-4 py-3 font-bold text-slate-500 w-10">
+                                                        <input 
+                                                            type="checkbox"
+                                                            checked={selectedPreviewIds.length === filteredLocations.length && filteredLocations.length > 0}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) setSelectedPreviewIds(filteredLocations.map(l => l.id));
+                                                                else setSelectedPreviewIds([]);
+                                                            }}
+                                                            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                        />
+                                                    </th>
+                                                    <th className="px-4 py-3 font-bold text-slate-500">Hafta</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-500">İlçe / Semt</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-500">Adres</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-500 text-center">Kod</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-500 text-center">Network</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-500 text-right">Durum</th>
                                                 </tr>
+                                            )}
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            {downloadMode === 'TASKS' ? (
+                                                previewRequests.length > 0 ? (
+                                                    previewRequests.map((req, i) => (
+                                                        <Fragment key={i}>
+                                                        <tr className={`hover:bg-indigo-50/30 transition-colors ${selectedPreviewIds.includes(req.id) ? 'bg-indigo-50/50' : ''}`}>
+                                                            <td className="px-4 py-3">
+                                                                <input 
+                                                                    type="checkbox"
+                                                                    checked={selectedPreviewIds.includes(req.id)}
+                                                                    onChange={(e) => {
+                                                                        if (e.target.checked) setSelectedPreviewIds([...selectedPreviewIds, req.id]);
+                                                                        else setSelectedPreviewIds(selectedPreviewIds.filter(id => id !== req.id));
+                                                                    }}
+                                                                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                                />
+                                                            </td>
+                                                            <td className="px-4 py-3 text-center font-bold text-indigo-700 whitespace-nowrap">{req.week}</td>
+                                                            <td className="px-4 py-3">
+                                                                <div className="font-bold text-slate-800">{req.customerName}</div>
+                                                                <div className="text-[10px] text-slate-400">{req.brandName}</div>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-center font-medium text-slate-600">{req.productType}</td>
+                                                            <td className="px-4 py-3 text-center">
+                                                                <span className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-600">N{req.network}</span>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-center">
+                                                                <span className="font-black text-indigo-600 text-sm">{req.totalAmount}</span>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right">
+                                                                <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
+                                                                    req.status === 'pending' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                                                                    req.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                                                                    'bg-slate-100 text-slate-600'
+                                                                }`}>
+                                                                    {req.status === 'pending' ? 'BEKLİYOR' : req.status === 'completed' ? 'TAMAMLANDI' : 'KONTROL EDİLDİ'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-center">
+                                                                <button
+                                                                    onClick={() => setExpandedPreviewRows(prev =>
+                                                                        prev.includes(req.id) ? prev.filter(id => id !== req.id) : [...prev, req.id]
+                                                                    )}
+                                                                    className={`p-1.5 rounded-lg transition-all ${
+                                                                        expandedPreviewRows.includes(req.id)
+                                                                            ? 'bg-indigo-100 text-indigo-600'
+                                                                            : 'bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                                                                    }`}
+                                                                    title="Lokasyonları Görüntüle"
+                                                                >
+                                                                    {expandedPreviewRows.includes(req.id) ? <ChevronDown className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                        {expandedPreviewRows.includes(req.id) && (() => {
+                                                            const reqLocs = req.selectedLocations || [];
+                                                            const brandLocs = networkCustomers
+                                                                .filter(nc => nc.brand?.toUpperCase() === req.brandName?.toUpperCase())
+                                                                .flatMap(nc => nc.locations.filter(l => l.week === req.week));
+                                                            const locsToShow = reqLocs.length > 0 ? reqLocs : brandLocs;
+                                                            return (
+                                                                <tr>
+                                                                    <td colSpan={8} className="px-4 py-3 bg-indigo-50/40">
+                                                                        <div className="flex items-center gap-2 mb-2">
+                                                                            <MapPin className="w-3.5 h-3.5 text-indigo-500" />
+                                                                            <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">
+                                                                                Lokasyonlar ({locsToShow.length} adet)
+                                                                            </span>
+                                                                        </div>
+                                                                        {locsToShow.length > 0 ? (
+                                                                            <div className="flex flex-wrap gap-1.5">
+                                                                                {locsToShow.map((loc: any, li: number) => (
+                                                                                    <span key={li} className="inline-flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-indigo-100 text-[10px] font-mono font-bold text-slate-700 shadow-sm">
+                                                                                        <span className={`w-1.5 h-1.5 rounded-full ${loc.status === 'KESİN' ? 'bg-emerald-500' : loc.status === 'OPSİYON' ? 'bg-amber-500' : 'bg-slate-300'}`} />
+                                                                                        {loc.kod || loc.code || loc.id}
+                                                                                    </span>
+                                                                                ))}
+                                                                            </div>
+                                                                        ) : (
+                                                                            <p className="text-[10px] text-slate-400 italic">Bu talep için henüz lokasyon atanmamış.</p>
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })()}
+                                                    </Fragment>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan={8} className="px-4 py-8 text-center text-slate-400 italic font-medium">Kayıtlı talep bulunmamaktadır.</td>
+                                                    </tr>
+                                                )
+                                            ) : (
+                                                filteredLocations.length > 0 ? (
+                                                    filteredLocations.map((loc, i) => (
+                                                        <tr key={i} className={`hover:bg-indigo-50/30 transition-colors ${selectedPreviewIds.includes(loc.id) ? 'bg-indigo-50/50' : ''}`}>
+                                                            <td className="px-4 py-3">
+                                                                <input 
+                                                                    type="checkbox"
+                                                                    checked={selectedPreviewIds.includes(loc.id)}
+                                                                    onChange={(e) => {
+                                                                        if (e.target.checked) setSelectedPreviewIds([...selectedPreviewIds, loc.id]);
+                                                                        else setSelectedPreviewIds(selectedPreviewIds.filter(id => id !== loc.id));
+                                                                    }}
+                                                                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                                />
+                                                            </td>
+                                                            <td className="px-4 py-3 font-bold text-indigo-700">{loc.hafta}</td>
+                                                            <td className="px-4 py-3">
+                                                                <div className="font-bold text-slate-800">{loc.ilce}</div>
+                                                                <div className="text-[10px] text-slate-400">{loc.semt}</div>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-slate-600 max-w-[200px] truncate">{loc.adres}</td>
+                                                            <td className="px-4 py-3 text-center font-mono font-bold text-slate-700">{loc.kod}</td>
+                                                            <td className="px-4 py-3 text-center">
+                                                                <span className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-600">{loc.network}</span>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right">
+                                                                <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
+                                                                    loc.durum === 'BOŞ' ? 'bg-slate-50 text-slate-400' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                                                }`}>
+                                                                    {loc.durum}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan={7} className="px-4 py-8 text-center text-slate-400 italic font-medium">Filtrelenmiş kriterlere uygun lokasyon bulunmamaktadır.</td>
+                                                    </tr>
+                                                )
                                             )}
                                         </tbody>
                                     </table>
@@ -3869,57 +4156,79 @@ export default function ReservationsPage() {
                             </section>
 
                             {/* 2. Marka Süreç Özeti */}
-                            <section>
-                                <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-1 h-6 bg-emerald-600 rounded-full" />
-                                    <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Marka & Rezervasyon Süreç Özeti</h4>
-                                </div>
-                                <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-                                    <table className="w-full text-xs text-left">
-                                        <thead className="bg-slate-50 border-b border-slate-100">
-                                            <tr>
-                                                <th className="px-4 py-3 font-bold text-slate-500">Marka Adı</th>
-                                                <th className="px-4 py-3 font-bold text-slate-500 text-center">Toplam</th>
-                                                <th className="px-4 py-3 font-bold text-slate-500 text-center">Kesin</th>
-                                                <th className="px-4 py-3 font-bold text-slate-500 text-center">Opsiyon</th>
-                                                <th className="px-4 py-3 font-bold text-slate-500">Lokasyonlar</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-50">
-                                            {networkCustomers.length > 0 ? (
-                                                networkCustomers.map((nc, i) => (
-                                                    <tr key={i} className="hover:bg-emerald-50/30 transition-colors">
-                                                        <td className="px-4 py-3 font-bold text-slate-800">{nc.brand}</td>
-                                                        <td className="px-4 py-3 text-center">
-                                                            <span className="text-sm font-black text-slate-900">{nc.count}</span>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-center">
-                                                            <span className="text-xs font-bold text-emerald-600">{nc.kesin}</span>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-center">
-                                                            <span className="text-xs font-bold text-amber-600">{nc.opsiyon}</span>
-                                                        </td>
-                                                        <td className="px-4 py-3 overflow-hidden max-w-[300px]">
-                                                            <div className="flex flex-wrap gap-1 max-h-[40px] overflow-hidden">
-                                                                {nc.locations.slice(0, 8).map((l, li) => (
-                                                                    <span key={li} className="bg-slate-100 text-slate-500 px-1 py-0.5 rounded text-[9px] font-mono border border-slate-200/50">
-                                                                        {l.code}
-                                                                    </span>
-                                                                ))}
-                                                                {nc.locations.length > 8 && <span className="text-slate-400 text-[9px] font-bold">+{nc.locations.length - 8} daha...</span>}
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            ) : (
+                            {downloadMode === 'TASKS' && (
+                                <section>
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="w-1 h-6 bg-emerald-600 rounded-full" />
+                                        <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Marka & Rezervasyon Süreç Özeti</h4>
+                                    </div>
+                                    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                                        <table className="w-full text-xs text-left">
+                                            <thead className="bg-slate-50 border-b border-slate-100">
                                                 <tr>
-                                                    <td colSpan={5} className="px-4 py-8 text-center text-slate-400 italic font-medium">Marka özeti bulunmamaktadır.</td>
+                                                    <th className="px-4 py-3 font-bold text-slate-500">Marka Adı</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-500 text-center">Toplam</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-500 text-center">Kesin</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-500 text-center">Opsiyon</th>
+                                                    <th className="px-4 py-3 font-bold text-slate-500">Lokasyonlar</th>
                                                 </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </section>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-50">
+                                                {(() => {
+                                                    const selectedReqs = reservationRequests.filter(r => selectedPreviewIds.includes(r.id));
+                                                    const selectedWs = Array.from(new Set(selectedReqs.map(r => r.week)));
+                                                    const selectedBs = Array.from(new Set(selectedReqs.map(r => r.brandName?.toUpperCase())));
+                                                    
+                                                    const previewData = networkCustomers
+                                                        .filter(nc => selectedBs.includes(nc.brand?.toUpperCase()))
+                                                        .map(nc => {
+                                                            const filteredLocs = nc.locations.filter(loc => selectedWs.includes(loc.week));
+                                                            return {
+                                                                brand: nc.brand,
+                                                                count: filteredLocs.length,
+                                                                kesin: filteredLocs.filter(l => l.status === 'KESİN').length,
+                                                                opsiyon: filteredLocs.filter(l => l.status === 'OPSİYON').length,
+                                                                locations: filteredLocs
+                                                            };
+                                                        })
+                                                        .filter(nc => nc.count > 0);
+
+                                                    return previewData.length > 0 ? (
+                                                        previewData.map((nc, i) => (
+                                                            <tr key={i} className="hover:bg-emerald-50/30 transition-colors">
+                                                                <td className="px-4 py-3 font-bold text-slate-800">{nc.brand}</td>
+                                                                <td className="px-4 py-3 text-center">
+                                                                    <span className="text-sm font-black text-slate-900">{nc.count}</span>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-center">
+                                                                    <span className="text-xs font-bold text-emerald-600">{nc.kesin}</span>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-center">
+                                                                    <span className="text-xs font-bold text-amber-600">{nc.opsiyon}</span>
+                                                                </td>
+                                                                <td className="px-4 py-3 overflow-hidden max-w-[300px]">
+                                                                    <div className="flex flex-wrap gap-1 max-h-[40px] overflow-hidden">
+                                                                        {nc.locations.slice(0, 8).map((l, li) => (
+                                                                            <span key={li} className="bg-slate-100 text-slate-500 px-1 py-0.5 rounded text-[9px] font-mono border border-slate-200/50">
+                                                                                {l.code}
+                                                                            </span>
+                                                                        ))}
+                                                                        {nc.locations.length > 8 && <span className="text-slate-400 text-[9px] font-bold">+{nc.locations.length - 8} daha...</span>}
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ))
+                                                    ) : (
+                                                        <tr>
+                                                            <td colSpan={5} className="px-4 py-8 text-center text-slate-400 italic font-medium">Seçili işler için marka özeti bulunmamaktadır.</td>
+                                                        </tr>
+                                                    );
+                                                })()}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </section>
+                            )}
                         </div>
 
                         {/* Footer */}
@@ -3946,7 +4255,8 @@ export default function ReservationsPage() {
                         </div>
                     </div>
                 </div>
-            )}
+                );
+            })()}
         </div>
     )
 }
