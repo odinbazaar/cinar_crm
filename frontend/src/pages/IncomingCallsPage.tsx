@@ -188,10 +188,15 @@ export default function IncomingCallsPage() {
         })
     }
 
+    const normalize = (s?: string | null) =>
+        (s ?? '').toLocaleLowerCase('tr-TR')
+            .replace(/i̇/g, 'i') // Safari'de oluşan combining dot
+            .trim()
+    const q = normalize(searchTerm)
     const filteredCalls = incomingCalls.filter(call =>
-        call.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        call.contact_person?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        call.phone?.includes(searchTerm)
+        normalize(call.company_name).includes(q) ||
+        normalize(call.contact_person).includes(q) ||
+        (call.phone || '').replace(/\s/g, '').includes(searchTerm.replace(/\s/g, ''))
     )
 
     const pendingCalls = filteredCalls.filter(c => c.status === 'pending')

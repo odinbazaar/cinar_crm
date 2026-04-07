@@ -151,7 +151,7 @@ export default function ReservationsPage() {
     const [showPendingAtaModal, setShowPendingAtaModal] = useState(false)
     const [selectedAtaRequest, setSelectedAtaRequest] = useState<any>(null)
     const [selectedAtaItem, setSelectedAtaItem] = useState<any>(null)
-    const [ataSelectedNetwork, setAtaSelectedNetwork] = useState<string>('1')
+    const [ataSelectedNetworks, setAtaSelectedNetworks] = useState<string[]>(['1'])
 
     const [showEmailModal, setShowEmailModal] = useState(false)
     const [selectedEmails, setSelectedEmails] = useState<string[]>([])
@@ -179,11 +179,14 @@ export default function ReservationsPage() {
                 if (s.startsWith('NET ')) s = s.replace('NET ', '');
                 return s.trim();
             };
-            const reqNet = normalizeNet(ataSelectedNetwork);
+            const reqNets = ataSelectedNetworks.map(n => normalizeNet(n));
+            const isAllSelected = reqNets.includes('TÜMÜ');
 
             const matchingInventory = inventory.filter(item => {
                 const itemNet = normalizeNet(item.network);
-                const isNetMatch = itemNet === reqNet || (itemNet === 'BELEDİYE' && reqNet === 'BLD') || (itemNet === 'BLD' && reqNet === 'BELEDİYE');
+                const isNetMatch = isAllSelected || reqNets.includes(itemNet) || 
+                    (reqNets.includes('BLD') && itemNet === 'BELEDİYE') || 
+                    (reqNets.includes('BELEDİYE') && itemNet === 'BLD');
 
                 const normalizeType = (t: string) => {
                     const type = String(t).toUpperCase().trim();
@@ -282,7 +285,7 @@ export default function ReservationsPage() {
                     await bookingsService.create({
                         inventory_item_id: item.id,
                         brand_name: (selectedAtaRequest.brandName || selectedAtaRequest.customerName || 'Bilinmeyen'),
-                        network: String(ataSelectedNetwork).replace('Net ', ''),
+                        network: ataSelectedNetworks.join(', '),
                         start_date: toBackendDate(targetWeek),
                         end_date: toBackendDate(targetWeek),
                         status: status,
@@ -313,7 +316,7 @@ export default function ReservationsPage() {
 
             await fetchData();
             const assignedCount = toAssign.length - skippedKesinCount;
-            let msg = `${selectedAtaRequest.customerName || selectedAtaRequest.brandName} talebi Network ${ataSelectedNetwork} üzerinden ${status === 'OPSİYON' ? 'opsiyona' : 'kesin olarak'} alındı (${assignedCount} adet)`;
+            let msg = `${selectedAtaRequest.customerName || selectedAtaRequest.brandName} talebi Network ${ataSelectedNetworks.join(', ')} üzerinden ${status === 'OPSİYON' ? 'opsiyona' : 'kesin olarak'} alındı (${assignedCount} adet)`;
             if (skippedKesinCount > 0) {
                 msg += ` ⚠️ ${skippedKesinCount} lokasyon zaten kesin işi olduğu için atlandı.`;
             }
@@ -2660,7 +2663,7 @@ export default function ReservationsPage() {
                                                                                 onClick={() => {
                                                                                     setSelectedAtaRequest(req);
                                                                                     setSelectedAtaItem(ai);
-                                                                                    setAtaSelectedNetwork(ai.network || '1');
+                                                                                  setAtaSelectedNetworks(ai.network === 'Tümü' || !ai.network ? ['TÜMÜ'] : [ai.network]);
                                                                                     setShowPendingAtaModal(true);
                                                                                 }}
                                                                                 className="px-2 py-1 bg-white text-blue-600 text-[10px] font-bold rounded shadow-sm border border-blue-100 hover:bg-blue-50 hover:text-blue-700 transition-colors flex items-center gap-1"
@@ -3730,9 +3733,9 @@ export default function ReservationsPage() {
                         </div>
 
                         {/* Tabs (Tırnaklar) */}
-                        <div className="flex bg-slate-50 px-2 pt-2 border-b border-slate-200">
-                            {['1', '2', '3', '4', 'BLD'].map((net) => {
-                                const isActive = ataSelectedNetwork === net;
+                        <div className="flex bg-slate-50 px-2 pt-2 border-b border-slate-200 overflow-x-auto">
+                            {['TÜMÜ', '1', '2', '3', '4', 'BLD'].map((net) => {
+                                const isActive = ataSelectedNetworks.includes(net);
 
                                 // Calculate count for this tab
                                 const normalizeNet = (n: any) => {
@@ -3769,7 +3772,7 @@ export default function ReservationsPage() {
                                          const locNet = normalizeNet(loc.network);
                                          const locType = loc.productType; // BB, CLP, ML etc.
                                          
-                                         if (locNet !== targetNet && !(targetNet === 'BLD' && locNet === 'BELEDİYE')) return false;
+                                         if (targetNet !== 'TÜMÜ' && locNet !== targetNet && !(targetNet === 'BLD' && locNet === 'BELEDİYE')) return false;
                                          // ProductType normalizasyonu
                                          const pType = targetType === 'BILLBOARD' ? 'BB' : targetType;
                                          if (locType !== pType) return false;
@@ -3777,20 +3780,33 @@ export default function ReservationsPage() {
                                      });
 
                                      count = filtered.filter(loc => !loc.marka1Opsiyon || !loc.marka2Opsiyon || !loc.marka3Opsiyon).length;
-                                     kesinCount = filtered.filter(loc => !loc.marka4Opsiyon).length; // Assuming marka4Opsiyon indicates definite availability
+                                     kesinCount = filtered.filter(loc => !loc.marka4Opsiyon).length;
                                  }
 
                                 return (
                                     <button
                                         key={net}
-                                        onClick={() => setAtaSelectedNetwork(net)}
-                                        className={`px-4 py-2 text-xs font-bold rounded-t-xl transition-all relative ${isActive
+                                        onClick={() => {
+                                            if (net === 'TÜMÜ') {
+                                                setAtaSelectedNetworks(['TÜMÜ']);
+                                            } else {
+                                                setAtaSelectedNetworks(prev => {
+                                                    const next = prev.includes('TÜMÜ') ? [] : [...prev];
+                                                    if (next.includes(net)) {
+                                                        const result = next.filter(n => n !== net);
+                                                        return result.length === 0 ? ['TÜMÜ'] : result;
+                                                    }
+                                                    return [...next, net];
+                                                });
+                                            }
+                                        }}
+                                        className={`px-4 py-2 text-xs font-bold rounded-t-xl transition-all relative whitespace-nowrap ${isActive
                                             ? 'bg-white border-x border-t border-slate-200 text-primary-600 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]'
                                             : 'text-slate-500 hover:text-slate-700'
                                             }`}
                                     >
                                         <div className="flex flex-col items-center gap-1">
-                                             <span className="text-[10px] uppercase font-bold tracking-tighter">Network {net}</span>
+                                             <span className="text-[10px] uppercase font-bold tracking-tighter">{net === 'TÜMÜ' ? 'TÜMÜ' : `Network ${net}`}</span>
                                              {!isWeekMismatch && (
                                                  <div className="flex gap-1">
                                                      {count > 0 && (
@@ -3821,17 +3837,14 @@ export default function ReservationsPage() {
                         <div className="p-8">
                             <div className="space-y-6">
                                 <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 flex items-center gap-4">
-                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${ataSelectedNetwork === '1' ? 'bg-blue-600 shadow-blue-200' :
-                                            ataSelectedNetwork === '2' ? 'bg-emerald-600 shadow-emerald-200' :
-                                                ataSelectedNetwork === '3' ? 'bg-amber-600 shadow-amber-200' :
-                                                    ataSelectedNetwork === '4' ? 'bg-rose-600 shadow-rose-200' :
-                                                        'bg-slate-800 shadow-slate-200'
-                                        }`}>
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-slate-700 to-slate-900 shadow-slate-200`}>
                                         <Layers className="w-6 h-6 text-white" />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-800">Network {ataSelectedNetwork} Seçildi</h4>
-                                        <p className="text-xs text-slate-500">Bu işlem sonucunda seçilen network üzerinden opsiyon ataması yapılacaktır.</p>
+                                        <h4 className="font-bold text-slate-800">
+                                            {ataSelectedNetworks.includes('TÜMÜ') ? 'Tüm Networkler Seçildi' : `Network ${ataSelectedNetworks.join(', ')} Seçildi`}
+                                        </h4>
+                                        <p className="text-xs text-slate-500">Bu işlem sonucunda seçilen network(ler) üzerinden opsiyon ataması yapılacaktır.</p>
                                     </div>
                                 </div>
 
@@ -3857,11 +3870,18 @@ export default function ReservationsPage() {
                                                              if (s.startsWith('NET ')) s = s.replace('NET ', '');
                                                              return s.trim();
                                                          };
-                                                         const targetNet = normalizeNet(ataSelectedNetwork);
+                                                         const reqNets = ataSelectedNetworks.map(n => normalizeNet(n));
+                                                         const isAllSelected = reqNets.includes('TÜMÜ');
+                                                         
                                                          const filtered = locations.filter(loc => {
                                                              const locNet = normalizeNet(loc.network);
                                                              const pType = (selectedAtaItem.productType === 'BILLBOARD' || selectedAtaItem.productType === 'BB') ? 'BB' : selectedAtaItem.productType;
-                                                             if (locNet !== targetNet && !(targetNet === 'BLD' && locNet === 'BELEDİYE')) return false;
+                                                             
+                                                             const isNetMatch = isAllSelected || reqNets.includes(locNet) || 
+                                                                (reqNets.includes('BLD') && locNet === 'BELEDİYE') || 
+                                                                (reqNets.includes('BELEDİYE') && locNet === 'BLD');
+                                                                
+                                                             if (!isNetMatch) return false;
                                                              if (loc.productType !== pType) return false;
                                                              return true;
                                                          });
