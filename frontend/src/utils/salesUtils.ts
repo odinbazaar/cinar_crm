@@ -13,6 +13,7 @@ export const getProductTypes = () => {
         { code: 'GB', name: 'GIANTBOARD', duration: '10 GÜN', period: '10 GÜNLÜK', unitPrice: 85000, discountedPrice: 55000, printingCost: 4500, operationCost: 2500 },
         { code: 'KB', name: 'KULEBOARD', duration: '1 AY', period: 'AYLIK', unitPrice: 250000, discountedPrice: 180000, printingCost: 9600, operationCost: 15000 },
         { code: 'MB', name: 'MEGABOARD', duration: '1 AY', period: 'AYLIK', unitPrice: 175000, discountedPrice: 100000, printingCost: 3500, operationCost: 1500 },
+        { code: 'BE', name: 'BÜYÜK ENVANTER', duration: '1 AY', period: 'AYLIK', unitPrice: 300000, discountedPrice: 200000, printingCost: 12000, operationCost: 18000 },
     ]
 }
 

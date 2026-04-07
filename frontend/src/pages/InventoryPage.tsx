@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Search, Plus, Edit2, Map, Upload, Trash2 } from 'lucide-react'
-// Remove mock data import and use service
 import { inventoryService } from '../services/inventoryService'
 import { inventoryData } from '../data/inventoryData'
 import type { InventoryItem } from '../services/inventoryService'
@@ -10,9 +10,12 @@ import DataImportModal from '../components/common/DataImportModal'
 import { useAuth } from '../hooks/useAuth'
 
 export default function InventoryPage() {
+    const navigate = useNavigate()
     const { isAdmin } = useAuth()
+    const [searchParams] = useSearchParams()
     const [searchTerm, setSearchTerm] = useState('')
-    const [filterType, setFilterType] = useState<string>('ALL')
+    const initialType = searchParams.get('type')?.toUpperCase() || 'ALL'
+    const [filterType, setFilterType] = useState<string>(initialType)
     const [columnFilters, setColumnFilters] = useState({
         code: '',
         type: '',
@@ -28,7 +31,17 @@ export default function InventoryPage() {
     const [loading, setLoading] = useState(true)
 
     // Filter type options derived from data or static if preferred
-    const filterTypes = ['BB', 'CLP', 'GB', 'MGL']
+    const filterTypes = ['BB', 'CLP', 'GB', 'MGL', 'LB', 'MB', 'KB', 'BE']
+
+    // Sync filter type with URL param
+    useEffect(() => {
+        const type = searchParams.get('type')?.toUpperCase()
+        if (type) {
+            setFilterType(type)
+        } else {
+            setFilterType('ALL')
+        }
+    }, [searchParams])
 
     // State for modals
     const [isFormModalOpen, setIsFormModalOpen] = useState(false)
@@ -231,6 +244,12 @@ export default function InventoryPage() {
                                 }`}
                         >
                             Kuleboard (KB)
+                        </button>
+                        <button
+                            onClick={() => navigate('/inventory/buyuk-envanter')}
+                            className="px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors bg-amber-50 text-amber-700 hover:bg-amber-100"
+                        >
+                            Büyük Envanter (BE)
                         </button>
                     </div>
                 </div>

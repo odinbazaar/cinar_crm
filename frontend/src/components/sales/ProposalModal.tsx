@@ -91,16 +91,24 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
 
                         {proposalItems.map((item, index) => (
                             <div key={index} className="flex gap-2 items-center">
-                                <div className="flex-1 min-w-[140px]">
+                                <div className="flex-1 min-w-[140px] relative">
                                     <select
                                         value={item.type}
                                         onChange={(e) => updateProposalItem(index, 'type', e.target.value)}
-                                        className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-[11px]"
+                                        className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-[11px] pr-8 appearance-none bg-white"
                                     >
                                         {getProductTypes().map((pt: any) => (
                                             <option key={pt.code} value={pt.code}>{pt.code} - {pt.name}</option>
                                         ))}
                                     </select>
+                                    <button
+                                        onClick={() => window.open(`/inventory?type=${item.type}`, '_blank')}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 hover:bg-blue-50 text-blue-600 rounded-md transition-all group/info"
+                                        title="Envanter Durumunu Gör"
+                                    >
+                                        <ShoppingBag className="w-3.5 h-3.5" />
+                                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/info:block bg-gray-900 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap shadow-xl">Envanteri Aç</span>
+                                    </button>
                                 </div>
                                 <input
                                     type="number"

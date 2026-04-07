@@ -32,6 +32,7 @@ const defaultProducts: ProductPrice[] = [
     { code: 'GB', name: 'GIANTBOARD', duration: '10 GÜN', period: '10 GÜNLÜK', unitPrice: 85000, discountedPrice: 55000, printingCost: 4500, operationCost: 2500, isOperationPerUnit: true },
     { code: 'KB', name: 'KULEBOARD', duration: '1 AY', period: 'AYLIK', unitPrice: 250000, discountedPrice: 180000, printingCost: 9600, operationCost: 15000, isOperationPerUnit: true },
     { code: 'MB', name: 'MEGABOARD', duration: '1 AY', period: 'AYLIK', unitPrice: 175000, discountedPrice: 100000, printingCost: 3500, operationCost: 1500, isOperationPerUnit: true },
+    { code: 'BE', name: 'BÜYÜK ENVANTER', duration: '1 AY', period: 'AYLIK', unitPrice: 0, discountedPrice: 0, printingCost: 0, operationCost: 0, isOperationPerUnit: true },
 ]
 
 // KDV oranı seçenekleri

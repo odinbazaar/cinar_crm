@@ -23,6 +23,11 @@ export interface CreateInventoryItemDto {
     coordinates?: string;
     network?: string;
     routeNo?: string;
+    bePeriod?: string;
+    beUnitPrice?: number;
+    beDiscountedPrice?: number;
+    bePrintingCost?: number;
+    beOperationCost?: number;
 }
 
 export interface UpdateInventoryItemDto {
@@ -34,5 +39,10 @@ export interface UpdateInventoryItemDto {
     coordinates?: string;
     network?: string;
     routeNo?: string;
+    bePeriod?: string;
+    beUnitPrice?: number;
+    beDiscountedPrice?: number;
+    bePrintingCost?: number;
+    beOperationCost?: number;
     is_active?: boolean;
 }

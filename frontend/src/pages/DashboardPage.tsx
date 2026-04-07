@@ -9,8 +9,10 @@ import {
     Loader2,
     Bell,
     StickyNote,
-    Clock
+    Clock,
+    Plus
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { dashboardService } from '../services'
 import { notificationsService } from '../services/notificationsService'
@@ -24,6 +26,7 @@ const iconMap: Record<string, any> = {
 };
 
 export default function DashboardPage() {
+    const navigate = useNavigate();
     const { data: dashboardData, isLoading } = useQuery({
         queryKey: ['dashboard-stats'],
         queryFn: dashboardService.getStats
@@ -202,24 +205,32 @@ export default function DashboardPage() {
                             Detaylar →
                         </a>
                     </div>
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                         {inventoryBreakdown.map((item) => (
-                            <div key={item.type} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${item.type === 'BB' ? 'bg-blue-100 text-blue-600' :
-                                        item.type === 'CLP' ? 'bg-purple-100 text-purple-600' :
-                                            item.type === 'GB' ? 'bg-orange-100 text-orange-600' :
-                                                'bg-red-100 text-red-600'
-                                        }`}>
-                                        <span className="font-bold">{item.type}</span>
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-gray-900">{item.name}</p>
-                                        <p className="text-xs text-gray-500">{item.count} Adet</p>
-                                    </div>
+                            <button
+                                key={item.type}
+                                onClick={() => navigate(`/inventory?type=${item.type}`)}
+                                className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-2xl border border-transparent hover:border-primary-200 hover:bg-white hover:shadow-xl transition-all group group-hover:-translate-y-1 transform"
+                            >
+                                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-3 shadow-sm transform group-hover:scale-110 transition-transform ${item.type === 'BB' ? 'bg-blue-100 text-blue-600' :
+                                    item.type === 'CLP' ? 'bg-purple-100 text-purple-700' :
+                                        item.type === 'GB' ? 'bg-orange-100 text-orange-700' :
+                                            item.type === 'MGL' ? 'bg-indigo-100 text-indigo-700' :
+                                                item.type === 'LB' ? 'bg-green-100 text-green-700' :
+                                                    item.type === 'MB' ? 'bg-teal-100 text-teal-700' :
+                                                        item.type === 'KB' ? 'bg-red-100 text-red-700' :
+                                                            'bg-amber-100 text-amber-700'
+                                    }`}>
+                                    <span className="text-xl font-black">{item.type}</span>
                                 </div>
-                                <span className="badge badge-success">Aktif</span>
-                            </div>
+                                <div className="text-center">
+                                    <p className="font-bold text-gray-900 group-hover:text-primary-600 transition-colors uppercase tracking-wide text-xs">{item.name}</p>
+                                    <p className="text-lg font-black text-gray-700 mt-1">{item.count} <span className="text-[10px] font-medium text-gray-400">Ünite</span></p>
+                                </div>
+                                <div className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] font-bold text-primary-600 uppercase">
+                                    Envanteri Gör <Plus className="w-3 h-3" />
+                                </div>
+                            </button>
                         ))}
                     </div>
                 </div>

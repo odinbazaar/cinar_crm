@@ -93,6 +93,7 @@ export default function InventoryFormModal({ isOpen, onClose, onSave, initialDat
                                 <option value="LB">LED (LB)</option>
                                 <option value="MB">Megaboard (MB)</option>
                                 <option value="KB">Kuleboard (KB)</option>
+                                <option value="BE">Büyük Envanter (BE)</option>
                             </select>
                         </div>
 
@@ -178,6 +179,67 @@ export default function InventoryFormModal({ isOpen, onClose, onSave, initialDat
                                 placeholder="Örn: 1-A"
                             />
                         </div>
+
+                        {formData.type === 'BE' && (
+                            <>
+                                <div className="md:col-span-2 pt-2 border-t border-gray-200">
+                                    <h3 className="text-sm font-semibold text-gray-900">Büyük Envanter - Dönem ve Fiyatlandırma</h3>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Dönem</label>
+                                    <select
+                                        value={formData.bePeriod || 'AYLIK'}
+                                        onChange={e => setFormData({ ...formData, bePeriod: e.target.value })}
+                                        className="input w-full"
+                                    >
+                                        <option value="HAFTALIK">Haftalık</option>
+                                        <option value="10 GÜNLÜK">10 Günlük</option>
+                                        <option value="AYLIK">Aylık</option>
+                                        <option value="YILLIK">Yıllık</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Liste Fiyatı (₺)</label>
+                                    <input
+                                        type="number"
+                                        value={formData.beUnitPrice ?? ''}
+                                        onChange={e => setFormData({ ...formData, beUnitPrice: e.target.value === '' ? undefined : Number(e.target.value) })}
+                                        className="input w-full"
+                                        placeholder="0"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">İndirimli Fiyat (₺)</label>
+                                    <input
+                                        type="number"
+                                        value={formData.beDiscountedPrice ?? ''}
+                                        onChange={e => setFormData({ ...formData, beDiscountedPrice: e.target.value === '' ? undefined : Number(e.target.value) })}
+                                        className="input w-full"
+                                        placeholder="0"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Baskı Fiyatı (₺)</label>
+                                    <input
+                                        type="number"
+                                        value={formData.bePrintingCost ?? ''}
+                                        onChange={e => setFormData({ ...formData, bePrintingCost: e.target.value === '' ? undefined : Number(e.target.value) })}
+                                        className="input w-full"
+                                        placeholder="0"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Op. Bedeli (₺)</label>
+                                    <input
+                                        type="number"
+                                        value={formData.beOperationCost ?? ''}
+                                        onChange={e => setFormData({ ...formData, beOperationCost: e.target.value === '' ? undefined : Number(e.target.value) })}
+                                        className="input w-full"
+                                        placeholder="0"
+                                    />
+                                </div>
+                            </>
+                        )}
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">

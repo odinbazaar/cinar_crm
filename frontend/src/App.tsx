@@ -8,6 +8,7 @@ import DashboardPage from './pages/DashboardPage'
 import ClientsPage from './pages/ClientsPage'
 import ProjectsPage from './pages/ProjectsPage'
 import InventoryPage from './pages/InventoryPage'
+import BuyukEnvanterPage from './pages/BuyukEnvanterPage'
 import ProposalsPage from './pages/ProposalsPage'
 import AsimListesiPage from './pages/AsimListesiPage'
 import CustomerRequestsPage from './pages/CustomerRequestsPage'
@@ -81,6 +82,7 @@ function AppContent() {
                         <Route path="customer-requests" element={<CustomerRequestsPage />} />
                         <Route path="projects" element={<ProjectsPage />} />
                         <Route path="inventory" element={<InventoryPage />} />
+                        <Route path="inventory/buyuk-envanter" element={<BuyukEnvanterPage />} />
                         <Route path="proposals" element={<ProposalsPage />} />
                         <Route path="asim-listesi" element={<AsimListesiPage />} />
                         <Route path="contracts" element={<ContractsPage />} />

@@ -76,12 +76,17 @@ export class DashboardService {
             .from('inventory_items')
             .select('type');
 
-        const types = ['BB', 'CLP', 'GB', 'MGL'];
+        const types = ['BB', 'CLP', 'GB', 'MGL', 'LB', 'MB', 'KB', 'BE'];
         const inventoryBreakdown = types.map(type => ({
             type,
             name: type === 'BB' ? 'Billboard' :
                 type === 'CLP' ? 'Raket / Durak' :
-                    type === 'GB' ? 'Giant Board' : 'Megalight',
+                type === 'GB' ? 'Giant Board' :
+                type === 'MGL' ? 'Megalight' :
+                type === 'LB' ? 'LED Screen' :
+                type === 'MB' ? 'Mega Board' :
+                type === 'KB' ? 'Kule Board' :
+                'Büyük Envanter',
             count: inventoryData?.filter(i => i.type === type).length || 0
         }));
 

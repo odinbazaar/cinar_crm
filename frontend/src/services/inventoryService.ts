@@ -11,6 +11,11 @@ export interface InventoryItem {
     coordinates?: string;
     network?: string;
     routeNo?: string;
+    bePeriod?: string;
+    beUnitPrice?: number;
+    beDiscountedPrice?: number;
+    bePrintingCost?: number;
+    beOperationCost?: number;
     is_active: boolean;
     created_at: string;
     updated_at: string;
@@ -25,10 +30,27 @@ export interface CreateInventoryItemDto {
     coordinates?: string;
     network?: string;
     routeNo?: string;
+    bePeriod?: string;
+    beUnitPrice?: number;
+    beDiscountedPrice?: number;
+    bePrintingCost?: number;
+    beOperationCost?: number;
 }
 
 export interface UpdateInventoryItemDto extends Partial<CreateInventoryItemDto> {
     is_active?: boolean;
+}
+
+function mapInventoryItem(item: any): InventoryItem {
+    return {
+        ...item,
+        routeNo: item.route_no ?? item.routeNo,
+        bePeriod: item.be_period ?? item.bePeriod,
+        beUnitPrice: item.be_unit_price ?? item.beUnitPrice,
+        beDiscountedPrice: item.be_discounted_price ?? item.beDiscountedPrice,
+        bePrintingCost: item.be_printing_cost ?? item.bePrintingCost,
+        beOperationCost: item.be_operation_cost ?? item.beOperationCost,
+    };
 }
 
 // Inventory Service
@@ -36,23 +58,17 @@ export const inventoryService = {
     async getAll(): Promise<InventoryItem[]> {
         const data = await apiClient.get<any[]>('/inventory');
         // Map snake_case route_no to camelCase routeNo
-        return data.map(item => ({
-            ...item,
-            routeNo: item.route_no || item.routeNo
-        }));
+        return data.map(mapInventoryItem);
     },
 
     async getOne(id: string): Promise<InventoryItem> {
         const data = await apiClient.get<any>(`/inventory/${id}`);
-        return { ...data, routeNo: data.route_no || data.routeNo };
+        return mapInventoryItem(data);
     },
 
     async getByDistrict(district: string): Promise<InventoryItem[]> {
         const data = await apiClient.get<any[]>(`/inventory/district/${district}`);
-        return data.map(item => ({
-            ...item,
-            routeNo: item.route_no || item.routeNo
-        }));
+        return data.map(mapInventoryItem);
     },
 
     async create(data: CreateInventoryItemDto): Promise<InventoryItem> {

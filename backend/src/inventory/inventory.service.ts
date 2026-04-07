@@ -34,6 +34,19 @@ export class InventoryService {
             dbData.route_no = dbData.routeNo;
             delete dbData.routeNo;
         }
+        const beMap: Record<string, string> = {
+            bePeriod: 'be_period',
+            beUnitPrice: 'be_unit_price',
+            beDiscountedPrice: 'be_discounted_price',
+            bePrintingCost: 'be_printing_cost',
+            beOperationCost: 'be_operation_cost',
+        };
+        for (const k of Object.keys(beMap)) {
+            if (k in dbData) {
+                dbData[beMap[k]] = dbData[k];
+                delete dbData[k];
+            }
+        }
 
         const { data, error } = await supabase
             .from('inventory_items')
@@ -51,6 +64,19 @@ export class InventoryService {
         if ('routeNo' in dbData) {
             dbData.route_no = dbData.routeNo;
             delete dbData.routeNo;
+        }
+        const beMap: Record<string, string> = {
+            bePeriod: 'be_period',
+            beUnitPrice: 'be_unit_price',
+            beDiscountedPrice: 'be_discounted_price',
+            bePrintingCost: 'be_printing_cost',
+            beOperationCost: 'be_operation_cost',
+        };
+        for (const k of Object.keys(beMap)) {
+            if (k in dbData) {
+                dbData[beMap[k]] = dbData[k];
+                delete dbData[k];
+            }
         }
 
         const { data, error } = await supabase
