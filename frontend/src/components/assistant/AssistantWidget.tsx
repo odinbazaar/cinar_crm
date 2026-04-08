@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { MessageCircle, X, Send, Bot, User, Loader2, ChevronDown } from 'lucide-react'
+import { MessageCircle, Send, Bot, User, Loader2, ChevronDown } from 'lucide-react'
 import apiClient from '../../services/api'
 
 interface Message {
@@ -9,15 +9,19 @@ interface Message {
 
 const WELCOME_MESSAGE: Message = {
     role: 'assistant',
-    content: 'Merhaba! 👋 Ben Çınar, IAR operasyonel yardımcı asistanıyım.\n\nSize şu konularda yardımcı olabilirim:\n- **Boş lokasyon** sorgulama\n- **Rezervasyon** kontrolü\n- **Müşteri bazlı** lokasyon sorgulama\n- **Envanter** özeti\n\nAşağıdaki hızlı soruları deneyebilir veya direkt soru yazabilirsiniz.',
+    content: 'Merhaba! 👋 Ben Çınar, IAR operasyonel yardımcı asistanıyım.\n\nSize şu konularda yardımcı olabilirim:\n- **Boş / Dolu lokasyon** sorgulama (BB, CLP, MGL, GB)\n- **Network** listesi ve network bazlı lokasyon sorgulama\n- **Rezervasyon** kontrolü (KESİN / OPSİYON)\n- **Müşteri bazlı** lokasyon sorgulama\n- **Envanter** özeti ve doluluk oranları\n\nAşağıdaki hızlı soruları deneyebilir veya direkt soru yazabilirsiniz.',
 }
 
 const QUICK_QUESTIONS = [
+    'Genel CRM durumu',
+    'Bu ayın rezervasyonları',
     'Boş lokasyonları göster',
-    'Tüm rezervasyonları listele',
+    'Dolu lokasyonları listele',
+    'Networkleri listele',
+    'Müşteri özeti',
+    'Bekleyen müşteri talepleri',
+    'Aktif teklifler',
     'Envanter özetini göster',
-    'Boş BB lokasyonları',
-    'Boş CLP lokasyonları',
 ]
 
 export default function AssistantWidget() {

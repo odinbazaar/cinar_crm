@@ -4,101 +4,85 @@ import supabase from '../config/supabase.config';
 @Injectable()
 export class ReportsService {
     async getWeeklyStats() {
-        const today = new Date();
-        const lastFriday = this.getLastFriday(today);
-        const previousFriday = new Date(lastFriday);
-        previousFriday.setDate(previousFriday.getDate() - 7);
+        const now = new Date();
+        const start = new Date();
+        start.setDate(now.getDate() - 7);
+        start.setHours(0, 0, 0, 0);
 
-        const lastFridayISO = lastFriday.toISOString();
-        const previousFridayISO = previousFriday.toISOString();
+        const startISO = start.toISOString();
+        const nowISO = now.toISOString();
 
-        // 1. New Customers this week
+        // 1. New Customers (Last 7 Days)
         const { count: newCustomers } = await supabase
             .from('clients')
             .select('*', { count: 'exact', head: true })
-            .gte('created_at', previousFridayISO)
-            .lte('created_at', lastFridayISO);
+            .gte('created_at', startISO)
+            .lte('created_at', nowISO);
 
-        // 2. Revenue from accepted proposals this week
+        // 2. Revenue from accepted proposals (Last 7 Days)
         const { data: weeklyProposals } = await supabase
             .from('proposals')
             .select('total')
-            .eq('status', 'APPROVED')
-            .gte('updated_at', previousFridayISO)
-            .lte('updated_at', lastFridayISO);
+            .eq('status', 'ACCEPTED')
+            .gte('updated_at', startISO)
+            .lte('updated_at', nowISO);
 
         const weeklyRevenue = weeklyProposals?.reduce((sum, p) => sum + Number(p.total), 0) || 0;
 
-        // 3. Occupancy Rate (bugün itibariyle aktif KESİN bookinglere göre)
-        const todayISO = new Date().toISOString();
-
-        const { count: totalItems } = await supabase
-            .from('inventory_items')
-            .select('*', { count: 'exact', head: true })
-            .eq('is_active', true);
-
-        const { count: occupiedItems } = await supabase
-            .from('bookings')
-            .select('inventory_item_id', { count: 'exact', head: true })
-            .lte('start_date', todayISO)
-            .gte('end_date', todayISO)
-            .eq('status', 'KESİN');
-
-        const occupancyRate = totalItems ? Math.round((Number(occupiedItems) / Number(totalItems)) * 100) : 0;
-
-        // 4. Envanter doluluk dağılımı - tip bazında toplam envanter ve dolu ünite sayısı
-        const { data: allInventory } = await supabase
-            .from('inventory_items')
-            .select('type')
-            .eq('is_active', true);
-
-        const totalByType: Record<string, number> = {};
-        allInventory?.forEach((item: any) => {
-            if (item.type) {
-                totalByType[item.type] = (totalByType[item.type] || 0) + 1;
-            }
-        });
+        // 3. Occupancy Rate (Today)
+        const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+        const todayEnd = new Date(new Date().setHours(23, 59, 59, 999)).toISOString();
 
         const { data: activeBookings } = await supabase
             .from('bookings')
             .select('inventory_items(type)')
-            .lte('start_date', todayISO)
-            .gte('end_date', todayISO)
+            .lte('start_date', todayEnd)
+            .gte('end_date', todayStart)
             .eq('status', 'KESİN');
 
-        const occupiedByType: Record<string, number> = {};
+        const { count: totalInventory } = await supabase
+            .from('inventory_items')
+            .select('*', { count: 'exact', head: true });
+
+        // 4. Breakdown by type
+        const { data: allInventory } = await supabase
+            .from('inventory_items')
+            .select('type');
+
+        const breakdown: Record<string, { total: number; occupied: number }> = {};
+        allInventory?.forEach(item => {
+            if (!breakdown[item.type]) {
+                breakdown[item.type] = { total: 0, occupied: 0 };
+            }
+            breakdown[item.type].total++;
+        });
+
         activeBookings?.forEach((b: any) => {
             const type = b.inventory_items?.type;
-            if (type) {
-                occupiedByType[type] = (occupiedByType[type] || 0) + 1;
+            if (type && breakdown[type]) {
+                breakdown[type].occupied++;
             }
         });
 
-        const breakdown: Record<string, { total: number; occupied: number }> = {};
-        Object.keys(totalByType).forEach(type => {
-            breakdown[type] = {
-                total: totalByType[type],
-                occupied: occupiedByType[type] || 0
-            };
-        });
+        const activeCount = activeBookings?.length || 0;
+        const totalCount = totalInventory || 0;
+        const occupancyRate = totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 0;
 
         return {
             period: {
-                start: previousFriday,
-                end: lastFriday
+                start: start,
+                end: now
             },
             stats: {
                 newCustomers: newCustomers || 0,
                 weeklyRevenue,
                 occupancyRate,
-                totalInventory: totalItems || 0,
-                activeBookings: occupiedItems || 0
+                totalInventory: totalCount || 0,
+                activeBookings: activeCount || 0
             },
             breakdown
         };
     }
-
-    // --- Employee Reports Logic ---
 
     async getEmployeeReports(userId?: string) {
         let query = supabase
@@ -120,7 +104,6 @@ export class ReportsService {
     }
 
     async submitEmployeeReport(userId: string, weekStarting: string, content: string) {
-        // Upsert logic: if report for this user and this week exists, update it
         const { data, error } = await supabase
             .from('employee_reports')
             .upsert({
@@ -154,14 +137,5 @@ export class ReportsService {
 
         if (error) throw new Error(error.message);
         return data;
-    }
-
-    private getLastFriday(date: Date): Date {
-        const d = new Date(date);
-        const day = d.getDay();
-        const diff = (day <= 5) ? (day + 2) : (day - 5);
-        d.setDate(d.getDate() - diff);
-        d.setHours(23, 59, 59, 999);
-        return d;
     }
 }

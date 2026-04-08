@@ -14,6 +14,7 @@ export default function InventoryFormModal({ isOpen, onClose, onSave, initialDat
     const [formData, setFormData] = useState<Partial<InventoryItem>>({
         code: '',
         type: 'BB',
+        bePeriod: '3 AYLIK',
         district: '',
         neighborhood: '',
         address: '',
@@ -188,13 +189,14 @@ export default function InventoryFormModal({ isOpen, onClose, onSave, initialDat
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Dönem</label>
                                     <select
-                                        value={formData.bePeriod || 'AYLIK'}
+                                        value={formData.bePeriod || '3 AYLIK'}
                                         onChange={e => setFormData({ ...formData, bePeriod: e.target.value })}
                                         className="input w-full"
                                     >
                                         <option value="HAFTALIK">Haftalık</option>
                                         <option value="10 GÜNLÜK">10 Günlük</option>
                                         <option value="AYLIK">Aylık</option>
+                                        <option value="3 AYLIK">3 Aylık</option>
                                         <option value="YILLIK">Yıllık</option>
                                     </select>
                                 </div>
