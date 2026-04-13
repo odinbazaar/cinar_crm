@@ -1,6 +1,7 @@
 import React from 'react'
 import { ShoppingBag, X, Send, Trash2, FileText } from 'lucide-react'
 import type { ProposalItem } from '../../types/sales'
+import { getPeriodLabel } from '../../utils/salesUtils'
 
 interface MainProposalCardProps {
     items: ProposalItem[]
@@ -53,7 +54,7 @@ export const MainProposalCard: React.FC<MainProposalCardProps> = ({
                                     {item.weekLayout && (
                                         <>
                                             <span className="opacity-30">•</span>
-                                            <span>{item.weekLayout} Dönem</span>
+                                            <span>{item.weekLayout} {getPeriodLabel(item.type)}</span>
                                         </>
                                     )}
                                 </div>

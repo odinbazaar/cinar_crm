@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth'
 import { inventoryService, bookingsService, customerRequestsService, proposalsService, clientsService, notificationsService, type Client } from '../services'
 import LocationRequestModal from '../components/proposals/LocationRequestModal'
 import { WeeklyAvailabilityCard } from '../components/reservations/WeeklyAvailabilityCard'
+import { getScheduleType, getPeriodStartDatesForMonth } from '../utils/salesUtils'
 import * as XLSX from 'xlsx'
 
 // Lokasyon tipi
@@ -26,7 +27,7 @@ interface Location {
     marka3Opsiyon: string
     marka4Opsiyon: string
     durum: 'OPSİYON' | 'KESİN' | 'BOŞ'
-    productType: 'BB' | 'CLP' | 'ML' | 'LED' | 'GB' | 'MB' | 'KB'
+    productType: 'BB' | 'CLP' | 'ML' | 'LED' | 'GB' | 'MB' | 'KB' | 'BE'
 }
 
 // Verileri tip güvenli hale getirelim ve başlangıçta temizleyelim
@@ -80,39 +81,73 @@ export default function ReservationsPage() {
     // Sabit Seçenekler
     const allMonths = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık']
     const yearOptions = [2026, 2027, 2028, 2029, 2030]
-    const productTypes = ['Tümü', 'BB', 'CLP', 'MGL', 'LB', 'GB', 'MB', 'KB']
+    const productTypes = ['Tümü', 'BB', 'CLP', 'MGL', 'LB', 'GB', 'MB', 'KB', 'BE']
 
     // Dinamik Filtre Seçenekleri
     const monthOptions = allMonths
 
-    const generateWeekOptions = (year: number, month: string) => {
+    const generatePeriodOptions = (year: number, month: string, productType: string) => {
         const monthIndex = allMonths.indexOf(month);
         if (monthIndex === -1) return [];
 
-        const generatedWeeks: { value: string; label: string; month: string }[] = []
-        const startOfYear = new Date(year, 0, 1)
+        // Ürün tipi seçilmişse o tipe göre dönem tarihlerini oluştur
+        const scheduleType = (productType && productType !== 'Tümü') 
+            ? getScheduleType(productType) 
+            : 'weekly'; // Tümü seçiliyken haftalık (Pazartesi) göster
 
-        let curr = new Date(startOfYear)
-        while (curr.getDay() !== 1) {
-            curr.setDate(curr.getDate() + 1)
+        if (scheduleType === 'tenday') {
+            // 10 Günlük: Ayın 1, 11, 21
+            const dates = getPeriodStartDatesForMonth(productType, year, monthIndex);
+            return dates.map(d => {
+                const day = String(d.getDate()).padStart(2, '0');
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const dateStr = `${day}.${m}.${d.getFullYear()}`;
+                return { value: dateStr, label: dateStr, month };
+            });
+        } else if (scheduleType === 'monthly') {
+            // Aylık: Ayın 1'i
+            const dates = getPeriodStartDatesForMonth(productType, year, monthIndex);
+            return dates.map(d => {
+                const day = String(d.getDate()).padStart(2, '0');
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const dateStr = `${day}.${m}.${d.getFullYear()}`;
+                return { value: dateStr, label: `${month} ${d.getFullYear()}`, month };
+            });
+        } else {
+            // Haftalık: Her Pazartesi
+            const generatedWeeks: { value: string; label: string; month: string }[] = []
+            const startOfYear = new Date(year, 0, 1)
+
+            let curr = new Date(startOfYear)
+            while (curr.getDay() !== 1) {
+                curr.setDate(curr.getDate() + 1)
+            }
+
+            while (curr.getFullYear() <= year) {
+                const day = String(curr.getDate()).padStart(2, '0')
+                const m = String(curr.getMonth() + 1).padStart(2, '0')
+                const dateStr = `${day}.${m}.${curr.getFullYear()}`
+                const weekMonthName = allMonths[curr.getMonth()];
+
+                generatedWeeks.push({ value: dateStr, label: dateStr, month: weekMonthName })
+                curr.setDate(curr.getDate() + 7)
+            }
+
+            return generatedWeeks.filter(w => w.month === month);
         }
-
-        while (curr.getFullYear() <= year) {
-            const day = String(curr.getDate()).padStart(2, '0')
-            const m = String(curr.getMonth() + 1).padStart(2, '0')
-            const dateStr = `${day}.${m}.${curr.getFullYear()}`
-            const weekMonthName = allMonths[curr.getMonth()];
-
-            generatedWeeks.push({ value: dateStr, label: dateStr, month: weekMonthName })
-            curr.setDate(curr.getDate() + 7)
-        }
-
-        return generatedWeeks.filter(w => w.month === month);
     };
 
+    // Seçilen ürün tipine göre dönem etiketini belirle
+    const currentScheduleType = (selectedProductType && selectedProductType !== 'Tümü')
+        ? getScheduleType(selectedProductType)
+        : 'weekly';
+    const periodLabel = currentScheduleType === 'weekly' ? 'Hafta'
+        : currentScheduleType === 'tenday' ? 'Dönem (10 Gün)'
+        : 'Dönem (Aylık)';
+
     const weekOptions = useMemo(() => {
-        return generateWeekOptions(selectedYear, selectedMonth);
-    }, [selectedYear, selectedMonth])
+        return generatePeriodOptions(selectedYear, selectedMonth, selectedProductType);
+    }, [selectedYear, selectedMonth, selectedProductType])
 
     // Ay değiştiğinde haftayı o ayın ilk haftasına ayarla
     useEffect(() => {
@@ -1672,10 +1707,19 @@ export default function ReservationsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Rezervasyon</h1>
-                    <p className="text-gray-500">Hafta ve network bazlı lokasyon ataması ve liste yönetimi</p>
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                <div className="flex flex-col gap-2">
+                    <h1 className="text-3xl font-bold text-gray-900">Rezervasyon Yönetimi</h1>
+                    <div className="flex items-center gap-3">
+                        <a
+                            href="/ACIKHAVA_REZ.xlsx"
+                            download
+                            className="bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-green-100 transition-colors border border-green-200"
+                        >
+                            <FileSpreadsheet className="w-4 h-4" />
+                            Açıkhava Rezervasyon Listesi (Excel)
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -1713,18 +1757,6 @@ export default function ReservationsPage() {
                         {/* İlk Satır - Ana Filtreler */}
                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                             <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Hafta</label>
-                                <select
-                                    value={selectedWeek}
-                                    onChange={(e) => setSelectedWeek(e.target.value)}
-                                    className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm font-bold bg-primary-50 border-primary-100"
-                                >
-                                    {weekOptions.map(week => (
-                                        <option key={week.value} value={week.value}>{week.label}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Ürün Tipi</label>
                                 <select
                                     value={selectedProductType}
@@ -1733,6 +1765,18 @@ export default function ReservationsPage() {
                                 >
                                     {productTypes.map(type => (
                                         <option key={type} value={type}>{type}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">{periodLabel}</label>
+                                <select
+                                    value={selectedWeek}
+                                    onChange={(e) => setSelectedWeek(e.target.value)}
+                                    className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm font-bold bg-primary-50 border-primary-100"
+                                >
+                                    {weekOptions.map(week => (
+                                        <option key={week.value} value={week.value}>{week.label}</option>
                                     ))}
                                 </select>
                             </div>

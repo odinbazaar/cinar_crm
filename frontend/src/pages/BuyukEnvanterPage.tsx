@@ -81,6 +81,26 @@ export default function BuyukEnvanterPage() {
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Büyük Envanter</h1>
                         <p className="text-gray-600 mt-1">Dönem ve fiyatlandırması envanter girişinde belirlenen özel envanterler</p>
+                        <div className="flex items-center gap-3 mt-4">
+                            <a
+                                href="/IAR_BUYUK_ENVANTER.pdf"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-amber-100 transition-colors border border-amber-200"
+                            >
+                                <Plus className="w-4 h-4 rotate-45" />
+                                Büyük Envanter PDF
+                            </a>
+                            <a
+                                href="/IAR_BUYUK_NVANTER.pdf"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-orange-50 text-orange-700 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-orange-100 transition-colors border border-orange-200"
+                            >
+                                <Plus className="w-4 h-4 rotate-45" />
+                                Büyük Envanter (Alternatif) PDF
+                            </a>
+                        </div>
                     </div>
                 </div>
                 <button onClick={handleAddNew} className="btn btn-primary flex items-center gap-2">

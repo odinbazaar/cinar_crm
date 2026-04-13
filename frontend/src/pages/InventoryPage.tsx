@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Search, Plus, Edit2, Map, Upload, Trash2 } from 'lucide-react'
+import { Search, Plus, Edit2, Map, Upload, Trash2, FileSpreadsheet } from 'lucide-react'
 import { inventoryService } from '../services/inventoryService'
 import { inventoryData } from '../data/inventoryData'
 import type { InventoryItem } from '../services/inventoryService'
@@ -157,6 +157,26 @@ export default function InventoryPage() {
                     <h1 className="text-3xl font-bold text-gray-900">Envanter Yönetimi</h1>
                     <p className="text-gray-600 mt-1">Billboard, CLP, Megalight ve diğer reklam alanları</p>
                 </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <a
+                            href="/ACIKHAVA_REZ.xlsx"
+                            download
+                            className="bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-green-100 transition-colors border border-green-200"
+                        >
+                            <FileSpreadsheet className="w-4 h-4" />
+                            Rezervasyon Listesi
+                        </a>
+                        <a
+                            href="/IAR_BUYUK_ALANLAR_FIYATLI.pdf"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-blue-100 transition-colors border border-blue-200"
+                        >
+                            <FileSpreadsheet className="w-4 h-4" />
+                            Büyük Alanlar Fiyatlı
+                        </a>
+                    </div>
+                </div>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => setIsImportOpen(true)}
@@ -173,7 +193,6 @@ export default function InventoryPage() {
                         Yeni Envanter Ekle
                     </button>
                 </div>
-            </div>
 
             {/* Filters */}
             <div className="card p-4">

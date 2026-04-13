@@ -13,7 +13,7 @@ export const getProductTypes = () => {
         { code: 'GB', name: 'GIANTBOARD', duration: '10 GÜN', period: '10 GÜNLÜK', unitPrice: 85000, discountedPrice: 55000, printingCost: 4500, operationCost: 2500 },
         { code: 'KB', name: 'KULEBOARD', duration: '1 AY', period: 'AYLIK', unitPrice: 250000, discountedPrice: 180000, printingCost: 9600, operationCost: 15000 },
         { code: 'MB', name: 'MEGABOARD', duration: '1 AY', period: 'AYLIK', unitPrice: 175000, discountedPrice: 100000, printingCost: 3500, operationCost: 1500 },
-        { code: 'BE', name: 'BÜYÜK ENVANTER', duration: '3 AY', period: '3 AYLIK', unitPrice: 300000, discountedPrice: 200000, printingCost: 12000, operationCost: 18000 },
+        { code: 'BE', name: 'BÜYÜK ENVANTER', duration: '1 AY', period: 'AYLIK', unitPrice: 300000, discountedPrice: 200000, printingCost: 12000, operationCost: 18000 },
     ]
 }
 
@@ -95,4 +95,208 @@ export const getWeekRangeText = (startMonth: number, startWeek: number, duration
     const endDate = new Date(startDate)
     endDate.setDate(startDate.getDate() + (duration * 7) - 1)
     return `${formatWeekDate(startDate)} - ${formatWeekDate(endDate)}`
+}
+
+// ====== Ürün Tipine Göre Dönem/Tarih Hesaplama Fonksiyonları ======
+
+/**
+ * Ürün tipine göre takvim türünü döndürür.
+ * - 'weekly': BB, CLP, MGL, LB (Haftalık - Pazartesi başlar)
+ * - 'tenday': GB (10 Günlük - Ayın 1, 11, 21)
+ * - 'monthly': KB, MB, BE (Aylık - Ayın 1'i)
+ */
+export type ScheduleType = 'weekly' | 'tenday' | 'monthly'
+
+export const getScheduleType = (productCode: string): ScheduleType => {
+    const code = productCode.toUpperCase()
+    if (['BB', 'CLP', 'MGL', 'LB'].includes(code)) return 'weekly'
+    if (code === 'GB') return 'tenday'
+    if (['KB', 'MB', 'BE'].includes(code)) return 'monthly'
+    // Fallback: haftalık
+    return 'weekly'
+}
+
+/**
+ * Verilen tarihe göre o ürün tipi için geçerli dönem başlangıç tarihini hesaplar.
+ * - weekly: Verilen tarihten itibaren en yakın Pazartesi (bugün Pazartesi ise bugün)
+ * - tenday: Verilen tarihten itibaren en yakın 1, 11 veya 21 (bugün bu günlerden biri ise bugün)
+ * - monthly: Verilen tarihten itibaren en yakın ayın 1'i (bugün 1 ise bugün)
+ */
+export const getNextPeriodStartDate = (productCode: string, fromDate?: Date): Date => {
+    const scheduleType = getScheduleType(productCode)
+    const date = fromDate ? new Date(fromDate) : new Date()
+    // Saat bilgisini sıfırla
+    date.setHours(0, 0, 0, 0)
+
+    switch (scheduleType) {
+        case 'weekly': {
+            // En yakın Pazartesi
+            const dayOfWeek = date.getDay() // 0=Pazar, 1=Pazartesi, ...
+            if (dayOfWeek === 1) return date // Bugün Pazartesi
+            const daysUntilMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek)
+            const monday = new Date(date)
+            monday.setDate(date.getDate() + daysUntilMonday)
+            return monday
+        }
+        case 'tenday': {
+            // En yakın 1, 11 veya 21
+            const day = date.getDate()
+            if (day === 1 || day === 11 || day === 21) return date
+            
+            if (day < 11) {
+                return new Date(date.getFullYear(), date.getMonth(), 11)
+            } else if (day < 21) {
+                return new Date(date.getFullYear(), date.getMonth(), 21)
+            } else {
+                // Sonraki ayın 1'i
+                return new Date(date.getFullYear(), date.getMonth() + 1, 1)
+            }
+        }
+        case 'monthly': {
+            // En yakın ayın 1'i
+            const day = date.getDate()
+            if (day === 1) return date
+            // Sonraki ayın 1'i
+            return new Date(date.getFullYear(), date.getMonth() + 1, 1)
+        }
+        default:
+            return date
+    }
+}
+
+/**
+ * Başlangıç tarihinden itibaren dönem sayısına göre bitiş tarihini hesaplar.
+ * - weekly: her dönem 7 gün
+ * - tenday: her dönem 10 gün (1→10, 11→20, 21→ay sonu)
+ * - monthly: her dönem 1 ay
+ * @param productCode Ürün kodu
+ * @param startDate Başlangıç tarihi
+ * @param periods Dönem sayısı (default: 1)
+ * @returns Bitiş tarihi (dönemin son günü, dahil)
+ */
+export const calculatePeriodEndDate = (productCode: string, startDate: Date, periods: number = 1): Date => {
+    const scheduleType = getScheduleType(productCode)
+    const start = new Date(startDate)
+    start.setHours(0, 0, 0, 0)
+
+    switch (scheduleType) {
+        case 'weekly': {
+            const end = new Date(start)
+            end.setDate(start.getDate() + (periods * 7) - 1)
+            return end
+        }
+        case 'tenday': {
+            // 10 günlük periyotlar: 1-10, 11-20, 21-ayın son günü
+            let current = new Date(start)
+            for (let i = 0; i < periods; i++) {
+                const day = current.getDate()
+                if (day === 1) {
+                    if (i === periods - 1) {
+                        return new Date(current.getFullYear(), current.getMonth(), 10)
+                    }
+                    current = new Date(current.getFullYear(), current.getMonth(), 11)
+                } else if (day === 11) {
+                    if (i === periods - 1) {
+                        return new Date(current.getFullYear(), current.getMonth(), 20)
+                    }
+                    current = new Date(current.getFullYear(), current.getMonth(), 21)
+                } else if (day === 21) {
+                    // Ayın son günü
+                    const lastDay = new Date(current.getFullYear(), current.getMonth() + 1, 0).getDate()
+                    if (i === periods - 1) {
+                        return new Date(current.getFullYear(), current.getMonth(), lastDay)
+                    }
+                    current = new Date(current.getFullYear(), current.getMonth() + 1, 1)
+                } else {
+                    // Fallback
+                    if (i === periods - 1) {
+                        const end = new Date(current)
+                        end.setDate(current.getDate() + 9)
+                        return end
+                    }
+                    current.setDate(current.getDate() + 10)
+                }
+            }
+            return current
+        }
+        case 'monthly': {
+            const end = new Date(start.getFullYear(), start.getMonth() + periods, 0) // Ayın son günü
+            return end
+        }
+        default: {
+            const end = new Date(start)
+            end.setDate(start.getDate() + (periods * 7) - 1)
+            return end
+        }
+    }
+}
+
+/**
+ * Ürün tipine göre dönem etiketi döndürür (UI'da gösterilecek)
+ */
+export const getPeriodLabel = (productCode: string): string => {
+    const scheduleType = getScheduleType(productCode)
+    switch (scheduleType) {
+        case 'weekly': return 'Hafta'
+        case 'tenday': return '10 Gün'
+        case 'monthly': return 'Ay'
+        default: return 'Dönem'
+    }
+}
+
+/**
+ * Ürün tipine göre dönem başlangıç tarihi seçeneklerini döndürür.
+ * UI'da dropdown / tarih seçici olarak kullanılabilir.
+ * @param productCode Ürün kodu
+ * @param year Yıl
+ * @param monthIndex 0-indexed ay (0=Ocak)
+ * @returns Tarih dizisi
+ */
+export const getPeriodStartDatesForMonth = (productCode: string, year: number, monthIndex: number): Date[] => {
+    const scheduleType = getScheduleType(productCode)
+    const dates: Date[] = []
+
+    switch (scheduleType) {
+        case 'weekly': {
+            // O aydaki tüm Pazartesi günleri
+            const firstDay = new Date(year, monthIndex, 1)
+            const lastDay = new Date(year, monthIndex + 1, 0)
+            const current = new Date(firstDay)
+            
+            // İlk Pazartesiyi bul
+            const dayOfWeek = current.getDay()
+            const daysUntilMonday = dayOfWeek === 1 ? 0 : (dayOfWeek === 0 ? 1 : (8 - dayOfWeek))
+            current.setDate(current.getDate() + daysUntilMonday)
+            
+            while (current <= lastDay) {
+                dates.push(new Date(current))
+                current.setDate(current.getDate() + 7)
+            }
+            break
+        }
+        case 'tenday': {
+            // 1, 11, 21
+            dates.push(new Date(year, monthIndex, 1))
+            dates.push(new Date(year, monthIndex, 11))
+            dates.push(new Date(year, monthIndex, 21))
+            break
+        }
+        case 'monthly': {
+            // Sadece ayın 1'i
+            dates.push(new Date(year, monthIndex, 1))
+            break
+        }
+    }
+
+    return dates
+}
+
+/**
+ * Tarih formatını YYYY-MM-DD olarak döndürür (input[type=date] için)
+ */
+export const formatDateForInput = (date: Date): string => {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
 }

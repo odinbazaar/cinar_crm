@@ -8,7 +8,8 @@ import {
     calculateOperationTotal, 
     calculateSubtotal, 
     calculateKDV, 
-    calculateGrandTotal 
+    calculateGrandTotal,
+    getPeriodLabel 
 } from '../../utils/salesUtils'
 
 interface ProposalModalProps {
@@ -116,7 +117,8 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({
                                     value={item.weekLayout || ''}
                                     onChange={(e) => updateProposalItem(index, 'weekLayout', e.target.value)}
                                     className="w-14 flex-none px-1.5 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 text-[11px] text-center"
-                                    placeholder="W"
+                                    placeholder={getPeriodLabel(item.type).charAt(0)}
+                                    title={getPeriodLabel(item.type)}
                                 />
                                 <input
                                     type="number"

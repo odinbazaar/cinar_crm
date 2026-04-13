@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { X, Calendar, Send, Info, Plus, Trash2 } from 'lucide-react';
 import type { Proposal } from '../../types/sales';
 import { useToast } from '../../hooks/useToast';
+import {
+    getScheduleType,
+    getNextPeriodStartDate,
+    calculatePeriodEndDate,
+    getPeriodLabel,
+    formatDateForInput
+} from '../../utils/salesUtils';
 
 interface ApproveProposalModalProps {
     isOpen: boolean;
@@ -31,20 +38,21 @@ export function ApproveProposalModal({ isOpen, onClose, proposal, onApprove }: A
                 return !desc.includes('operasyon') && !desc.includes('baskı') && !desc.includes('baski') && !desc.includes('op. bedeli');
             });
             const initialData = mainItems.map((item, idx) => {
-                const start = new Date().toISOString().split('T')[0];
-                const weeks = parseInt(item.weekLayout || '1') || 1;
-                const startDateObj = new Date(start);
-                const endDateObj = new Date(startDateObj.getTime() + (weeks * 7 * 24 * 60 * 60 * 1000));
-                const end = endDateObj.toISOString().split('T')[0];
+                const productType = item.type || 'BB';
+                const periods = parseInt(item.weekLayout || '1') || 1;
+
+                // Ürün tipine göre başlangıç tarihini otomatik belirle
+                const periodStart = getNextPeriodStartDate(productType);
+                const periodEnd = calculatePeriodEndDate(productType, periodStart, periods);
 
                 return {
                     id: `item-${idx}-${Date.now()}`,
-                    type: item.type || 'BB',
+                    type: productType,
                     code: item.code || item.description || 'Bilinmeyen Ürün',
                     network: item.network || 'Tümü',
                     quantity: item.quantity || 1,
-                    startDate: start,
-                    endDate: end,
+                    startDate: formatDateForInput(periodStart),
+                    endDate: formatDateForInput(periodEnd),
                 };
             });
             setItemsData(initialData);
@@ -56,6 +64,18 @@ export function ApproveProposalModal({ isOpen, onClose, proposal, onApprove }: A
     const handleItemChange = (index: number, field: string, value: any) => {
         const newData = [...itemsData];
         newData[index] = { ...newData[index], [field]: value };
+
+        // startDate değiştiğinde, ürün tipine göre bitiş tarihini otomatik hesapla
+        if (field === 'startDate' && value) {
+            const item = newData[index];
+            const startDateObj = new Date(value);
+            // Mevcut dönem sayısını al (weekLayout bilgisi item'da yok, 
+            // fakat mevcut start-end aralığından hesaplayabiliriz)
+            // Basit yaklaşım: 1 dönem varsay
+            const periodEnd = calculatePeriodEndDate(item.type, startDateObj, 1);
+            newData[index].endDate = formatDateForInput(periodEnd);
+        }
+
         setItemsData(newData);
     };
 
@@ -112,6 +132,22 @@ export function ApproveProposalModal({ isOpen, onClose, proposal, onApprove }: A
                         
                         {itemsData.map((item, idx) => (
                             <div key={item.id} className="bg-white border rounded-xl p-4 shadow-sm relative group hover:border-blue-200 transition-colors">
+                                {/* Dönem Tipi Badge */}
+                                {(() => {
+                                    const scheduleType = getScheduleType(item.type);
+                                    const badgeConfig = {
+                                        weekly: { label: 'Haftalık (Pzt)', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+                                        tenday: { label: '10 Günlük (1/11/21)', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+                                        monthly: { label: 'Aylık (1\'inde)', color: 'bg-violet-100 text-violet-700 border-violet-200' },
+                                    };
+                                    const badge = badgeConfig[scheduleType];
+                                    return (
+                                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 mb-3 text-[10px] font-bold rounded-full border ${badge.color}`}>
+                                            <Calendar className="w-3 h-3" />
+                                            {badge.label}
+                                        </div>
+                                    );
+                                })()}
                                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                                     <div className="md:col-span-4">
                                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Ürün / Adet</label>
