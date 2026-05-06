@@ -59,11 +59,10 @@ export class InventoryService {
     }
 
     async update(id: string, updateInventoryItemDto: UpdateInventoryItemDto): Promise<InventoryItem> {
-        // Convert camelCase routeNo to snake_case route_no for database
-        const dbData: any = { ...updateInventoryItemDto };
-        if ('routeNo' in dbData) {
-            dbData.route_no = dbData.routeNo;
-            delete dbData.routeNo;
+        const incoming: any = { ...updateInventoryItemDto };
+        if ('routeNo' in incoming) {
+            incoming.route_no = incoming.routeNo;
+            delete incoming.routeNo;
         }
         const beMap: Record<string, string> = {
             bePeriod: 'be_period',
@@ -73,9 +72,23 @@ export class InventoryService {
             beOperationCost: 'be_operation_cost',
         };
         for (const k of Object.keys(beMap)) {
-            if (k in dbData) {
-                dbData[beMap[k]] = dbData[k];
-                delete dbData[k];
+            if (k in incoming) {
+                incoming[beMap[k]] = incoming[k];
+                delete incoming[k];
+            }
+        }
+
+        const allowed = [
+            'code', 'type', 'district', 'neighborhood', 'address',
+            'coordinates', 'network', 'route_no', 'is_active',
+            'be_period', 'be_unit_price', 'be_discounted_price',
+            'be_printing_cost', 'be_operation_cost',
+        ];
+        const dbData: any = {};
+        for (const k of allowed) {
+            if (k in incoming && incoming[k] !== undefined) {
+                const v = incoming[k];
+                dbData[k] = typeof v === 'string' ? v.normalize('NFC').trim() : v;
             }
         }
 
@@ -86,7 +99,13 @@ export class InventoryService {
             .select()
             .single();
 
-        if (error) throw new Error(error.message);
+        if (error) {
+            console.error('[inventory.update] Supabase error:', { id, dbData, error });
+            throw new HttpException(
+                `Inventory update failed: ${error.message}`,
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
         return data as InventoryItem;
     }
 

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useMemo } from 'react'
 import { Search, LayoutGrid, List, UserPlus, Building2, Mail, Phone, MapPin, FileText, RefreshCw, Trash2 } from 'lucide-react'
 import type { Customer, CustomerForm, ProposalItem, Proposal } from '../../types/sales'
 
@@ -31,6 +31,26 @@ export const CustomerList: React.FC<CustomerListProps> = ({
     getProductTypes,
     isAdmin
 }) => {
+    const [searchTerm, setSearchTerm] = useState('')
+
+    const filteredCustomers = useMemo(() => {
+        const q = searchTerm.trim().toLocaleLowerCase('tr')
+        if (!q) return customers
+        return customers.filter((c) => {
+            const fields = [
+                c.companyName,
+                (c as any).tradeName,
+                c.contactPerson,
+                c.email,
+                c.phone,
+                (c as any).mobile,
+                (c as any).city,
+                (c as any).district,
+            ]
+            return fields.some((v) => v && String(v).toLocaleLowerCase('tr').includes(q))
+        })
+    }, [customers, searchTerm])
+
     return (
         <div className="space-y-4 text-left">
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-2 rounded-xl border border-gray-100 shadow-sm">
@@ -38,6 +58,8 @@ export const CustomerList: React.FC<CustomerListProps> = ({
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                         type="text"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder="Müşteri ara..."
                         className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     />
@@ -72,7 +94,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({
 
             {customerViewType === 'grid' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {customers.map((customer) => (
+                    {filteredCustomers.map((customer) => (
                         <div key={customer.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
                             <div className="flex items-start justify-between mb-4">
                                 <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center">
@@ -181,7 +203,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {customers.map((customer) => (
+                            {filteredCustomers.map((customer) => (
                                 <tr key={customer.id} className="hover:bg-gray-50 transition-colors group">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
